@@ -1,0 +1,1299 @@
+package com.example.clouddx_team4_project.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+
+// ========================================
+// 색상
+// ========================================
+
+private val AnOnBlue = Color(0xFF6A92FE)
+private val ScreenBackground = Color(0xFFFAFBFD)
+private val TextBlack = Color(0xFF222222)
+private val TextGray = Color(0xFF8B8B8B)
+private val BorderGray = Color(0xFFE7E9EE)
+private val LightBlue = Color(0xFFF0F4FF)
+
+
+// ========================================
+// 회원가입 화면
+// ========================================
+
+@Composable
+fun SignUpScreen(
+    onBackClick: () -> Unit = {},
+    onSignUpComplete: () -> Unit = {}
+) {
+
+    // 현재 회원가입 단계
+    var currentStep by remember {
+        mutableIntStateOf(1)
+    }
+
+
+    // 입력 정보
+    var userId by remember {
+        mutableStateOf("")
+    }
+
+    var password by remember {
+        mutableStateOf("")
+    }
+
+    var name by remember {
+        mutableStateOf("")
+    }
+
+
+    // 비밀번호 보이기
+    var passwordVisible by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // 약관 체크 상태
+    // ========================================
+
+    var serviceAgree by remember {
+        mutableStateOf(false)
+    }
+
+    var privacyAgree by remember {
+        mutableStateOf(false)
+    }
+
+    var locationAgree by remember {
+        mutableStateOf(false)
+    }
+
+    var marketingAgree by remember {
+        mutableStateOf(false)
+    }
+
+    var emergencyAgree by remember {
+        mutableStateOf(false)
+    }
+
+
+    val requiredAgreed =
+        serviceAgree &&
+                privacyAgree &&
+                locationAgree
+
+
+    val allAgreed =
+        serviceAgree &&
+                privacyAgree &&
+                locationAgree &&
+                marketingAgree &&
+                emergencyAgree
+
+
+    // ========================================
+    // 전체 화면
+    // ========================================
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ScreenBackground)
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+
+            // ========================================
+            // 상단 헤더
+            // ========================================
+
+            SignUpHeader(
+                currentStep = currentStep,
+
+                onBackClick = {
+
+                    if (currentStep > 1) {
+
+                        currentStep--
+
+                    } else {
+
+                        onBackClick()
+                    }
+                }
+            )
+
+
+            // ========================================
+            // 단계 표시
+            // ========================================
+
+            SignUpStepIndicator(
+                currentStep = currentStep
+            )
+
+
+            // ========================================
+            // 내용
+            // ========================================
+
+            when (currentStep) {
+
+                1 -> {
+
+                    TermsStep(
+                        serviceAgree = serviceAgree,
+                        privacyAgree = privacyAgree,
+                        locationAgree = locationAgree,
+                        marketingAgree = marketingAgree,
+                        emergencyAgree = emergencyAgree,
+                        allAgreed = allAgreed,
+
+                        onAllAgreeChange = { checked ->
+
+                            serviceAgree = checked
+                            privacyAgree = checked
+                            locationAgree = checked
+                            marketingAgree = checked
+                            emergencyAgree = checked
+                        },
+
+                        onServiceAgreeChange = {
+                            serviceAgree = it
+                        },
+
+                        onPrivacyAgreeChange = {
+                            privacyAgree = it
+                        },
+
+                        onLocationAgreeChange = {
+                            locationAgree = it
+                        },
+
+                        onMarketingAgreeChange = {
+                            marketingAgree = it
+                        },
+
+                        onEmergencyAgreeChange = {
+                            emergencyAgree = it
+                        },
+
+                        onNextClick = {
+
+                            if (requiredAgreed) {
+                                currentStep = 2
+                            }
+                        }
+                    )
+                }
+
+
+                2 -> {
+
+                    UserInfoStep(
+                        userId = userId,
+                        password = password,
+                        name = name,
+                        passwordVisible = passwordVisible,
+
+                        onUserIdChange = {
+                            userId = it
+                        },
+
+                        onPasswordChange = {
+                            password = it
+                        },
+
+                        onNameChange = {
+                            name = it
+                        },
+
+                        onPasswordVisibleChange = {
+                            passwordVisible = !passwordVisible
+                        },
+
+                        onNextClick = {
+
+                            if (
+                                userId.isNotBlank() &&
+                                password.isNotBlank() &&
+                                name.isNotBlank()
+                            ) {
+
+                                currentStep = 3
+                            }
+                        }
+                    )
+                }
+
+
+                3 -> {
+
+                    ConfirmInfoStep(
+                        userId = userId,
+                        name = name,
+
+                        onNextClick = {
+
+                            // ========================================
+                            // TODO
+                            // 나중에는 여기서
+                            // 회원가입 백엔드 API 호출
+                            //
+                            // 성공하면 currentStep = 4
+                            // ========================================
+
+                            currentStep = 4
+                        }
+                    )
+                }
+
+
+                4 -> {
+
+                    CompleteStep(
+                        onCompleteClick = {
+
+                            onSignUpComplete()
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+// ========================================
+// 상단 헤더
+// ========================================
+
+@Composable
+private fun SignUpHeader(
+    currentStep: Int,
+    onBackClick: () -> Unit
+) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(62.dp)
+            .padding(horizontal = 20.dp)
+    ) {
+
+        if (currentStep != 4) {
+
+            Icon(
+                imageVector = Icons.Filled.ArrowBackIosNew,
+                contentDescription = "뒤로가기",
+                tint = Color(0xFF333333),
+
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(21.dp)
+                    .clickable {
+                        onBackClick()
+                    }
+            )
+        }
+
+
+        Text(
+            text = "회원가입",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextBlack,
+
+            modifier = Modifier.align(
+                Alignment.Center
+            )
+        )
+    }
+}
+
+
+// ========================================
+// 상단 단계 표시
+// ========================================
+
+@Composable
+private fun SignUpStepIndicator(
+    currentStep: Int
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 55.dp,
+                vertical = 8.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        for (step in 1..4) {
+
+            StepCircle(
+                step = step,
+                currentStep = currentStep
+            )
+
+
+            if (step != 4) {
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(2.dp)
+                        .background(
+                            if (currentStep > step)
+                                AnOnBlue.copy(alpha = 0.4f)
+                            else
+                                Color(0xFFE7E9EF)
+                        )
+                )
+            }
+        }
+    }
+}
+
+
+// ========================================
+// 단계 원
+// ========================================
+
+@Composable
+private fun StepCircle(
+    step: Int,
+    currentStep: Int
+) {
+
+    val isCurrent =
+        currentStep == step
+
+
+    Box(
+        modifier = Modifier
+            .size(27.dp)
+            .background(
+                color =
+                    if (isCurrent)
+                        AnOnBlue
+                    else
+                        Color(0xFFF0F1F5),
+
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Text(
+            text = step.toString(),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+
+            color =
+                if (isCurrent)
+                    Color.White
+                else
+                    Color(0xFF9197A5)
+        )
+    }
+}
+
+
+// ========================================
+// 1단계 : 약관 동의
+// ========================================
+
+@Composable
+private fun TermsStep(
+    serviceAgree: Boolean,
+    privacyAgree: Boolean,
+    locationAgree: Boolean,
+    marketingAgree: Boolean,
+    emergencyAgree: Boolean,
+    allAgreed: Boolean,
+
+    onAllAgreeChange: (Boolean) -> Unit,
+    onServiceAgreeChange: (Boolean) -> Unit,
+    onPrivacyAgreeChange: (Boolean) -> Unit,
+    onLocationAgreeChange: (Boolean) -> Unit,
+    onMarketingAgreeChange: (Boolean) -> Unit,
+    onEmergencyAgreeChange: (Boolean) -> Unit,
+
+    onNextClick: () -> Unit
+) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 24.dp,
+                end = 24.dp,
+                top = 30.dp,
+                bottom = 25.dp
+            )
+    ) {
+
+        Text(
+            text = "약관 동의",
+            fontSize = 23.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextBlack,
+
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+
+        Text(
+            text = "서비스 이용을 위해 약관에 동의해주세요.",
+            fontSize = 13.sp,
+            color = TextGray,
+
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(34.dp)
+        )
+
+
+        // 전체 동의
+        AgreementRow(
+            title = "전체 동의합니다.",
+            checked = allAgreed,
+            bold = true,
+
+            onCheckedChange = {
+                onAllAgreeChange(it)
+            }
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
+
+        HorizontalDivider(
+            color = BorderGray
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+
+        AgreementRow(
+            title = "[필수] 서비스 이용약관",
+            checked = serviceAgree,
+            showDetail = true,
+
+            onCheckedChange = {
+                onServiceAgreeChange(it)
+            }
+        )
+
+
+        AgreementRow(
+            title = "[필수] 개인정보 수집 및 이용 동의",
+            checked = privacyAgree,
+            showDetail = true,
+
+            onCheckedChange = {
+                onPrivacyAgreeChange(it)
+            }
+        )
+
+
+        AgreementRow(
+            title = "[필수] 위치정보 수집 및 이용 동의",
+            checked = locationAgree,
+            showDetail = true,
+
+            onCheckedChange = {
+                onLocationAgreeChange(it)
+            }
+        )
+
+
+        AgreementRow(
+            title = "[선택] 마케팅 정보 수신 동의",
+            checked = marketingAgree,
+            showDetail = true,
+
+            onCheckedChange = {
+                onMarketingAgreeChange(it)
+            }
+        )
+
+
+        AgreementRow(
+            title = "[선택] 긴급상황 관련 정보 수신 동의",
+            checked = emergencyAgree,
+            showDetail = true,
+
+            onCheckedChange = {
+                onEmergencyAgreeChange(it)
+            }
+        )
+
+
+        Spacer(
+            modifier = Modifier.weight(1f)
+        )
+
+
+        PrimaryButton(
+            text = "다음",
+
+            enabled =
+                serviceAgree &&
+                        privacyAgree &&
+                        locationAgree,
+
+            onClick = onNextClick
+        )
+    }
+}
+
+
+// ========================================
+// 약관 한 줄
+// ========================================
+
+@Composable
+private fun AgreementRow(
+    title: String,
+    checked: Boolean,
+    bold: Boolean = false,
+    showDetail: Boolean = false,
+    onCheckedChange: (Boolean) -> Unit
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(55.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        AgreementCheck(
+            checked = checked,
+
+            onClick = {
+
+                onCheckedChange(
+                    !checked
+                )
+            }
+        )
+
+
+        Spacer(
+            modifier = Modifier.width(10.dp)
+        )
+
+
+        Text(
+            text = title,
+            fontSize = 14.sp,
+
+            fontWeight =
+                if (bold)
+                    FontWeight.Bold
+                else
+                    FontWeight.Medium,
+
+            color = TextBlack,
+
+            modifier = Modifier.weight(1f)
+        )
+
+
+        if (showDetail) {
+
+            Text(
+                text = "보기",
+                fontSize = 12.sp,
+                color = TextGray
+            )
+
+
+            Spacer(
+                modifier = Modifier.width(3.dp)
+            )
+
+
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = TextGray,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+
+// ========================================
+// 커스텀 체크
+// ========================================
+
+@Composable
+private fun AgreementCheck(
+    checked: Boolean,
+    onClick: () -> Unit
+) {
+
+    Box(
+        modifier = Modifier
+            .size(23.dp)
+            .background(
+                color =
+                    if (checked)
+                        AnOnBlue
+                    else
+                        Color.White,
+
+                shape = CircleShape
+            )
+            .border(
+                width = 1.5.dp,
+
+                color =
+                    if (checked)
+                        AnOnBlue
+                    else
+                        Color(0xFFD3D5DB),
+
+                shape = CircleShape
+            )
+            .clickable {
+                onClick()
+            },
+
+        contentAlignment = Alignment.Center
+    ) {
+
+        if (checked) {
+
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(15.dp)
+            )
+        }
+    }
+}
+
+
+// ========================================
+// 2단계 : 회원정보 입력
+// ========================================
+
+@Composable
+private fun UserInfoStep(
+    userId: String,
+    password: String,
+    name: String,
+    passwordVisible: Boolean,
+
+    onUserIdChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onNameChange: (String) -> Unit,
+    onPasswordVisibleChange: () -> Unit,
+
+    onNextClick: () -> Unit
+) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(
+                rememberScrollState()
+            )
+            .padding(
+                start = 24.dp,
+                end = 24.dp,
+                top = 30.dp,
+                bottom = 25.dp
+            )
+    ) {
+
+        Text(
+            text = "회원 정보 입력",
+            fontSize = 23.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextBlack,
+
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+
+        Text(
+            text = "기본 정보를 입력해주세요.",
+            fontSize = 13.sp,
+            color = TextGray,
+
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(35.dp)
+        )
+
+
+        SignUpTextField(
+            value = userId,
+
+            onValueChange = {
+                onUserIdChange(it)
+            },
+
+            title = "아이디",
+            hint = "영문, 숫자 포함 4~16자",
+            icon = Icons.Filled.Person
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(14.dp)
+        )
+
+
+        SignUpTextField(
+            value = password,
+
+            onValueChange = {
+                onPasswordChange(it)
+            },
+
+            title = "비밀번호",
+            hint = "영문, 숫자, 특수문자 포함 8~16자",
+            icon = Icons.Filled.Lock,
+
+            password = true,
+            passwordVisible = passwordVisible,
+
+            onPasswordVisibleChange =
+                onPasswordVisibleChange
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(14.dp)
+        )
+
+
+        SignUpTextField(
+            value = name,
+
+            onValueChange = {
+                onNameChange(it)
+            },
+
+            title = "이름",
+            hint = "이름을 입력해주세요",
+            icon = Icons.Filled.Person
+        )
+
+
+        Spacer(
+            modifier = Modifier.weight(1f)
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(35.dp)
+        )
+
+
+        PrimaryButton(
+            text = "다음",
+
+            enabled =
+                userId.isNotBlank() &&
+                        password.isNotBlank() &&
+                        name.isNotBlank(),
+
+            onClick = onNextClick
+        )
+    }
+}
+
+
+// ========================================
+// 입력 필드
+// ========================================
+
+@Composable
+private fun SignUpTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+
+    title: String,
+    hint: String,
+
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+
+    password: Boolean = false,
+    passwordVisible: Boolean = false,
+
+    onPasswordVisibleChange: () -> Unit = {}
+) {
+
+    OutlinedTextField(
+        value = value,
+
+        onValueChange = {
+            onValueChange(it)
+        },
+
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(74.dp),
+
+        shape = RoundedCornerShape(13.dp),
+
+        leadingIcon = {
+
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color(0xFF9298A8),
+                modifier = Modifier.size(21.dp)
+            )
+        },
+
+
+        trailingIcon = {
+
+            if (password) {
+
+                Icon(
+                    imageVector =
+                        if (passwordVisible)
+                            Icons.Filled.Visibility
+                        else
+                            Icons.Filled.VisibilityOff,
+
+                    contentDescription = null,
+
+                    tint = Color(0xFF9298A8),
+
+                    modifier = Modifier
+                        .size(21.dp)
+                        .clickable {
+                            onPasswordVisibleChange()
+                        }
+                )
+            }
+        },
+
+
+        label = {
+
+            Text(
+                text = title,
+                fontSize = 13.sp
+            )
+        },
+
+
+        placeholder = {
+
+            Text(
+                text = hint,
+                fontSize = 12.sp,
+                color = TextGray
+            )
+        },
+
+
+        singleLine = true,
+
+
+        visualTransformation =
+            if (password && !passwordVisible)
+                PasswordVisualTransformation()
+            else
+                VisualTransformation.None,
+
+
+        keyboardOptions = KeyboardOptions(
+            keyboardType =
+                if (password)
+                    KeyboardType.Password
+                else
+                    KeyboardType.Text
+        ),
+
+
+        colors = OutlinedTextFieldDefaults.colors(
+
+            focusedBorderColor = AnOnBlue,
+
+            unfocusedBorderColor =
+                BorderGray,
+
+            focusedLabelColor =
+                AnOnBlue,
+
+            cursorColor =
+                AnOnBlue
+        )
+    )
+}
+
+
+// ========================================
+// 3단계 : 입력 정보 확인
+// ========================================
+
+@Composable
+private fun ConfirmInfoStep(
+    userId: String,
+    name: String,
+    onNextClick: () -> Unit
+) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 24.dp,
+                end = 24.dp,
+                top = 30.dp,
+                bottom = 25.dp
+            )
+    ) {
+
+        Text(
+            text = "입력 정보 확인",
+            fontSize = 23.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextBlack,
+
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+
+        Text(
+            text = "입력한 정보를 확인해주세요.",
+            fontSize = 13.sp,
+            color = TextGray,
+
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(50.dp)
+        )
+
+
+        ConfirmRow(
+            title = "아이디",
+            value = userId
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(30.dp)
+        )
+
+
+        ConfirmRow(
+            title = "이름",
+            value = name
+        )
+
+
+        Spacer(
+            modifier = Modifier.weight(1f)
+        )
+
+
+        Text(
+            text = "입력한 정보로 회원가입을 진행합니다.",
+            fontSize = 12.sp,
+            color = TextGray,
+            textAlign = TextAlign.Center,
+
+            modifier = Modifier.fillMaxWidth()
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(25.dp)
+        )
+
+
+        PrimaryButton(
+            text = "다음",
+            enabled = true,
+
+            onClick = onNextClick
+        )
+    }
+}
+
+
+// ========================================
+// 입력정보 한 줄
+// ========================================
+
+@Composable
+private fun ConfirmRow(
+    title: String,
+    value: String
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Text(
+            text = title,
+            fontSize = 15.sp,
+            color = Color(0xFF666666),
+            modifier = Modifier.weight(1f)
+        )
+
+
+        Text(
+            text = value,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextBlack
+        )
+    }
+}
+
+
+// ========================================
+// 4단계 : 회원가입 완료
+// ========================================
+
+@Composable
+private fun CompleteStep(
+    onCompleteClick: () -> Unit
+) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                horizontal = 24.dp,
+                vertical = 25.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+
+        Spacer(
+            modifier = Modifier.weight(0.8f)
+        )
+
+
+        // ========================================
+        // 완료 아이콘
+        // ========================================
+
+        Box(
+            modifier = Modifier
+                .size(105.dp)
+                .background(
+                    color = LightBlue,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .size(78.dp)
+                    .background(
+                        color = AnOnBlue,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+        }
+
+
+        Spacer(
+            modifier = Modifier.height(35.dp)
+        )
+
+
+        Text(
+            text = "회원가입이 완료되었습니다!",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextBlack
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(10.dp)
+        )
+
+
+        Text(
+            text = "안온 서비스 가입을 환영합니다.",
+            fontSize = 13.sp,
+            color = TextGray
+        )
+
+
+        Spacer(
+            modifier = Modifier.weight(1f)
+        )
+
+
+        PrimaryButton(
+            text = "완료",
+            enabled = true,
+
+            onClick = onCompleteClick
+        )
+    }
+}
+
+
+// ========================================
+// 공통 하단 버튼
+// ========================================
+
+@Composable
+private fun PrimaryButton(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+
+        shape = RoundedCornerShape(12.dp),
+
+        colors = ButtonDefaults.buttonColors(
+
+            containerColor =
+                AnOnBlue,
+
+            contentColor =
+                Color.White,
+
+            disabledContainerColor =
+                Color(0xFFCCD7F6),
+
+            disabledContentColor =
+                Color.White
+        )
+    ) {
+
+        Text(
+            text = text,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+
+// ========================================
+// Preview
+// ========================================
+
+@androidx.compose.ui.tooling.preview.Preview(
+    showBackground = true,
+    showSystemUi = true
+)
+@Composable
+fun SignUpScreenPreview() {
+
+    SignUpScreen()
+}
