@@ -38,10 +38,30 @@ private val TextGray =
 
 @Composable
 fun SafeRouteScreen(
+
+    // ========================================
+    // 선택한 목적지 정보
+    // ========================================
+
+    destinationName: String = "",
+
+    destinationLatitude: Double? = null,
+
+    destinationLongitude: Double? = null,
+
+
+    // ========================================
+    // 이벤트
+    // ========================================
+
     onBackClick: () -> Unit = {},
+
     onStartSearchClick: () -> Unit = {},
+
     onDestinationSearchClick: () -> Unit = {},
+
     onTabSelected: (String) -> Unit = {},
+
     onEmergencyClick: () -> Unit = {}
 ) {
 
@@ -60,6 +80,7 @@ fun SafeRouteScreen(
                     bottom = 100.dp
                 )
         ) {
+
 
             // ========================================
             // 상단
@@ -93,15 +114,18 @@ fun SafeRouteScreen(
                             21.dp
                         )
                         .clickable {
+
                             onBackClick()
                         }
                 )
 
 
                 Text(
-                    text = "안심경로",
+                    text =
+                        "안심경로",
 
-                    fontSize = 22.sp,
+                    fontSize =
+                        22.sp,
 
                     fontWeight =
                         FontWeight.Bold,
@@ -147,10 +171,15 @@ fun SafeRouteScreen(
                 // ========================================
 
                 LocationInputRow(
-                    title = "출발지",
-                    value = "현재 위치",
+
+                    title =
+                        "출발지",
+
+                    value =
+                        "현재 위치",
 
                     onClick = {
+
                         onStartSearchClick()
                     }
                 )
@@ -169,10 +198,24 @@ fun SafeRouteScreen(
                 // ========================================
 
                 LocationInputRow(
-                    title = "도착지",
-                    value = "목적지를 검색하세요",
+
+                    title =
+                        "도착지",
+
+                    value =
+                        if (
+                            destinationName.isBlank()
+                        ) {
+
+                            "목적지를 검색하세요"
+
+                        } else {
+
+                            destinationName
+                        },
 
                     onClick = {
+
                         onDestinationSearchClick()
                     }
                 )
@@ -197,12 +240,14 @@ fun SafeRouteScreen(
                     .padding(
                         horizontal = 18.dp
                     ),
+
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
                 Text(
-                    text = "즐겨찾는 장소",
+                    text =
+                        "즐겨찾는 장소",
 
                     fontSize =
                         15.sp,
@@ -224,7 +269,8 @@ fun SafeRouteScreen(
 
 
                 FavoritePlaceChip(
-                    text = "집"
+                    text =
+                        "집"
                 )
 
 
@@ -237,7 +283,8 @@ fun SafeRouteScreen(
 
 
                 FavoritePlaceChip(
-                    text = "학교"
+                    text =
+                        "학교"
                 )
             }
 
@@ -257,12 +304,20 @@ fun SafeRouteScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(
+                        1f
+                    )
             ) {
 
                 KakaoMapView(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxSize(),
+
+                    destinationLatitude =
+                        destinationLatitude,
+
+                    destinationLongitude =
+                        destinationLongitude
                 )
             }
         }
@@ -273,7 +328,9 @@ fun SafeRouteScreen(
         // ========================================
 
         AnOnBottomBar(
-            selectedTab = "",
+
+            selectedTab =
+                "",
 
             onTabSelected =
                 onTabSelected,
@@ -296,8 +353,11 @@ fun SafeRouteScreen(
 
 @Composable
 private fun LocationInputRow(
+
     title: String,
+
     value: String,
+
     onClick: () -> Unit
 ) {
 
@@ -318,6 +378,7 @@ private fun LocationInputRow(
                 )
             )
             .clickable {
+
                 onClick()
             }
             .padding(
@@ -334,6 +395,7 @@ private fun LocationInputRow(
                     35.dp
                 )
                 .background(
+
                     color =
                         AnOnBlue.copy(
                             alpha = 0.12f
@@ -348,13 +410,17 @@ private fun LocationInputRow(
         ) {
 
             Icon(
+
                 imageVector =
                     if (
                         title ==
                         "출발지"
                     ) {
+
                         Icons.Filled.LocationOn
+
                     } else {
+
                         Icons.Filled.Search
                     },
 

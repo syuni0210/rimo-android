@@ -1,5 +1,6 @@
 package com.example.clouddx_team4_project.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -21,27 +23,40 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.clouddx_team4_project.network.RetrofitClient
+import com.example.clouddx_team4_project.network.SignupRequest
+import kotlinx.coroutines.launch
 
 
 // ========================================
 // 색상
 // ========================================
 
-private val AnOnBlue = Color(0xFF6A92FE)
-private val ScreenBackground = Color(0xFFFAFBFD)
-private val TextBlack = Color(0xFF222222)
-private val TextGray = Color(0xFF8B8B8B)
-private val BorderGray = Color(0xFFE7E9EE)
-private val LightBlue = Color(0xFFF0F4FF)
+private val AnOnBlue =
+    Color(0xFF6A92FE)
+
+private val ScreenBackground =
+    Color(0xFFFAFBFD)
+
+private val TextBlack =
+    Color(0xFF222222)
+
+private val TextGray =
+    Color(0xFF8B8B8B)
+
+private val BorderGray =
+    Color(0xFFE7E9EE)
+
+private val LightBlue =
+    Color(0xFFF0F4FF)
 
 
 // ========================================
@@ -54,14 +69,20 @@ fun SignUpScreen(
     onSignUpComplete: () -> Unit = {}
 ) {
 
+    // ========================================
     // 현재 회원가입 단계
+    // ========================================
+
     var currentStep by remember {
         mutableIntStateOf(1)
     }
 
 
+    // ========================================
     // 입력 정보
-    var userId by remember {
+    // ========================================
+
+    var email by remember {
         mutableStateOf("")
     }
 
@@ -74,9 +95,28 @@ fun SignUpScreen(
     }
 
 
+    // ========================================
     // 비밀번호 보이기
+    // ========================================
+
     var passwordVisible by remember {
         mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // API 상태
+    // ========================================
+
+    val coroutineScope =
+        rememberCoroutineScope()
+
+    var isSigningUp by remember {
+        mutableStateOf(false)
+    }
+
+    var signupError by remember {
+        mutableStateOf<String?>(null)
     }
 
 
@@ -126,7 +166,9 @@ fun SignUpScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .background(
+                ScreenBackground
+            )
     ) {
 
         Column(
@@ -135,12 +177,14 @@ fun SignUpScreen(
                 .statusBarsPadding()
         ) {
 
+
             // ========================================
             // 상단 헤더
             // ========================================
 
             SignUpHeader(
-                currentStep = currentStep,
+                currentStep =
+                    currentStep,
 
                 onBackClick = {
 
@@ -161,7 +205,8 @@ fun SignUpScreen(
             // ========================================
 
             SignUpStepIndicator(
-                currentStep = currentStep
+                currentStep =
+                    currentStep
             )
 
 
@@ -171,15 +216,32 @@ fun SignUpScreen(
 
             when (currentStep) {
 
+
+                // ========================================
+                // 1단계 - 약관
+                // ========================================
+
                 1 -> {
 
                     TermsStep(
-                        serviceAgree = serviceAgree,
-                        privacyAgree = privacyAgree,
-                        locationAgree = locationAgree,
-                        marketingAgree = marketingAgree,
-                        emergencyAgree = emergencyAgree,
-                        allAgreed = allAgreed,
+                        serviceAgree =
+                            serviceAgree,
+
+                        privacyAgree =
+                            privacyAgree,
+
+                        locationAgree =
+                            locationAgree,
+
+                        marketingAgree =
+                            marketingAgree,
+
+                        emergencyAgree =
+                            emergencyAgree,
+
+                        allAgreed =
+                            allAgreed,
+
 
                         onAllAgreeChange = { checked ->
 
@@ -190,29 +252,41 @@ fun SignUpScreen(
                             emergencyAgree = checked
                         },
 
+
                         onServiceAgreeChange = {
+
                             serviceAgree = it
                         },
 
+
                         onPrivacyAgreeChange = {
+
                             privacyAgree = it
                         },
 
+
                         onLocationAgreeChange = {
+
                             locationAgree = it
                         },
 
+
                         onMarketingAgreeChange = {
+
                             marketingAgree = it
                         },
 
+
                         onEmergencyAgreeChange = {
+
                             emergencyAgree = it
                         },
+
 
                         onNextClick = {
 
                             if (requiredAgreed) {
+
                                 currentStep = 2
                             }
                         }
@@ -220,37 +294,60 @@ fun SignUpScreen(
                 }
 
 
+                // ========================================
+                // 2단계 - 회원정보 입력
+                // ========================================
+
                 2 -> {
 
                     UserInfoStep(
-                        userId = userId,
-                        password = password,
-                        name = name,
-                        passwordVisible = passwordVisible,
+                        email =
+                            email,
 
-                        onUserIdChange = {
-                            userId = it
+                        password =
+                            password,
+
+                        name =
+                            name,
+
+                        passwordVisible =
+                            passwordVisible,
+
+
+                        onEmailChange = {
+
+                            email = it
                         },
 
+
                         onPasswordChange = {
+
                             password = it
                         },
 
+
                         onNameChange = {
+
                             name = it
                         },
 
+
                         onPasswordVisibleChange = {
-                            passwordVisible = !passwordVisible
+
+                            passwordVisible =
+                                !passwordVisible
                         },
+
 
                         onNextClick = {
 
                             if (
-                                userId.isNotBlank() &&
+                                email.isNotBlank() &&
                                 password.isNotBlank() &&
                                 name.isNotBlank()
                             ) {
+
+                                signupError = null
 
                                 currentStep = 3
                             }
@@ -259,31 +356,184 @@ fun SignUpScreen(
                 }
 
 
+                // ========================================
+                // 3단계 - 입력 정보 확인 + API 호출
+                // ========================================
+
                 3 -> {
 
                     ConfirmInfoStep(
-                        userId = userId,
-                        name = name,
+                        email =
+                            email,
+
+                        name =
+                            name,
+
+                        isLoading =
+                            isSigningUp,
+
+                        errorMessage =
+                            signupError,
+
 
                         onNextClick = {
 
-                            // ========================================
-                            // TODO
-                            // 나중에는 여기서
-                            // 회원가입 백엔드 API 호출
-                            //
-                            // 성공하면 currentStep = 4
-                            // ========================================
+                            if (isSigningUp) {
+                                return@ConfirmInfoStep
+                            }
 
-                            currentStep = 4
+
+                            coroutineScope.launch {
+
+                                isSigningUp = true
+                                signupError = null
+
+
+                                try {
+
+                                    // ========================================
+                                    // 백엔드 회원가입 요청
+                                    //
+                                    // POST
+                                    // /api/v1/auth/signup
+                                    //
+                                    // {
+                                    //   "email": "...",
+                                    //   "password": "...",
+                                    //   "name": "..."
+                                    // }
+                                    // ========================================
+
+                                    val response =
+                                        RetrofitClient
+                                            .authApi
+                                            .signup(
+
+                                                SignupRequest(
+                                                    email =
+                                                        email.trim(),
+
+                                                    password =
+                                                        password,
+
+                                                    name =
+                                                        name.trim()
+                                                )
+                                            )
+
+
+                                    // ========================================
+                                    // 회원가입 성공
+                                    // ========================================
+
+                                    if (
+                                        response.isSuccessful
+                                    ) {
+
+                                        val message =
+                                            response
+                                                .body()
+                                                ?.message
+
+
+                                        Log.d(
+                                            "SIGNUP_API",
+                                            "회원가입 성공: $message"
+                                        )
+
+
+                                        // 성공한 경우에만
+                                        // 회원가입 완료 화면
+                                        currentStep = 4
+
+
+                                    } else {
+
+                                        // ========================================
+                                        // HTTP 오류
+                                        // ========================================
+
+                                        val errorBody =
+                                            response
+                                                .errorBody()
+                                                ?.string()
+
+
+                                        Log.e(
+                                            "SIGNUP_API",
+                                            "회원가입 실패 code=${response.code()}, body=$errorBody"
+                                        )
+
+
+                                        signupError =
+                                            when (
+                                                response.code()
+                                            ) {
+
+                                                400 -> {
+
+                                                    "입력한 회원정보를 확인해주세요."
+                                                }
+
+
+                                                409 -> {
+
+                                                    "이미 가입된 이메일입니다."
+                                                }
+
+
+                                                500 -> {
+
+                                                    "서버 오류가 발생했습니다."
+                                                }
+
+
+                                                else -> {
+
+                                                    "회원가입에 실패했습니다. (${response.code()})"
+                                                }
+                                            }
+                                    }
+
+
+                                } catch (
+                                    e: Exception
+                                ) {
+
+                                    // ========================================
+                                    // 네트워크 연결 오류
+                                    // ========================================
+
+                                    Log.e(
+                                        "SIGNUP_API",
+                                        "서버 통신 실패",
+                                        e
+                                    )
+
+
+                                    signupError =
+                                        "서버에 연결할 수 없습니다."
+
+
+                                } finally {
+
+                                    isSigningUp =
+                                        false
+                                }
+                            }
                         }
                     )
                 }
 
 
+                // ========================================
+                // 4단계 - 완료
+                // ========================================
+
                 4 -> {
 
                     CompleteStep(
+
                         onCompleteClick = {
 
                             onSignUpComplete()
@@ -309,21 +559,39 @@ private fun SignUpHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(62.dp)
-            .padding(horizontal = 20.dp)
+            .height(
+                62.dp
+            )
+            .padding(
+                horizontal = 20.dp
+            )
     ) {
 
-        if (currentStep != 4) {
+        if (
+            currentStep != 4
+        ) {
 
             Icon(
-                imageVector = Icons.Filled.ArrowBackIosNew,
-                contentDescription = "뒤로가기",
-                tint = Color(0xFF333333),
+                imageVector =
+                    Icons.Filled.ArrowBackIosNew,
+
+                contentDescription =
+                    "뒤로가기",
+
+                tint =
+                    Color(
+                        0xFF333333
+                    ),
 
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .size(21.dp)
+                    .align(
+                        Alignment.CenterStart
+                    )
+                    .size(
+                        21.dp
+                    )
                     .clickable {
+
                         onBackClick()
                     }
             )
@@ -331,14 +599,22 @@ private fun SignUpHeader(
 
 
         Text(
-            text = "회원가입",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextBlack,
+            text =
+                "회원가입",
 
-            modifier = Modifier.align(
-                Alignment.Center
-            )
+            fontSize =
+                20.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextBlack,
+
+            modifier =
+                Modifier.align(
+                    Alignment.Center
+                )
         )
     }
 }
@@ -360,28 +636,52 @@ private fun SignUpStepIndicator(
                 horizontal = 55.dp,
                 vertical = 8.dp
             ),
-        verticalAlignment = Alignment.CenterVertically
+
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
-        for (step in 1..4) {
+        for (
+        step in 1..4
+        ) {
 
             StepCircle(
-                step = step,
-                currentStep = currentStep
+                step =
+                    step,
+
+                currentStep =
+                    currentStep
             )
 
 
-            if (step != 4) {
+            if (
+                step != 4
+            ) {
 
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(2.dp)
+                        .weight(
+                            1f
+                        )
+                        .height(
+                            2.dp
+                        )
                         .background(
-                            if (currentStep > step)
-                                AnOnBlue.copy(alpha = 0.4f)
-                            else
-                                Color(0xFFE7E9EF)
+
+                            if (
+                                currentStep > step
+                            ) {
+
+                                AnOnBlue.copy(
+                                    alpha = 0.4f
+                                )
+
+                            } else {
+
+                                Color(
+                                    0xFFE7E9EF
+                                )
+                            }
                         )
                 )
             }
@@ -406,29 +706,56 @@ private fun StepCircle(
 
     Box(
         modifier = Modifier
-            .size(27.dp)
+            .size(
+                27.dp
+            )
             .background(
-                color =
-                    if (isCurrent)
-                        AnOnBlue
-                    else
-                        Color(0xFFF0F1F5),
 
-                shape = CircleShape
+                color =
+                    if (
+                        isCurrent
+                    ) {
+
+                        AnOnBlue
+
+                    } else {
+
+                        Color(
+                            0xFFF0F1F5
+                        )
+                    },
+
+                shape =
+                    CircleShape
             ),
-        contentAlignment = Alignment.Center
+
+        contentAlignment =
+            Alignment.Center
     ) {
 
         Text(
-            text = step.toString(),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
+            text =
+                step.toString(),
+
+            fontSize =
+                12.sp,
+
+            fontWeight =
+                FontWeight.Bold,
 
             color =
-                if (isCurrent)
+                if (
+                    isCurrent
+                ) {
+
                     Color.White
-                else
-                    Color(0xFF9197A5)
+
+                } else {
+
+                    Color(
+                        0xFF9197A5
+                    )
+                }
         )
     }
 }
@@ -469,134 +796,213 @@ private fun TermsStep(
     ) {
 
         Text(
-            text = "약관 동의",
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextBlack,
+            text =
+                "약관 동의",
 
-            modifier = Modifier.align(
-                Alignment.CenterHorizontally
-            )
+            fontSize =
+                23.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextBlack,
+
+            modifier =
+                Modifier.align(
+                    Alignment.CenterHorizontally
+                )
         )
 
 
         Spacer(
-            modifier = Modifier.height(8.dp)
+            modifier =
+                Modifier.height(
+                    8.dp
+                )
         )
 
 
         Text(
-            text = "서비스 이용을 위해 약관에 동의해주세요.",
-            fontSize = 13.sp,
-            color = TextGray,
+            text =
+                "서비스 이용을 위해 약관에 동의해주세요.",
 
-            modifier = Modifier.align(
-                Alignment.CenterHorizontally
-            )
+            fontSize =
+                13.sp,
+
+            color =
+                TextGray,
+
+            modifier =
+                Modifier.align(
+                    Alignment.CenterHorizontally
+                )
         )
 
 
         Spacer(
-            modifier = Modifier.height(34.dp)
+            modifier =
+                Modifier.height(
+                    34.dp
+                )
         )
 
 
-        // 전체 동의
         AgreementRow(
-            title = "전체 동의합니다.",
-            checked = allAgreed,
-            bold = true,
+            title =
+                "전체 동의합니다.",
+
+            checked =
+                allAgreed,
+
+            bold =
+                true,
 
             onCheckedChange = {
-                onAllAgreeChange(it)
+
+                onAllAgreeChange(
+                    it
+                )
             }
         )
 
 
         Spacer(
-            modifier = Modifier.height(12.dp)
+            modifier =
+                Modifier.height(
+                    12.dp
+                )
         )
 
 
         HorizontalDivider(
-            color = BorderGray
+            color =
+                BorderGray
         )
 
 
         Spacer(
-            modifier = Modifier.height(8.dp)
+            modifier =
+                Modifier.height(
+                    8.dp
+                )
         )
 
 
         AgreementRow(
-            title = "[필수] 서비스 이용약관",
-            checked = serviceAgree,
-            showDetail = true,
+            title =
+                "[필수] 서비스 이용약관",
+
+            checked =
+                serviceAgree,
+
+            showDetail =
+                true,
 
             onCheckedChange = {
-                onServiceAgreeChange(it)
+
+                onServiceAgreeChange(
+                    it
+                )
             }
         )
 
 
         AgreementRow(
-            title = "[필수] 개인정보 수집 및 이용 동의",
-            checked = privacyAgree,
-            showDetail = true,
+            title =
+                "[필수] 개인정보 수집 및 이용 동의",
+
+            checked =
+                privacyAgree,
+
+            showDetail =
+                true,
 
             onCheckedChange = {
-                onPrivacyAgreeChange(it)
+
+                onPrivacyAgreeChange(
+                    it
+                )
             }
         )
 
 
         AgreementRow(
-            title = "[필수] 위치정보 수집 및 이용 동의",
-            checked = locationAgree,
-            showDetail = true,
+            title =
+                "[필수] 위치정보 수집 및 이용 동의",
+
+            checked =
+                locationAgree,
+
+            showDetail =
+                true,
 
             onCheckedChange = {
-                onLocationAgreeChange(it)
+
+                onLocationAgreeChange(
+                    it
+                )
             }
         )
 
 
         AgreementRow(
-            title = "[선택] 마케팅 정보 수신 동의",
-            checked = marketingAgree,
-            showDetail = true,
+            title =
+                "[선택] 마케팅 정보 수신 동의",
+
+            checked =
+                marketingAgree,
+
+            showDetail =
+                true,
 
             onCheckedChange = {
-                onMarketingAgreeChange(it)
+
+                onMarketingAgreeChange(
+                    it
+                )
             }
         )
 
 
         AgreementRow(
-            title = "[선택] 긴급상황 관련 정보 수신 동의",
-            checked = emergencyAgree,
-            showDetail = true,
+            title =
+                "[선택] 긴급상황 관련 정보 수신 동의",
+
+            checked =
+                emergencyAgree,
+
+            showDetail =
+                true,
 
             onCheckedChange = {
-                onEmergencyAgreeChange(it)
+
+                onEmergencyAgreeChange(
+                    it
+                )
             }
         )
 
 
         Spacer(
-            modifier = Modifier.weight(1f)
+            modifier =
+                Modifier.weight(
+                    1f
+                )
         )
 
 
         PrimaryButton(
-            text = "다음",
+            text =
+                "다음",
 
             enabled =
                 serviceAgree &&
                         privacyAgree &&
                         locationAgree,
 
-            onClick = onNextClick
+            onClick =
+                onNextClick
         )
     }
 }
@@ -618,12 +1024,17 @@ private fun AgreementRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(55.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .height(
+                55.dp
+            ),
+
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
         AgreementCheck(
-            checked = checked,
+            checked =
+                checked,
 
             onClick = {
 
@@ -635,45 +1046,80 @@ private fun AgreementRow(
 
 
         Spacer(
-            modifier = Modifier.width(10.dp)
+            modifier =
+                Modifier.width(
+                    10.dp
+                )
         )
 
 
         Text(
-            text = title,
-            fontSize = 14.sp,
+            text =
+                title,
+
+            fontSize =
+                14.sp,
 
             fontWeight =
-                if (bold)
+                if (
+                    bold
+                ) {
+
                     FontWeight.Bold
-                else
-                    FontWeight.Medium,
 
-            color = TextBlack,
+                } else {
 
-            modifier = Modifier.weight(1f)
+                    FontWeight.Medium
+                },
+
+            color =
+                TextBlack,
+
+            modifier =
+                Modifier.weight(
+                    1f
+                )
         )
 
 
-        if (showDetail) {
+        if (
+            showDetail
+        ) {
 
             Text(
-                text = "보기",
-                fontSize = 12.sp,
-                color = TextGray
+                text =
+                    "보기",
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    TextGray
             )
 
 
             Spacer(
-                modifier = Modifier.width(3.dp)
+                modifier =
+                    Modifier.width(
+                        3.dp
+                    )
             )
 
 
             Icon(
-                imageVector = Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = TextGray,
-                modifier = Modifier.size(16.dp)
+                imageVector =
+                    Icons.Filled.ChevronRight,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    TextGray,
+
+                modifier =
+                    Modifier.size(
+                        16.dp
+                    )
             )
         }
     }
@@ -692,41 +1138,75 @@ private fun AgreementCheck(
 
     Box(
         modifier = Modifier
-            .size(23.dp)
+            .size(
+                23.dp
+            )
             .background(
-                color =
-                    if (checked)
-                        AnOnBlue
-                    else
-                        Color.White,
 
-                shape = CircleShape
+                color =
+                    if (
+                        checked
+                    ) {
+
+                        AnOnBlue
+
+                    } else {
+
+                        Color.White
+                    },
+
+                shape =
+                    CircleShape
             )
             .border(
-                width = 1.5.dp,
+
+                width =
+                    1.5.dp,
 
                 color =
-                    if (checked)
-                        AnOnBlue
-                    else
-                        Color(0xFFD3D5DB),
+                    if (
+                        checked
+                    ) {
 
-                shape = CircleShape
+                        AnOnBlue
+
+                    } else {
+
+                        Color(
+                            0xFFD3D5DB
+                        )
+                    },
+
+                shape =
+                    CircleShape
             )
             .clickable {
+
                 onClick()
             },
 
-        contentAlignment = Alignment.Center
+        contentAlignment =
+            Alignment.Center
     ) {
 
-        if (checked) {
+        if (
+            checked
+        ) {
 
             Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(15.dp)
+                imageVector =
+                    Icons.Filled.Check,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    Color.White,
+
+                modifier =
+                    Modifier.size(
+                        15.dp
+                    )
             )
         }
     }
@@ -739,12 +1219,12 @@ private fun AgreementCheck(
 
 @Composable
 private fun UserInfoStep(
-    userId: String,
+    email: String,
     password: String,
     name: String,
     passwordVisible: Boolean,
 
-    onUserIdChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onNameChange: (String) -> Unit,
     onPasswordVisibleChange: () -> Unit,
@@ -767,69 +1247,127 @@ private fun UserInfoStep(
     ) {
 
         Text(
-            text = "회원 정보 입력",
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextBlack,
+            text =
+                "회원 정보 입력",
 
-            modifier = Modifier.align(
-                Alignment.CenterHorizontally
-            )
+            fontSize =
+                23.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextBlack,
+
+            modifier =
+                Modifier.align(
+                    Alignment.CenterHorizontally
+                )
         )
 
 
         Spacer(
-            modifier = Modifier.height(8.dp)
+            modifier =
+                Modifier.height(
+                    8.dp
+                )
         )
 
 
         Text(
-            text = "기본 정보를 입력해주세요.",
-            fontSize = 13.sp,
-            color = TextGray,
+            text =
+                "기본 정보를 입력해주세요.",
 
-            modifier = Modifier.align(
-                Alignment.CenterHorizontally
-            )
+            fontSize =
+                13.sp,
+
+            color =
+                TextGray,
+
+            modifier =
+                Modifier.align(
+                    Alignment.CenterHorizontally
+                )
         )
 
 
         Spacer(
-            modifier = Modifier.height(35.dp)
+            modifier =
+                Modifier.height(
+                    35.dp
+                )
         )
 
 
+        // ========================================
+        // 이메일
+        // ========================================
+
         SignUpTextField(
-            value = userId,
+            value =
+                email,
 
             onValueChange = {
-                onUserIdChange(it)
+
+                onEmailChange(
+                    it
+                )
             },
 
-            title = "아이디",
-            hint = "영문, 숫자 포함 4~16자",
-            icon = Icons.Filled.Person
+            title =
+                "이메일",
+
+            hint =
+                "example@email.com",
+
+            icon =
+                Icons.Filled.Email,
+
+            keyboardType =
+                KeyboardType.Email
         )
 
 
         Spacer(
-            modifier = Modifier.height(14.dp)
+            modifier =
+                Modifier.height(
+                    14.dp
+                )
         )
 
 
+        // ========================================
+        // 비밀번호
+        // ========================================
+
         SignUpTextField(
-            value = password,
+            value =
+                password,
 
             onValueChange = {
-                onPasswordChange(it)
+
+                onPasswordChange(
+                    it
+                )
             },
 
-            title = "비밀번호",
-            hint = "영문, 숫자, 특수문자 포함 8~16자",
-            icon = Icons.Filled.Lock,
+            title =
+                "비밀번호",
 
-            password = true,
-            passwordVisible = passwordVisible,
+            hint =
+                "영문, 숫자, 특수문자 포함 8~16자",
+
+            icon =
+                Icons.Filled.Lock,
+
+            password =
+                true,
+
+            passwordVisible =
+                passwordVisible,
+
+            keyboardType =
+                KeyboardType.Password,
 
             onPasswordVisibleChange =
                 onPasswordVisibleChange
@@ -837,42 +1375,66 @@ private fun UserInfoStep(
 
 
         Spacer(
-            modifier = Modifier.height(14.dp)
+            modifier =
+                Modifier.height(
+                    14.dp
+                )
         )
 
+
+        // ========================================
+        // 이름
+        // ========================================
 
         SignUpTextField(
-            value = name,
+            value =
+                name,
 
             onValueChange = {
-                onNameChange(it)
+
+                onNameChange(
+                    it
+                )
             },
 
-            title = "이름",
-            hint = "이름을 입력해주세요",
-            icon = Icons.Filled.Person
+            title =
+                "이름",
+
+            hint =
+                "이름을 입력해주세요",
+
+            icon =
+                Icons.Filled.Person
         )
 
 
         Spacer(
-            modifier = Modifier.weight(1f)
+            modifier =
+                Modifier.weight(
+                    1f
+                )
         )
 
 
         Spacer(
-            modifier = Modifier.height(35.dp)
+            modifier =
+                Modifier.height(
+                    35.dp
+                )
         )
 
 
         PrimaryButton(
-            text = "다음",
+            text =
+                "다음",
 
             enabled =
-                userId.isNotBlank() &&
+                email.isNotBlank() &&
                         password.isNotBlank() &&
                         name.isNotBlank(),
 
-            onClick = onNextClick
+            onClick =
+                onNextClick
         )
     }
 }
@@ -895,51 +1457,88 @@ private fun SignUpTextField(
     password: Boolean = false,
     passwordVisible: Boolean = false,
 
+    keyboardType: KeyboardType = KeyboardType.Text,
+
     onPasswordVisibleChange: () -> Unit = {}
 ) {
 
     OutlinedTextField(
-        value = value,
+        value =
+            value,
 
         onValueChange = {
-            onValueChange(it)
+
+            onValueChange(
+                it
+            )
         },
 
         modifier = Modifier
             .fillMaxWidth()
-            .height(74.dp),
+            .height(
+                74.dp
+            ),
 
-        shape = RoundedCornerShape(13.dp),
+        shape =
+            RoundedCornerShape(
+                13.dp
+            ),
 
         leadingIcon = {
 
             Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color(0xFF9298A8),
-                modifier = Modifier.size(21.dp)
+                imageVector =
+                    icon,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    Color(
+                        0xFF9298A8
+                    ),
+
+                modifier =
+                    Modifier.size(
+                        21.dp
+                    )
             )
         },
 
 
         trailingIcon = {
 
-            if (password) {
+            if (
+                password
+            ) {
 
                 Icon(
                     imageVector =
-                        if (passwordVisible)
+                        if (
+                            passwordVisible
+                        ) {
+
                             Icons.Filled.Visibility
-                        else
-                            Icons.Filled.VisibilityOff,
 
-                    contentDescription = null,
+                        } else {
 
-                    tint = Color(0xFF9298A8),
+                            Icons.Filled.VisibilityOff
+                        },
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        Color(
+                            0xFF9298A8
+                        ),
 
                     modifier = Modifier
-                        .size(21.dp)
+                        .size(
+                            21.dp
+                        )
                         .clickable {
+
                             onPasswordVisibleChange()
                         }
                 )
@@ -950,8 +1549,11 @@ private fun SignUpTextField(
         label = {
 
             Text(
-                text = title,
-                fontSize = 13.sp
+                text =
+                    title,
+
+                fontSize =
+                    13.sp
             )
         },
 
@@ -959,45 +1561,58 @@ private fun SignUpTextField(
         placeholder = {
 
             Text(
-                text = hint,
-                fontSize = 12.sp,
-                color = TextGray
+                text =
+                    hint,
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    TextGray
             )
         },
 
 
-        singleLine = true,
+        singleLine =
+            true,
 
 
         visualTransformation =
-            if (password && !passwordVisible)
+            if (
+                password &&
+                !passwordVisible
+            ) {
+
                 PasswordVisualTransformation()
-            else
-                VisualTransformation.None,
+
+            } else {
+
+                VisualTransformation.None
+            },
 
 
-        keyboardOptions = KeyboardOptions(
-            keyboardType =
-                if (password)
-                    KeyboardType.Password
-                else
-                    KeyboardType.Text
-        ),
+        keyboardOptions =
+            KeyboardOptions(
+                keyboardType =
+                    keyboardType
+            ),
 
 
-        colors = OutlinedTextFieldDefaults.colors(
+        colors =
+            OutlinedTextFieldDefaults.colors(
 
-            focusedBorderColor = AnOnBlue,
+                focusedBorderColor =
+                    AnOnBlue,
 
-            unfocusedBorderColor =
-                BorderGray,
+                unfocusedBorderColor =
+                    BorderGray,
 
-            focusedLabelColor =
-                AnOnBlue,
+                focusedLabelColor =
+                    AnOnBlue,
 
-            cursorColor =
-                AnOnBlue
-        )
+                cursorColor =
+                    AnOnBlue
+            )
     )
 }
 
@@ -1008,8 +1623,12 @@ private fun SignUpTextField(
 
 @Composable
 private fun ConfirmInfoStep(
-    userId: String,
+    email: String,
     name: String,
+
+    isLoading: Boolean,
+    errorMessage: String?,
+
     onNextClick: () -> Unit
 ) {
 
@@ -1025,80 +1644,173 @@ private fun ConfirmInfoStep(
     ) {
 
         Text(
-            text = "입력 정보 확인",
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextBlack,
+            text =
+                "입력 정보 확인",
 
-            modifier = Modifier.align(
-                Alignment.CenterHorizontally
-            )
+            fontSize =
+                23.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextBlack,
+
+            modifier =
+                Modifier.align(
+                    Alignment.CenterHorizontally
+                )
         )
 
 
         Spacer(
-            modifier = Modifier.height(8.dp)
+            modifier =
+                Modifier.height(
+                    8.dp
+                )
         )
 
 
         Text(
-            text = "입력한 정보를 확인해주세요.",
-            fontSize = 13.sp,
-            color = TextGray,
+            text =
+                "입력한 정보를 확인해주세요.",
 
-            modifier = Modifier.align(
-                Alignment.CenterHorizontally
-            )
+            fontSize =
+                13.sp,
+
+            color =
+                TextGray,
+
+            modifier =
+                Modifier.align(
+                    Alignment.CenterHorizontally
+                )
         )
 
 
         Spacer(
-            modifier = Modifier.height(50.dp)
+            modifier =
+                Modifier.height(
+                    50.dp
+                )
         )
 
 
         ConfirmRow(
-            title = "아이디",
-            value = userId
+            title =
+                "이메일",
+
+            value =
+                email
         )
 
 
         Spacer(
-            modifier = Modifier.height(30.dp)
+            modifier =
+                Modifier.height(
+                    30.dp
+                )
         )
 
 
         ConfirmRow(
-            title = "이름",
-            value = name
+            title =
+                "이름",
+
+            value =
+                name
         )
 
 
         Spacer(
-            modifier = Modifier.weight(1f)
+            modifier =
+                Modifier.weight(
+                    1f
+                )
         )
 
 
         Text(
-            text = "입력한 정보로 회원가입을 진행합니다.",
-            fontSize = 12.sp,
-            color = TextGray,
-            textAlign = TextAlign.Center,
+            text =
+                "입력한 정보로 회원가입을 진행합니다.",
 
-            modifier = Modifier.fillMaxWidth()
+            fontSize =
+                12.sp,
+
+            color =
+                TextGray,
+
+            textAlign =
+                TextAlign.Center,
+
+            modifier =
+                Modifier.fillMaxWidth()
         )
 
 
+        // ========================================
+        // 회원가입 오류 표시
+        // ========================================
+
+        if (
+            errorMessage != null
+        ) {
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        10.dp
+                    )
+            )
+
+
+            Text(
+                text =
+                    errorMessage,
+
+                fontSize =
+                    13.sp,
+
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .error,
+
+                textAlign =
+                    TextAlign.Center,
+
+                modifier =
+                    Modifier.fillMaxWidth()
+            )
+        }
+
+
         Spacer(
-            modifier = Modifier.height(25.dp)
+            modifier =
+                Modifier.height(
+                    25.dp
+                )
         )
 
 
         PrimaryButton(
-            text = "다음",
-            enabled = true,
+            text =
+                if (
+                    isLoading
+                ) {
 
-            onClick = onNextClick
+                    "회원가입 중..."
+
+                } else {
+
+                    "가입하기"
+                },
+
+            enabled =
+                !isLoading,
+
+            onClick =
+                onNextClick
         )
     }
 }
@@ -1117,23 +1829,45 @@ private fun ConfirmRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(
+                horizontal = 5.dp
+            ),
+
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
         Text(
-            text = title,
-            fontSize = 15.sp,
-            color = Color(0xFF666666),
-            modifier = Modifier.weight(1f)
+            text =
+                title,
+
+            fontSize =
+                15.sp,
+
+            color =
+                Color(
+                    0xFF666666
+                ),
+
+            modifier =
+                Modifier.weight(
+                    1f
+                )
         )
 
 
         Text(
-            text = value,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = TextBlack
+            text =
+                value,
+
+            fontSize =
+                15.sp,
+
+            fontWeight =
+                FontWeight.SemiBold,
+
+            color =
+                TextBlack
         )
     }
 }
@@ -1155,12 +1889,16 @@ private fun CompleteStep(
                 horizontal = 24.dp,
                 vertical = 25.dp
             ),
-        horizontalAlignment = Alignment.CenterHorizontally
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
 
-
         Spacer(
-            modifier = Modifier.weight(0.8f)
+            modifier =
+                Modifier.weight(
+                    0.8f
+                )
         )
 
 
@@ -1170,69 +1908,119 @@ private fun CompleteStep(
 
         Box(
             modifier = Modifier
-                .size(105.dp)
+                .size(
+                    105.dp
+                )
                 .background(
-                    color = LightBlue,
-                    shape = CircleShape
+
+                    color =
+                        LightBlue,
+
+                    shape =
+                        CircleShape
                 ),
-            contentAlignment = Alignment.Center
+
+            contentAlignment =
+                Alignment.Center
         ) {
 
             Box(
                 modifier = Modifier
-                    .size(78.dp)
+                    .size(
+                        78.dp
+                    )
                     .background(
-                        color = AnOnBlue,
-                        shape = CircleShape
+
+                        color =
+                            AnOnBlue,
+
+                        shape =
+                            CircleShape
                     ),
-                contentAlignment = Alignment.Center
+
+                contentAlignment =
+                    Alignment.Center
             ) {
 
                 Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
+                    imageVector =
+                        Icons.Filled.Check,
+
+                    contentDescription =
+                        null,
+
+                    tint =
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            48.dp
+                        )
                 )
             }
         }
 
 
         Spacer(
-            modifier = Modifier.height(35.dp)
+            modifier =
+                Modifier.height(
+                    35.dp
+                )
         )
 
 
         Text(
-            text = "회원가입이 완료되었습니다!",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextBlack
+            text =
+                "회원가입이 완료되었습니다!",
+
+            fontSize =
+                22.sp,
+
+            fontWeight =
+                FontWeight.Bold,
+
+            color =
+                TextBlack
         )
 
 
         Spacer(
-            modifier = Modifier.height(10.dp)
+            modifier =
+                Modifier.height(
+                    10.dp
+                )
         )
 
 
         Text(
-            text = "안온 서비스 가입을 환영합니다.",
-            fontSize = 13.sp,
-            color = TextGray
+            text =
+                "안온 서비스 가입을 환영합니다.",
+
+            fontSize =
+                13.sp,
+
+            color =
+                TextGray
         )
 
 
         Spacer(
-            modifier = Modifier.weight(1f)
+            modifier =
+                Modifier.weight(
+                    1f
+                )
         )
 
 
         PrimaryButton(
-            text = "완료",
-            enabled = true,
+            text =
+                "완료",
 
-            onClick = onCompleteClick
+            enabled =
+                true,
+
+            onClick =
+                onCompleteClick
         )
     }
 }
@@ -1250,35 +2038,51 @@ private fun PrimaryButton(
 ) {
 
     Button(
-        onClick = onClick,
-        enabled = enabled,
+        onClick =
+            onClick,
+
+        enabled =
+            enabled,
 
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .height(
+                56.dp
+            ),
 
-        shape = RoundedCornerShape(12.dp),
+        shape =
+            RoundedCornerShape(
+                12.dp
+            ),
 
-        colors = ButtonDefaults.buttonColors(
+        colors =
+            ButtonDefaults.buttonColors(
 
-            containerColor =
-                AnOnBlue,
+                containerColor =
+                    AnOnBlue,
 
-            contentColor =
-                Color.White,
+                contentColor =
+                    Color.White,
 
-            disabledContainerColor =
-                Color(0xFFCCD7F6),
+                disabledContainerColor =
+                    Color(
+                        0xFFCCD7F6
+                    ),
 
-            disabledContentColor =
-                Color.White
-        )
+                disabledContentColor =
+                    Color.White
+            )
     ) {
 
         Text(
-            text = text,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
+            text =
+                text,
+
+            fontSize =
+                16.sp,
+
+            fontWeight =
+                FontWeight.Bold
         )
     }
 }

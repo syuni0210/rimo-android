@@ -5,7 +5,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
+import com.example.clouddx_team4_project.data.KakaoPlace
+
 import com.example.clouddx_team4_project.ui.components.EmergencyDialog
+import com.example.clouddx_team4_project.ui.screens.DestinationSearchScreen
 import com.example.clouddx_team4_project.ui.screens.FriendScreen
 import com.example.clouddx_team4_project.ui.screens.GuardianRegisterScreen
 import com.example.clouddx_team4_project.ui.screens.HomeScreen
@@ -20,7 +23,18 @@ import com.example.clouddx_team4_project.ui.screens.SignUpScreen
 @Composable
 fun AppNavigation() {
 
-    val navController = rememberNavController()
+    val navController =
+        rememberNavController()
+
+
+    // ========================================
+    // 선택한 목적지
+    // ========================================
+
+    var selectedDestination by remember {
+        mutableStateOf<KakaoPlace?>(null)
+    }
+
 
     // ========================================
     // 긴급구조 다이얼로그
@@ -40,7 +54,7 @@ fun AppNavigation() {
 
         // 지금은 UI 개발 중이므로 홈부터 시작
         // 나중에 로그인 완성되면 "login"으로 변경
-        startDestination = "home"
+        startDestination = "login"
     ) {
 
 
@@ -72,7 +86,9 @@ fun AppNavigation() {
 
                 onSignUpClick = {
 
-                    navController.navigate("signup")
+                    navController.navigate(
+                        "signup"
+                    )
                 }
             )
         }
@@ -221,6 +237,28 @@ fun AppNavigation() {
             SafeRouteScreen(
 
                 // ========================================
+                // 선택된 목적지
+                // ========================================
+
+                destinationName =
+                    selectedDestination
+                        ?.placeName
+                        ?: "",
+
+
+                destinationLatitude =
+                    selectedDestination
+                        ?.latitude
+                        ?.toDoubleOrNull(),
+
+
+                destinationLongitude =
+                    selectedDestination
+                        ?.longitude
+                        ?.toDoubleOrNull(),
+
+
+                // ========================================
                 // 뒤로가기
                 // ========================================
 
@@ -236,8 +274,8 @@ fun AppNavigation() {
 
                 onStartSearchClick = {
 
-                    // 현재 위치를 기본 출발지로 사용 예정
-                    // 나중에 출발지 검색 화면을 만들면 연결
+                    // 현재 위치를 기본 출발지로 사용
+                    // 나중에 출발지 검색도 같은 검색 화면 재사용 가능
                 },
 
 
@@ -247,10 +285,9 @@ fun AppNavigation() {
 
                 onDestinationSearchClick = {
 
-                    // 나중에 장소 검색 화면 연결
-                    //
-                    // 예:
-                    // navController.navigate("destination_search")
+                    navController.navigate(
+                        "destination_search"
+                    )
                 },
 
 
@@ -303,7 +340,38 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 5. 안심친구
+        // 5. 목적지 검색
+        // ========================================
+
+        composable(
+            "destination_search"
+        ) {
+
+            DestinationSearchScreen(
+
+                // 뒤로가기
+                onBackClick = {
+
+                    navController.popBackStack()
+                },
+
+
+                // 장소 선택
+                onPlaceSelected = { place ->
+
+                    // 선택한 장소 저장
+                    selectedDestination = place
+
+
+                    // 안심경로 화면으로 복귀
+                    navController.popBackStack()
+                }
+            )
+        }
+
+
+        // ========================================
+        // 6. 안심친구
         // ========================================
 
         composable("friend") {
@@ -387,7 +455,7 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 6. 꽥꽥이
+        // 7. 꽥꽥이
         // ========================================
 
         composable("quack") {
@@ -447,7 +515,7 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 7. 사용 리포트
+        // 8. 사용 리포트
         // ========================================
 
         composable("report") {
@@ -495,7 +563,7 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 8. 더보기
+        // 9. 더보기
         // ========================================
 
         composable("more") {
@@ -625,10 +693,12 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 9. 보호자 등록
+        // 10. 보호자 등록
         // ========================================
 
-        composable("guardian_register") {
+        composable(
+            "guardian_register"
+        ) {
 
             GuardianRegisterScreen(
 
@@ -647,6 +717,7 @@ fun AppNavigation() {
 
                     // ========================================
                     // TODO
+                    //
                     // 나중에 Spring Boot 보호자 등록 API
                     //
                     // POST /api/guardians
@@ -662,7 +733,7 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 10. 공용 긴급구조 Dialog
+    // 11. 공용 긴급구조 Dialog
     // ========================================
 
     if (showEmergencyDialog) {

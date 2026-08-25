@@ -3,7 +3,6 @@ package com.example.clouddx_team4_project.ui.screens
 import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
@@ -27,7 +26,10 @@ import com.kakao.vectormap.label.LabelStyles
 
 @Composable
 fun KakaoMapView(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+
+    destinationLatitude: Double? = null,
+    destinationLongitude: Double? = null
 ) {
 
     val context = LocalContext.current
@@ -90,7 +92,7 @@ fun KakaoMapView(
 
 
                     // ========================================
-                    // 카메라 이동
+                    // 현재 위치로 카메라 이동
                     // ========================================
 
                     val cameraUpdate =
@@ -118,47 +120,58 @@ fun KakaoMapView(
                     // 현재 위치 마커
                     // ========================================
 
-                    val markerStyle =
-                        LabelStyle.from(
-                            R.drawable.marker_current_location
+                    try {
+
+                        val markerStyle =
+                            LabelStyle.from(
+                                R.drawable.marker_current_location
+                            )
+
+
+                        val markerStyles =
+                            LabelStyles.from(
+                                markerStyle
+                            )
+
+
+                        val registeredStyles =
+                            labelManager.addLabelStyles(
+                                markerStyles
+                            )
+
+
+                        val labelOptions =
+                            LabelOptions.from(
+                                "current_location",
+                                currentPosition
+                            ).setStyles(
+                                registeredStyles
+                            )
+
+
+                        val labelLayer =
+                            labelManager.layer
+                                ?: return@addOnSuccessListener
+
+
+                        labelLayer.addLabel(
+                            labelOptions
                         )
 
 
-                    val markerStyles =
-                        LabelStyles.from(
-                            markerStyle
+                        Log.d(
+                            "CURRENT_MARKER",
+                            "현재 위치 마커 생성 완료"
                         )
 
+                    } catch (e: Exception) {
 
-                    val registeredStyles =
-                        labelManager.addLabelStyles(
-                            markerStyles
+                        Log.e(
+                            "CURRENT_MARKER",
+                            "현재 위치 마커 생성 실패",
+                            e
                         )
-
-
-                    val labelOptions =
-                        LabelOptions.from(
-                            "current_location",
-                            currentPosition
-                        ).setStyles(
-                            registeredStyles
-                        )
-
-
-                    val labelLayer =
-                        labelManager.layer
-                            ?: return@addOnSuccessListener
-
-
-                    labelLayer.addLabel(
-                        labelOptions
-                    )
-
-
-                    Log.d(
-                        "CURRENT_MARKER",
-                        "현재 위치 마커 생성 완료"
-                    )
+                    }
                 }
             }
     }
@@ -303,6 +316,131 @@ fun KakaoMapView(
             }
         }
     )
+
+
+    // ========================================
+    // 목적지 선택 시
+    // 지도 이동 + 목적지 마커 생성
+    // ========================================
+
+    LaunchedEffect(
+        kakaoMap,
+        destinationLatitude,
+        destinationLongitude
+    ) {
+
+        val map =
+            kakaoMap
+                ?: return@LaunchedEffect
+
+
+        val latitude =
+            destinationLatitude
+                ?: return@LaunchedEffect
+
+
+        val longitude =
+            destinationLongitude
+                ?: return@LaunchedEffect
+
+
+        val destinationPosition =
+            LatLng.from(
+                latitude,
+                longitude
+            )
+
+
+        Log.d(
+            "DESTINATION",
+            "lat=$latitude, lng=$longitude"
+        )
+
+
+        // ========================================
+        // 목적지로 카메라 이동
+        // ========================================
+
+        val cameraUpdate =
+            CameraUpdateFactory.newCenterPosition(
+                destinationPosition
+            )
+
+
+        map.moveCamera(
+            cameraUpdate
+        )
+
+
+        // ========================================
+        // 목적지 마커
+        // ========================================
+
+        try {
+
+            val labelManager =
+                map.labelManager
+                    ?: return@LaunchedEffect
+
+
+            val markerStyle =
+                LabelStyle.from(
+                    R.drawable.marker_current_location
+                )
+
+
+            val markerStyles =
+                LabelStyles.from(
+                    markerStyle
+                )
+
+
+            val registeredStyles =
+                labelManager.addLabelStyles(
+                    markerStyles
+                )
+
+
+            val labelOptions =
+                LabelOptions.from(
+                    "destination",
+                    destinationPosition
+                ).setStyles(
+                    registeredStyles
+                )
+
+
+            val labelLayer =
+                labelManager.layer
+                    ?: return@LaunchedEffect
+
+
+            // 기존 목적지 마커가 있으면 삭제
+            labelLayer.getLabel(
+                "destination"
+            )?.remove()
+
+
+            // 새 목적지 마커 추가
+            labelLayer.addLabel(
+                labelOptions
+            )
+
+
+            Log.d(
+                "DESTINATION",
+                "목적지 마커 생성 완료"
+            )
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "DESTINATION",
+                "목적지 마커 생성 실패",
+                e
+            )
+        }
+    }
 
 
     // ========================================

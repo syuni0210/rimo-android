@@ -1,78 +1,78 @@
 package com.example.clouddx_team4_project.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.clouddx_team4_project.R
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
+import kotlinx.coroutines.delay
 
 
-// ========================================
-// 색상
-// ========================================
+private val MainBlue =
+    Color(0xFF6A92FE)
 
-private val AnOnBlue = Color(0xFF6A92FE)
+private val BgColor =
+    Color(0xFFF7F8FC)
 
-private val CardBg = Color(0xFFF3F5FA)
+private val TextBlack =
+    Color(0xFF222222)
 
-private val ColorRoute = AnOnBlue
-private val ColorFriend = Color(0xFFFFA645)
-private val ColorQuack = Color(0xFFFF7AA8)
-private val ColorMap = Color(0xFFFFC94D)
-private val ColorReport = Color(0xFFB39DFF)
+private val TextGray =
+    Color(0xFF8D8D8D)
 
-
-// ========================================
-// 주요 서비스 데이터
-// ========================================
-
-data class HomeMenuItem(
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val color: Color
-)
+private val BorderGray =
+    Color(0xFFE9ECF3)
 
 
-// ========================================
-// 배너 데이터
-// ========================================
-
-data class BannerItem(
+data class HomeServiceItem(
     val title: String,
-    val gradient: List<Color>
+    val iconTint: Color
 )
 
-
-// ========================================
-// 홈 화면
-// ========================================
 
 @Composable
 fun HomeScreen(
@@ -81,438 +81,748 @@ fun HomeScreen(
     onEmergencyClick: () -> Unit = {}
 ) {
 
+    // ========================================
+    // 주요 서비스
+    // ========================================
+
+    val serviceItems =
+        listOf(
+            HomeServiceItem(
+                title = "안심경로",
+                iconTint = Color(0xFF5E86F7)
+            ),
+
+            HomeServiceItem(
+                title = "안심친구",
+                iconTint = Color(0xFFFFA24B)
+            ),
+
+            HomeServiceItem(
+                title = "꽥꽥이",
+                iconTint = Color(0xFFFF6B9D)
+            ),
+
+            HomeServiceItem(
+                title = "안심지도",
+                iconTint = Color(0xFFF1B93B)
+            ),
+
+            HomeServiceItem(
+                title = "사용 리포트",
+                iconTint = Color(0xFF9A82F8)
+            )
+        )
+
+
+    // ========================================
+    // 홈 배너 이미지 3개
+    // ========================================
+
+    val bannerImages =
+        remember {
+
+            listOf(
+                R.drawable.home_banner_1,
+                R.drawable.home_banner_2,
+                R.drawable.home_banner_3
+            )
+        }
+
+
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                BgColor
+            )
     ) {
 
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(
+                    rememberScrollState()
+                )
+                .padding(
+                    bottom = 110.dp
+                )
         ) {
 
+
             // ========================================
-            // 1. 상단바
+            // 상단 로고 / 알림
             // ========================================
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 20.dp)
                     .padding(
-                        top = 12.dp,
-                        bottom = 8.dp
+                        horizontal = 20.dp,
+                        vertical = 16.dp
                     ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
                     Icon(
-                        imageVector = Icons.Filled.Shield,
-                        contentDescription = null,
-                        tint = AnOnBlue,
-                        modifier = Modifier.size(20.dp)
+                        imageVector =
+                            Icons.Filled.Security,
+
+                        contentDescription =
+                            "안온",
+
+                        tint =
+                            MainBlue,
+
+                        modifier =
+                            Modifier.size(
+                                26.dp
+                            )
                     )
+
 
                     Spacer(
-                        modifier = Modifier.width(6.dp)
+                        modifier =
+                            Modifier.width(
+                                8.dp
+                            )
                     )
 
+
                     Text(
-                        text = "안온",
-                        color = AnOnBlue,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        text =
+                            "안온",
+
+                        fontSize =
+                            27.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            MainBlue
                     )
                 }
 
+
+                Spacer(
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        )
+                )
+
+
                 Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = "알림",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(23.dp)
+                    imageVector =
+                        Icons.Filled.NotificationsNone,
+
+                    contentDescription =
+                        "알림",
+
+                    tint =
+                        Color(0xFF999999),
+
+                    modifier =
+                        Modifier.size(
+                            30.dp
+                        )
                 )
             }
 
 
+            // 상단 영역과 사용자 카드 사이 여백
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        6.dp
+                    )
+            )
+
+
             // ========================================
-            // 2. 본문
+            // 사용자 카드
             // ========================================
 
-            Column(
+            Card(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.Top
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 18.dp
+                    ),
+
+                shape =
+                    RoundedCornerShape(
+                        16.dp
+                    ),
+
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            Color.White
+                    ),
+
+                elevation =
+                    CardDefaults.cardElevation(
+                        defaultElevation =
+                            2.dp
+                    )
             ) {
 
-                // 상단바와 인사카드 사이 여백
-                Spacer(
-                    modifier = Modifier.height(16.dp)
-                )
-
-
-                // ========================================
-                // 2-1. 사용자 인사 카드
-                // ========================================
-
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
-
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(
-                            elevation = 3.dp,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .background(
-                            color = Color.White,
-                            shape = RoundedCornerShape(16.dp)
-                        )
                         .padding(
                             horizontal = 16.dp,
-                            vertical = 16.dp
-                        )
+                            vertical = 14.dp
+                        ),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(
+                                40.dp
+                            )
+                            .clip(
+                                CircleShape
+                            )
                             .background(
-                                color = CardBg,
-                                shape = CircleShape
+                                Color(
+                                    0xFFF1F3F7
+                                )
                             ),
-                        contentAlignment = Alignment.Center
+
+                        contentAlignment =
+                            Alignment.Center
                     ) {
 
                         Icon(
-                            imageVector = Icons.Filled.Person,
-                            contentDescription = null,
-                            tint = Color.Gray,
-                            modifier = Modifier.size(23.dp)
-                        )
-                    }
+                            imageVector =
+                                Icons.Filled.Person,
 
+                            contentDescription =
+                                null,
 
-                    Spacer(
-                        modifier = Modifier.width(12.dp)
-                    )
+                            tint =
+                                Color(
+                                    0xFFA1A7B0
+                                ),
 
-
-                    Column {
-
-                        Text(
-                            text = "안녕하세요,",
-                            fontSize = 13.sp,
-                            color = Color.Gray
-                        )
-
-                        Text(
-                            text = "${userName}님",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-
-                // 인사카드 아래 여백
-                Spacer(
-                    modifier = Modifier.height(16.dp)
-                )
-
-
-                // ========================================
-                // 2-2. 배너
-                // ========================================
-
-                val banners = listOf(
-
-                    BannerItem(
-                        title = "언제 어디서나\n당신의 안전을 지켜드려요",
-                        gradient = listOf(
-                            Color(0xFF3E6BFF),
-                            Color(0xFF6A92FE),
-                            Color(0xFF9BB6FF)
-                        )
-                    ),
-
-                    BannerItem(
-                        title = "밤길도 안심하고\n걸을 수 있어요",
-                        gradient = listOf(
-                            Color(0xFFFF8FB1),
-                            Color(0xFFFF7AA8),
-                            Color(0xFFFFB4CB)
-                        )
-                    ),
-
-                    BannerItem(
-                        title = "소중한 사람과\n안심 경로를 공유해요",
-                        gradient = listOf(
-                            Color(0xFFFFC155),
-                            Color(0xFFFFA645),
-                            Color(0xFFFFD08A)
-                        )
-                    )
-                )
-
-
-                val pagerState = rememberPagerState(
-                    pageCount = { banners.size }
-                )
-
-
-                Column {
-
-                    // 배너 좌우 여백 추가
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp)
-                            .height(150.dp)
-                    ) { page ->
-
-                        val banner = banners[page]
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = banner.gradient,
-                                        start = Offset(0f, 0f),
-                                        end = Offset(600f, 400f)
-                                    ),
-                                    shape = RoundedCornerShape(18.dp)
+                            modifier =
+                                Modifier.size(
+                                    21.dp
                                 )
-                        ) {
-
-                            Text(
-                                text = banner.title,
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .padding(start = 18.dp)
-                            )
-                        }
+                        )
                     }
 
 
-                    // 배너와 페이지 점 사이
                     Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
-
-
-                    // ========================================
-                    // 배너 페이지 점
-                    // ========================================
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-
-                        repeat(banners.size) { index ->
-
-                            val isSelected =
-                                pagerState.currentPage == index
-
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = 3.dp)
-                                    .size(
-                                        if (isSelected) 7.dp
-                                        else 6.dp
-                                    )
-                                    .background(
-                                        color =
-                                            if (isSelected)
-                                                AnOnBlue
-                                            else
-                                                Color.LightGray,
-                                        shape = CircleShape
-                                    )
+                        modifier =
+                            Modifier.width(
+                                12.dp
                             )
-                        }
-                    }
-                }
-
-
-                // 페이지 점과 주요서비스 사이
-                Spacer(
-                    modifier = Modifier.height(20.dp)
-                )
-
-
-                // ========================================
-                // 2-3. 주요 서비스
-                // ========================================
-
-                Text(
-                    text = "주요 서비스",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
-
-
-                val menuItems = listOf(
-
-                    HomeMenuItem(
-                        label = "안심경로",
-                        icon = Icons.Filled.Navigation,
-                        color = ColorRoute
-                    ),
-
-                    HomeMenuItem(
-                        label = "안심친구",
-                        icon = Icons.Filled.People,
-                        color = ColorFriend
-                    ),
-
-                    HomeMenuItem(
-                        label = "꽥꽥이",
-                        icon = Icons.Filled.Campaign,
-                        color = ColorQuack
-                    ),
-
-                    HomeMenuItem(
-                        label = "안심지도",
-                        icon = Icons.Filled.Map,
-                        color = ColorMap
-                    ),
-
-                    HomeMenuItem(
-                        label = "사용 리포트",
-                        icon = Icons.Filled.BarChart,
-                        color = ColorReport
                     )
-                )
-
-
-                // ========================================
-                // 서비스 카드 영역
-                // ========================================
-
-                BoxWithConstraints(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-
-                    val gap = 12.dp
-
-                    val cardWidth =
-                        (maxWidth - gap * 2) / 3
-
-                    // 카드 높이 다시 조금 키움
-                    val cardHeight = 120.dp
 
 
                     Column {
 
-                        // ========================================
-                        // 첫 번째 줄
-                        // ========================================
+                        Text(
+                            text =
+                                "안녕하세요,",
 
-                        Row(
-                            horizontalArrangement =
-                                Arrangement.spacedBy(gap)
-                        ) {
+                            fontSize =
+                                12.sp,
 
-                            menuItems
-                                .take(3)
-                                .forEach { item ->
-
-                                    MenuCard(
-                                        item = item,
-                                        modifier = Modifier
-                                            .width(cardWidth)
-                                            .height(cardHeight)
-                                    ) {
-                                        onMenuClick(item.label)
-                                    }
-                                }
-                        }
+                            color =
+                                TextGray
+                        )
 
 
                         Spacer(
-                            modifier = Modifier.height(gap)
+                            modifier =
+                                Modifier.height(
+                                    2.dp
+                                )
                         )
 
 
-                        // ========================================
-                        // 두 번째 줄
-                        // ========================================
+                        Text(
+                            text =
+                                "${userName}님",
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.Center
-                        ) {
+                            fontSize =
+                                18.sp,
 
-                            menuItems
-                                .drop(3)
-                                .forEachIndexed { index, item ->
+                            fontWeight =
+                                FontWeight.Bold,
 
-                                    if (index > 0) {
-
-                                        Spacer(
-                                            modifier =
-                                                Modifier.width(gap)
-                                        )
-                                    }
-
-
-                                    MenuCard(
-                                        item = item,
-                                        modifier = Modifier
-                                            .width(cardWidth)
-                                            .height(cardHeight)
-                                    ) {
-                                        onMenuClick(item.label)
-                                    }
-                                }
-                        }
+                            color =
+                                TextBlack
+                        )
                     }
                 }
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        16.dp
+                    )
+            )
+
+
+            // ========================================
+            // 자동 슬라이드 배너
+            // ========================================
+
+            HomeBannerSlider(
+                bannerImages =
+                    bannerImages
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        24.dp
+                    )
+            )
+
+
+            // ========================================
+            // 주요 서비스 제목
+            // ========================================
+
+            Text(
+                text =
+                    "주요 서비스",
+
+                fontSize =
+                    20.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextBlack,
+
+                modifier =
+                    Modifier.padding(
+                        horizontal = 18.dp
+                    )
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        14.dp
+                    )
+            )
+
+
+            // ========================================
+            // 서비스 1행
+            // ========================================
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 18.dp
+                    ),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
+                    )
+            ) {
+
+                HomeServiceCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    title =
+                        serviceItems[0].title,
+
+                    iconTint =
+                        serviceItems[0].iconTint,
+
+                    iconType =
+                        "안심경로",
+
+                    onClick = {
+
+                        onMenuClick(
+                            "안심경로"
+                        )
+                    }
+                )
+
+
+                HomeServiceCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    title =
+                        serviceItems[1].title,
+
+                    iconTint =
+                        serviceItems[1].iconTint,
+
+                    iconType =
+                        "안심친구",
+
+                    onClick = {
+
+                        onMenuClick(
+                            "안심친구"
+                        )
+                    }
+                )
+
+
+                HomeServiceCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    title =
+                        serviceItems[2].title,
+
+                    iconTint =
+                        serviceItems[2].iconTint,
+
+                    iconType =
+                        "꽥꽥이",
+
+                    onClick = {
+
+                        onMenuClick(
+                            "꽥꽥이"
+                        )
+                    }
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        12.dp
+                    )
+            )
+
+
+            // ========================================
+            // 서비스 2행
+            // ========================================
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 18.dp
+                    ),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
+                    )
+            ) {
+
+                HomeServiceCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    title =
+                        serviceItems[3].title,
+
+                    iconTint =
+                        serviceItems[3].iconTint,
+
+                    iconType =
+                        "안심지도",
+
+                    onClick = {
+
+                        onMenuClick(
+                            "안심지도"
+                        )
+                    }
+                )
+
+
+                HomeServiceCard(
+                    modifier =
+                        Modifier.weight(1f),
+
+                    title =
+                        serviceItems[4].title,
+
+                    iconTint =
+                        serviceItems[4].iconTint,
+
+                    iconType =
+                        "사용 리포트",
+
+                    onClick = {
+
+                        onMenuClick(
+                            "사용 리포트"
+                        )
+                    }
+                )
 
 
                 Spacer(
-                    modifier = Modifier.height(16.dp)
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        )
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        30.dp
+                    )
+            )
+        }
+
+
+        // ========================================
+        // 하단바
+        // ========================================
+
+        AnOnBottomBar(
+            selectedTab =
+                "홈",
+
+            onTabSelected = { tab ->
+
+                onMenuClick(
+                    tab
+                )
+            },
+
+            onEmergencyClick =
+                onEmergencyClick,
+
+            modifier =
+                Modifier.align(
+                    Alignment.BottomCenter
+                )
+        )
+    }
+}
+
+
+// ========================================
+// 홈 배너 슬라이더
+// ========================================
+
+@Composable
+private fun HomeBannerSlider(
+    bannerImages: List<Int>
+) {
+
+    val pagerState =
+        rememberPagerState(
+            initialPage = 0,
+            pageCount = {
+                bannerImages.size
+            }
+        )
+
+
+    // ========================================
+    // 자동 슬라이드
+    // 5초마다 다음 페이지
+    // ========================================
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            delay(
+                5000L
+            )
+
+
+            if (
+                !pagerState.isScrollInProgress
+            ) {
+
+                val nextPage =
+                    if (
+                        pagerState.currentPage ==
+                        bannerImages.lastIndex
+                    ) {
+
+                        0
+
+                    } else {
+
+                        pagerState.currentPage + 1
+                    }
+
+
+                pagerState.animateScrollToPage(
+                    nextPage
+                )
+            }
+        }
+    }
+
+
+    Column {
+
+        // ========================================
+        // 배너 이미지
+        // ========================================
+
+        HorizontalPager(
+            state =
+                pagerState,
+
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(
+                    190.dp
+                )
+        ) { page ->
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        horizontal = 18.dp
+                    )
+                    .clip(
+                        RoundedCornerShape(
+                            22.dp
+                        )
+                    )
+            ) {
+
+                Image(
+                    painter =
+                        painterResource(
+                            id =
+                                bannerImages[
+                                    page
+                                ]
+                        ),
+
+                    contentDescription =
+                        "홈 배너 ${page + 1}",
+
+                    contentScale =
+                        ContentScale.Crop,
+
+                    modifier =
+                        Modifier.fillMaxSize()
                 )
             }
         }
 
 
-        // ========================================
-        // 3. 하단 네비게이션
-        // ========================================
-
-        AnOnBottomBar(
-            selectedTab = "홈",
-
-            onTabSelected = { tab ->
-                onMenuClick(tab)
-            },
-
-            onEmergencyClick = onEmergencyClick,
-
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
+        Spacer(
+            modifier =
+                Modifier.height(
+                    10.dp
+                )
         )
+
+
+        // ========================================
+        // 배너 페이지 표시
+        // ========================================
+
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            horizontalArrangement =
+                Arrangement.Center,
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            bannerImages.indices.forEach { index ->
+
+                val isSelected =
+                    pagerState.currentPage ==
+                            index
+
+
+                Box(
+                    modifier = Modifier
+                        .width(
+                            if (
+                                isSelected
+                            ) {
+
+                                18.dp
+
+                            } else {
+
+                                6.dp
+                            }
+                        )
+                        .height(
+                            6.dp
+                        )
+                        .clip(
+                            RoundedCornerShape(
+                                50.dp
+                            )
+                        )
+                        .background(
+                            if (
+                                isSelected
+                            ) {
+
+                                MainBlue
+
+                            } else {
+
+                                Color(
+                                    0xFFD8DBE4
+                                )
+                            }
+                        )
+                )
+
+
+                if (
+                    index <
+                    bannerImages.lastIndex
+                ) {
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                6.dp
+                            )
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -522,76 +832,60 @@ fun HomeScreen(
 // ========================================
 
 @Composable
-private fun MenuCard(
-    item: HomeMenuItem,
+private fun HomeServiceCard(
     modifier: Modifier = Modifier,
+    title: String,
+    iconTint: Color,
+    iconType: String,
     onClick: () -> Unit
 ) {
 
-    val shape =
-        RoundedCornerShape(16.dp)
-
-
-    Box(
+    Card(
         modifier = modifier
-    ) {
-
-        // ========================================
-        // 그림자
-        // ========================================
-
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(
-                    x = 3.dp,
-                    y = 3.dp
-                )
-                .background(
-                    color =
-                        Color.Black.copy(
-                            alpha = 0.10f
-                        ),
-                    shape = shape
-                )
-        )
-
-
-        // 카드 배경색
-        val cardBgColor =
-            lerp(
-                start = Color.White,
-                stop = item.color,
-                fraction = 0.18f
+            .height(
+                118.dp
             )
+            .clickable {
 
+                onClick()
+            },
 
-        // ========================================
-        // 실제 카드
-        // ========================================
+        shape =
+            RoundedCornerShape(
+                18.dp
+            ),
+
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            ),
+
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation =
+                    1.dp
+            )
+    ) {
 
         Column(
             modifier = Modifier
-                .matchParentSize()
-                .clip(shape)
-                .background(
-                    color = cardBgColor,
-                    shape = shape
-                )
+                .fillMaxSize()
                 .border(
-                    width = 1.dp,
+                    width =
+                        1.dp,
+
                     color =
-                        item.color.copy(
-                            alpha = 0.35f
-                        ),
-                    shape = shape
+                        BorderGray,
+
+                    shape =
+                        RoundedCornerShape(
+                            18.dp
+                        )
                 )
-                .clickable {
-                    onClick()
-                }
                 .padding(
-                    vertical = 14.dp,
-                    horizontal = 6.dp
+                    horizontal = 8.dp,
+                    vertical = 18.dp
                 ),
 
             horizontalAlignment =
@@ -601,38 +895,63 @@ private fun MenuCard(
                 Arrangement.Center
         ) {
 
+
             Icon(
-                imageVector = item.icon,
-                contentDescription = item.label,
-                tint = item.color,
-                modifier = Modifier.size(34.dp)
+                imageVector =
+                    when (
+                        iconType
+                    ) {
+
+                        "안심경로" ->
+                            Icons.Filled.NearMe
+
+                        "안심친구" ->
+                            Icons.Filled.Groups
+
+                        "꽥꽥이" ->
+                            Icons.Filled.Campaign
+
+                        "안심지도" ->
+                            Icons.Filled.Map
+
+                        else ->
+                            Icons.Filled.BarChart
+                    },
+
+                contentDescription =
+                    title,
+
+                tint =
+                    iconTint,
+
+                modifier =
+                    Modifier.size(
+                        33.dp
+                    )
             )
 
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier =
+                    Modifier.height(
+                        13.dp
+                    )
             )
 
 
             Text(
-                text = item.label,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1
+                text =
+                    title,
+
+                fontSize =
+                    14.sp,
+
+                fontWeight =
+                    FontWeight.SemiBold,
+
+                color =
+                    TextBlack
             )
         }
     }
-}
-
-
-// ========================================
-// Preview
-// ========================================
-
-@androidx.compose.ui.tooling.preview.Preview(
-    showBackground = true
-)
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen()
 }
