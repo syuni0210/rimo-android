@@ -14,6 +14,7 @@ import com.example.clouddx_team4_project.ui.screens.GuardianRegisterScreen
 import com.example.clouddx_team4_project.ui.screens.HomeScreen
 import com.example.clouddx_team4_project.ui.screens.LoginScreen
 import com.example.clouddx_team4_project.ui.screens.MoreScreen
+import com.example.clouddx_team4_project.ui.screens.ProfileSettingScreen
 import com.example.clouddx_team4_project.ui.screens.QuackScreen
 import com.example.clouddx_team4_project.ui.screens.ReportScreen
 import com.example.clouddx_team4_project.ui.screens.SafeRouteScreen
@@ -52,8 +53,7 @@ fun AppNavigation() {
     NavHost(
         navController = navController,
 
-        // 지금은 UI 개발 중이므로 홈부터 시작
-        // 나중에 로그인 완성되면 "login"으로 변경
+        // 로그인 화면부터 시작
         startDestination = "login"
     ) {
 
@@ -69,8 +69,8 @@ fun AppNavigation() {
                 onLoginClick = { id, password ->
 
                     // ========================================
-                    // 현재는 백엔드 연결 전
-                    // 로그인 버튼 누르면 홈 이동
+                    // 현재는 로그인 성공 시 홈 이동
+                    // 나중에 Spring Boot 로그인 API 연결
                     // ========================================
 
                     navController.navigate("home") {
@@ -180,7 +180,7 @@ fun AppNavigation() {
 
                         "안심지도" -> {
 
-                            // 나중에 별도 지도 화면 만들면 연결
+                            // 나중에 별도 지도 화면 연결
                         }
 
 
@@ -275,7 +275,7 @@ fun AppNavigation() {
                 onStartSearchClick = {
 
                     // 현재 위치를 기본 출발지로 사용
-                    // 나중에 출발지 검색도 같은 검색 화면 재사용 가능
+                    // 나중에 출발지 검색 연결
                 },
 
 
@@ -349,21 +349,24 @@ fun AppNavigation() {
 
             DestinationSearchScreen(
 
+                // ========================================
                 // 뒤로가기
+                // ========================================
+
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
 
+                // ========================================
                 // 장소 선택
+                // ========================================
+
                 onPlaceSelected = { place ->
 
-                    // 선택한 장소 저장
                     selectedDestination = place
 
-
-                    // 안심경로 화면으로 복귀
                     navController.popBackStack()
                 }
             )
@@ -378,17 +381,53 @@ fun AppNavigation() {
 
             FriendScreen(
 
+                // ========================================
+                // 뒤로가기
+                // ========================================
+
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
 
+                // ========================================
+                // 기존 친구 추가 콜백
+                // ========================================
+
                 onAddFriendClick = {
 
-                    // 나중에 친구 추가 화면 연결
+                    // 팝업에서 추가 완료 후 호출됨
                 },
 
+
+                // ========================================
+                // 친구 추가
+                // 이름 + 아이디
+                // ========================================
+
+                onAddFriendSubmit = { name, id ->
+
+                    // ========================================
+                    // TODO
+                    // 나중에 Spring Boot 친구 추가 API 연결
+                    //
+                    // 예:
+                    // POST /api/friends
+                    //
+                    // name
+                    // id
+                    // ========================================
+
+                    println("친구 추가")
+                    println("이름 : $name")
+                    println("아이디 : $id")
+                },
+
+
+                // ========================================
+                // 친구 요청 수락
+                // ========================================
 
                 onAcceptRequest = { name ->
 
@@ -396,11 +435,19 @@ fun AppNavigation() {
                 },
 
 
+                // ========================================
+                // 친구 요청 거절
+                // ========================================
+
                 onRejectRequest = { name ->
 
                     // 나중에 Spring Boot API 연결
                 },
 
+
+                // ========================================
+                // 친구 삭제
+                // ========================================
 
                 onDeleteFriend = { name ->
 
@@ -408,11 +455,19 @@ fun AppNavigation() {
                 },
 
 
+                // ========================================
+                // 친구 위치
+                // ========================================
+
                 onLocationClick = { name ->
 
-                    // 나중에 친구 위치 지도 화면 연결
+                    // 나중에 친구 위치 지도 연결
                 },
 
+
+                // ========================================
+                // 하단 네비게이션
+                // ========================================
 
                 onTabSelected = { tab ->
 
@@ -445,6 +500,10 @@ fun AppNavigation() {
                     }
                 },
 
+
+                // ========================================
+                // 긴급구조
+                // ========================================
 
                 onEmergencyClick = {
 
@@ -462,17 +521,29 @@ fun AppNavigation() {
 
             QuackScreen(
 
+                // ========================================
+                // 뒤로가기
+                // ========================================
+
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
 
+                // ========================================
+                // 중지
+                // ========================================
+
                 onStopClick = {
 
                     navController.popBackStack()
                 },
 
+
+                // ========================================
+                // 하단 네비게이션
+                // ========================================
 
                 onTabSelected = { tab ->
 
@@ -505,6 +576,10 @@ fun AppNavigation() {
                     }
                 },
 
+
+                // ========================================
+                // 긴급구조
+                // ========================================
 
                 onEmergencyClick = {
 
@@ -522,6 +597,10 @@ fun AppNavigation() {
 
             ReportScreen(
 
+                // ========================================
+                // 하단 네비게이션
+                // ========================================
+
                 onTabSelected = { tab ->
 
                     when (tab) {
@@ -554,6 +633,10 @@ fun AppNavigation() {
                 },
 
 
+                // ========================================
+                // 긴급구조
+                // ========================================
+
                 onEmergencyClick = {
 
                     showEmergencyDialog = true
@@ -570,9 +653,28 @@ fun AppNavigation() {
 
             MoreScreen(
 
+                // ========================================
+                // 더보기 메뉴 클릭
+                // ========================================
+
                 onMenuClick = { menu ->
 
                     when (menu) {
+
+
+                        // ========================================
+                        // 프로필 설정
+                        // ========================================
+
+                        "프로필 설정" -> {
+
+                            navController.navigate(
+                                "profile_setting"
+                            ) {
+
+                                launchSingleTop = true
+                            }
+                        }
 
 
                         // ========================================
@@ -606,7 +708,7 @@ fun AppNavigation() {
 
                         "공지사항 및 문의하기" -> {
 
-                            // 나중에 연결
+                            // 나중에 화면 연결
                         }
 
 
@@ -616,7 +718,7 @@ fun AppNavigation() {
 
                         "도움말" -> {
 
-                            // 나중에 연결
+                            // 나중에 화면 연결
                         }
 
 
@@ -626,7 +728,7 @@ fun AppNavigation() {
 
                         "서비스 소개" -> {
 
-                            // 나중에 연결
+                            // 나중에 화면 연결
                         }
 
 
@@ -636,7 +738,7 @@ fun AppNavigation() {
 
                         "개인정보처리방침" -> {
 
-                            // 나중에 연결
+                            // 나중에 화면 연결
                         }
                     }
                 },
@@ -648,7 +750,7 @@ fun AppNavigation() {
 
                 onSettingsClick = {
 
-                    // 나중에 설정 화면 연결
+                    // 현재는 별도 설정 화면 없음
                 },
 
 
@@ -677,12 +779,16 @@ fun AppNavigation() {
 
                         "더보기" -> {
 
-                            // 현재 화면이 더보기이므로
+                            // 현재 더보기 화면
                             // 아무 동작 없음
                         }
                     }
                 },
 
+
+                // ========================================
+                // 긴급구조
+                // ========================================
 
                 onEmergencyClick = {
 
@@ -702,11 +808,19 @@ fun AppNavigation() {
 
             GuardianRegisterScreen(
 
+                // ========================================
+                // 뒤로가기
+                // ========================================
+
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
+
+                // ========================================
+                // 보호자 등록
+                // ========================================
 
                 onRegisterClick = {
                         name,
@@ -729,11 +843,80 @@ fun AppNavigation() {
                 }
             )
         }
+
+
+        // ========================================
+        // 11. 프로필 설정
+        // ========================================
+
+        composable(
+            "profile_setting"
+        ) {
+
+            ProfileSettingScreen(
+
+                // ========================================
+                // 현재는 UI 확인용 사용자 정보
+                // 나중에 로그인 사용자 정보로 변경
+                // ========================================
+
+                initialName =
+                    "이지연",
+
+                userId =
+                    "jiyeon123",
+
+                initialEmail =
+                    "jiyeon@example.com",
+
+
+                // ========================================
+                // 뒤로가기
+                // ========================================
+
+                onBackClick = {
+
+                    navController.popBackStack()
+                },
+
+
+                // ========================================
+                // 프로필 저장
+                // ========================================
+
+                onSaveClick = { name, email ->
+
+                    // ========================================
+                    // TODO
+                    //
+                    // 나중에 Spring Boot
+                    // 프로필 수정 API 연결
+                    //
+                    // 예:
+                    // PUT /api/users/profile
+                    //
+                    // name
+                    // email
+                    // ========================================
+
+                    println("프로필 수정")
+                    println("이름 : $name")
+                    println("이메일 : $email")
+
+
+                    // ========================================
+                    // 저장 후 더보기 화면으로 복귀
+                    // ========================================
+
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 
 
     // ========================================
-    // 11. 공용 긴급구조 Dialog
+    // 12. 공용 긴급구조 Dialog
     // ========================================
 
     if (showEmergencyDialog) {

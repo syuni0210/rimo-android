@@ -91,7 +91,7 @@ fun LoginScreen(
 
             Icon(
                 imageVector = Icons.Filled.Home,
-                contentDescription = "안온 로고",
+                contentDescription = "리모 로고",
                 tint = Color.White,
                 modifier = Modifier.size(52.dp)
             )
@@ -108,7 +108,7 @@ fun LoginScreen(
         // ========================================
 
         Text(
-            text = "안 온",
+            text = "Rimo",
             color = Color.White,
 
             // 기존보다 크게

@@ -82,7 +82,15 @@ fun SignUpScreen(
     // 입력 정보
     // ========================================
 
+    var name by remember {
+        mutableStateOf("")
+    }
+
     var email by remember {
+        mutableStateOf("")
+    }
+
+    var userId by remember {
         mutableStateOf("")
     }
 
@@ -90,7 +98,7 @@ fun SignUpScreen(
         mutableStateOf("")
     }
 
-    var name by remember {
+    var passwordConfirm by remember {
         mutableStateOf("")
     }
 
@@ -101,6 +109,23 @@ fun SignUpScreen(
 
     var passwordVisible by remember {
         mutableStateOf(false)
+    }
+
+    var passwordConfirmVisible by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // 아이디 중복검사 상태
+    // ========================================
+
+    var isIdChecked by remember {
+        mutableStateOf(false)
+    }
+
+    var idCheckMessage by remember {
+        mutableStateOf<String?>(null)
     }
 
 
@@ -183,8 +208,7 @@ fun SignUpScreen(
             // ========================================
 
             SignUpHeader(
-                currentStep =
-                    currentStep,
+                currentStep = currentStep,
 
                 onBackClick = {
 
@@ -205,8 +229,7 @@ fun SignUpScreen(
             // ========================================
 
             SignUpStepIndicator(
-                currentStep =
-                    currentStep
+                currentStep = currentStep
             )
 
 
@@ -224,24 +247,12 @@ fun SignUpScreen(
                 1 -> {
 
                     TermsStep(
-                        serviceAgree =
-                            serviceAgree,
-
-                        privacyAgree =
-                            privacyAgree,
-
-                        locationAgree =
-                            locationAgree,
-
-                        marketingAgree =
-                            marketingAgree,
-
-                        emergencyAgree =
-                            emergencyAgree,
-
-                        allAgreed =
-                            allAgreed,
-
+                        serviceAgree = serviceAgree,
+                        privacyAgree = privacyAgree,
+                        locationAgree = locationAgree,
+                        marketingAgree = marketingAgree,
+                        emergencyAgree = emergencyAgree,
+                        allAgreed = allAgreed,
 
                         onAllAgreeChange = { checked ->
 
@@ -252,36 +263,30 @@ fun SignUpScreen(
                             emergencyAgree = checked
                         },
 
-
                         onServiceAgreeChange = {
 
                             serviceAgree = it
                         },
-
 
                         onPrivacyAgreeChange = {
 
                             privacyAgree = it
                         },
 
-
                         onLocationAgreeChange = {
 
                             locationAgree = it
                         },
-
 
                         onMarketingAgreeChange = {
 
                             marketingAgree = it
                         },
 
-
                         onEmergencyAgreeChange = {
 
                             emergencyAgree = it
                         },
-
 
                         onNextClick = {
 
@@ -301,22 +306,47 @@ fun SignUpScreen(
                 2 -> {
 
                     UserInfoStep(
-                        email =
-                            email,
 
-                        password =
-                            password,
+                        name = name,
 
-                        name =
-                            name,
+                        email = email,
 
-                        passwordVisible =
-                            passwordVisible,
+                        userId = userId,
+
+                        password = password,
+
+                        passwordConfirm = passwordConfirm,
+
+                        passwordVisible = passwordVisible,
+
+                        passwordConfirmVisible =
+                            passwordConfirmVisible,
+
+                        isIdChecked = isIdChecked,
+
+                        idCheckMessage = idCheckMessage,
+
+
+                        onNameChange = {
+
+                            name = it
+                        },
 
 
                         onEmailChange = {
 
                             email = it
+                        },
+
+
+                        onUserIdChange = {
+
+                            userId = it
+
+                            // 아이디를 수정하면 다시 중복검사 필요
+                            isIdChecked = false
+
+                            idCheckMessage = null
                         },
 
 
@@ -326,9 +356,9 @@ fun SignUpScreen(
                         },
 
 
-                        onNameChange = {
+                        onPasswordConfirmChange = {
 
-                            name = it
+                            passwordConfirm = it
                         },
 
 
@@ -339,12 +369,53 @@ fun SignUpScreen(
                         },
 
 
+                        onPasswordConfirmVisibleChange = {
+
+                            passwordConfirmVisible =
+                                !passwordConfirmVisible
+                        },
+
+
+                        // ========================================
+                        // 아이디 중복검사
+                        // 현재는 UI 테스트용
+                        // ========================================
+
+                        onIdCheckClick = {
+
+                            if (userId.isBlank()) {
+
+                                isIdChecked = false
+
+                                idCheckMessage =
+                                    "아이디를 입력해주세요."
+
+                            } else {
+
+                                // ========================================
+                                // TODO
+                                // 나중에 Spring Boot
+                                // 아이디 중복검사 API 연결
+                                // ========================================
+
+                                isIdChecked = true
+
+                                idCheckMessage =
+                                    "사용 가능한 아이디입니다."
+                            }
+                        },
+
+
                         onNextClick = {
 
                             if (
+                                name.isNotBlank() &&
                                 email.isNotBlank() &&
+                                userId.isNotBlank() &&
                                 password.isNotBlank() &&
-                                name.isNotBlank()
+                                passwordConfirm.isNotBlank() &&
+                                password == passwordConfirm &&
+                                isIdChecked
                             ) {
 
                                 signupError = null
@@ -363,17 +434,16 @@ fun SignUpScreen(
                 3 -> {
 
                     ConfirmInfoStep(
-                        email =
-                            email,
 
-                        name =
-                            name,
+                        name = name,
 
-                        isLoading =
-                            isSigningUp,
+                        email = email,
 
-                        errorMessage =
-                            signupError,
+                        userId = userId,
+
+                        isLoading = isSigningUp,
+
+                        errorMessage = signupError,
 
 
                         onNextClick = {
@@ -386,6 +456,7 @@ fun SignUpScreen(
                             coroutineScope.launch {
 
                                 isSigningUp = true
+
                                 signupError = null
 
 
@@ -394,14 +465,18 @@ fun SignUpScreen(
                                     // ========================================
                                     // 백엔드 회원가입 요청
                                     //
-                                    // POST
-                                    // /api/v1/auth/signup
+                                    // POST /api/v1/auth/signup
+                                    //
+                                    // 현재 서버 DTO
                                     //
                                     // {
                                     //   "email": "...",
                                     //   "password": "...",
                                     //   "name": "..."
                                     // }
+                                    //
+                                    // TODO
+                                    // 추후 userId도 서버 DTO에 추가
                                     // ========================================
 
                                     val response =
@@ -442,8 +517,6 @@ fun SignUpScreen(
                                         )
 
 
-                                        // 성공한 경우에만
-                                        // 회원가입 완료 화면
                                         currentStep = 4
 
 
@@ -500,10 +573,6 @@ fun SignUpScreen(
                                     e: Exception
                                 ) {
 
-                                    // ========================================
-                                    // 네트워크 연결 오류
-                                    // ========================================
-
                                     Log.e(
                                         "SIGNUP_API",
                                         "서버 통신 실패",
@@ -517,8 +586,7 @@ fun SignUpScreen(
 
                                 } finally {
 
-                                    isSigningUp =
-                                        false
+                                    isSigningUp = false
                                 }
                             }
                         }
@@ -646,11 +714,8 @@ private fun SignUpStepIndicator(
         ) {
 
             StepCircle(
-                step =
-                    step,
-
-                currentStep =
-                    currentStep
+                step = step,
+                currentStep = currentStep
             )
 
 
@@ -725,8 +790,7 @@ private fun StepCircle(
                         )
                     },
 
-                shape =
-                    CircleShape
+                shape = CircleShape
             ),
 
         contentAlignment =
@@ -1033,8 +1097,7 @@ private fun AgreementRow(
     ) {
 
         AgreementCheck(
-            checked =
-                checked,
+            checked = checked,
 
             onClick = {
 
@@ -1155,8 +1218,7 @@ private fun AgreementCheck(
                         Color.White
                     },
 
-                shape =
-                    CircleShape
+                shape = CircleShape
             )
             .border(
 
@@ -1177,8 +1239,7 @@ private fun AgreementCheck(
                         )
                     },
 
-                shape =
-                    CircleShape
+                shape = CircleShape
             )
             .clickable {
 
@@ -1219,15 +1280,29 @@ private fun AgreementCheck(
 
 @Composable
 private fun UserInfoStep(
-    email: String,
-    password: String,
-    name: String,
-    passwordVisible: Boolean,
 
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
+    name: String,
+    email: String,
+    userId: String,
+    password: String,
+    passwordConfirm: String,
+
+    passwordVisible: Boolean,
+    passwordConfirmVisible: Boolean,
+
+    isIdChecked: Boolean,
+    idCheckMessage: String?,
+
     onNameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
+    onUserIdChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onPasswordConfirmChange: (String) -> Unit,
+
     onPasswordVisibleChange: () -> Unit,
+    onPasswordConfirmVisibleChange: () -> Unit,
+
+    onIdCheckClick: () -> Unit,
 
     onNextClick: () -> Unit
 ) {
@@ -1294,13 +1369,47 @@ private fun UserInfoStep(
         Spacer(
             modifier =
                 Modifier.height(
-                    35.dp
+                    30.dp
                 )
         )
 
 
         // ========================================
-        // 이메일
+        // 1. 이름
+        // ========================================
+
+        SignUpTextField(
+            value =
+                name,
+
+            onValueChange = {
+
+                onNameChange(
+                    it
+                )
+            },
+
+            title =
+                "이름",
+
+            hint =
+                "이름을 입력해주세요",
+
+            icon =
+                Icons.Filled.Person
+        )
+
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    12.dp
+                )
+        )
+
+
+        // ========================================
+        // 2. 이메일
         // ========================================
 
         SignUpTextField(
@@ -1331,13 +1440,157 @@ private fun UserInfoStep(
         Spacer(
             modifier =
                 Modifier.height(
-                    14.dp
+                    12.dp
                 )
         )
 
 
         // ========================================
-        // 비밀번호
+        // 3. 아이디 + 중복검사
+        // ========================================
+
+        Row(
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            SignUpTextField(
+                modifier =
+                    Modifier.weight(
+                        1f
+                    ),
+
+                value =
+                    userId,
+
+                onValueChange = {
+
+                    onUserIdChange(
+                        it
+                    )
+                },
+
+                title =
+                    "아이디",
+
+                hint =
+                    "영문, 숫자 조합 4~16자",
+
+                icon =
+                    Icons.Filled.Person
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        8.dp
+                    )
+            )
+
+
+            Button(
+                onClick = {
+
+                    onIdCheckClick()
+                },
+
+                modifier = Modifier
+                    .width(
+                        92.dp
+                    )
+                    .height(
+                        50.dp
+                    ),
+
+                shape =
+                    RoundedCornerShape(
+                        10.dp
+                    ),
+
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            AnOnBlue
+                    ),
+
+                contentPadding =
+                    PaddingValues(
+                        horizontal = 6.dp
+                    )
+            ) {
+
+                Text(
+                    text =
+                        "중복 검사",
+
+                    fontSize =
+                        12.sp,
+
+                    fontWeight =
+                        FontWeight.Bold,
+
+                    color =
+                        Color.White
+                )
+            }
+        }
+
+
+        if (
+            idCheckMessage != null
+        ) {
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        4.dp
+                    )
+            )
+
+
+            Text(
+                text =
+                    idCheckMessage,
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    if (
+                        isIdChecked
+                    ) {
+
+                        AnOnBlue
+
+                    } else {
+
+                        MaterialTheme
+                            .colorScheme
+                            .error
+                    },
+
+                modifier =
+                    Modifier.padding(
+                        start = 5.dp
+                    )
+            )
+        }
+
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    12.dp
+                )
+        )
+
+
+        // ========================================
+        // 4. 비밀번호
         // ========================================
 
         SignUpTextField(
@@ -1377,61 +1630,110 @@ private fun UserInfoStep(
         Spacer(
             modifier =
                 Modifier.height(
-                    14.dp
+                    12.dp
                 )
         )
 
 
         // ========================================
-        // 이름
+        // 5. 비밀번호 확인
         // ========================================
 
         SignUpTextField(
             value =
-                name,
+                passwordConfirm,
 
             onValueChange = {
 
-                onNameChange(
+                onPasswordConfirmChange(
                     it
                 )
             },
 
             title =
-                "이름",
+                "비밀번호 확인",
 
             hint =
-                "이름을 입력해주세요",
+                "비밀번호를 다시 입력해주세요",
 
             icon =
-                Icons.Filled.Person
+                Icons.Filled.Lock,
+
+            password =
+                true,
+
+            passwordVisible =
+                passwordConfirmVisible,
+
+            keyboardType =
+                KeyboardType.Password,
+
+            onPasswordVisibleChange =
+                onPasswordConfirmVisibleChange
         )
 
 
-        Spacer(
-            modifier =
-                Modifier.weight(
-                    1f
-                )
-        )
+        // ========================================
+        // 비밀번호 불일치 메시지
+        // ========================================
+
+        if (
+            passwordConfirm.isNotBlank() &&
+            password != passwordConfirm
+        ) {
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        4.dp
+                    )
+            )
+
+
+            Text(
+                text =
+                    "비밀번호가 일치하지 않습니다.",
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .error,
+
+                modifier =
+                    Modifier.padding(
+                        start = 5.dp
+                    )
+            )
+        }
 
 
         Spacer(
             modifier =
                 Modifier.height(
-                    35.dp
+                    30.dp
                 )
         )
 
+
+        // ========================================
+        // 다음
+        // ========================================
 
         PrimaryButton(
             text =
                 "다음",
 
             enabled =
-                email.isNotBlank() &&
+                name.isNotBlank() &&
+                        email.isNotBlank() &&
+                        userId.isNotBlank() &&
                         password.isNotBlank() &&
-                        name.isNotBlank(),
+                        passwordConfirm.isNotBlank() &&
+                        password == passwordConfirm &&
+                        isIdChecked,
 
             onClick =
                 onNextClick
@@ -1446,6 +1748,8 @@ private fun UserInfoStep(
 
 @Composable
 private fun SignUpTextField(
+    modifier: Modifier = Modifier,
+
     value: String,
     onValueChange: (String) -> Unit,
 
@@ -1473,7 +1777,7 @@ private fun SignUpTextField(
             )
         },
 
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(
                 74.dp
@@ -1623,8 +1927,9 @@ private fun SignUpTextField(
 
 @Composable
 private fun ConfirmInfoStep(
-    email: String,
     name: String,
+    email: String,
+    userId: String,
 
     isLoading: Boolean,
     errorMessage: String?,
@@ -1696,6 +2001,31 @@ private fun ConfirmInfoStep(
         )
 
 
+        // ========================================
+        // 이름
+        // ========================================
+
+        ConfirmRow(
+            title =
+                "이름",
+
+            value =
+                name
+        )
+
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    30.dp
+                )
+        )
+
+
+        // ========================================
+        // 이메일
+        // ========================================
+
         ConfirmRow(
             title =
                 "이메일",
@@ -1713,12 +2043,16 @@ private fun ConfirmInfoStep(
         )
 
 
+        // ========================================
+        // 아이디
+        // ========================================
+
         ConfirmRow(
             title =
-                "이름",
+                "아이디",
 
             value =
-                name
+                userId
         )
 
 
@@ -1749,7 +2083,7 @@ private fun ConfirmInfoStep(
 
 
         // ========================================
-        // 회원가입 오류 표시
+        // 회원가입 오류
         // ========================================
 
         if (
@@ -1994,7 +2328,7 @@ private fun CompleteStep(
 
         Text(
             text =
-                "안온 서비스 가입을 환영합니다.",
+                "Rimo 서비스 가입을 환영합니다.",
 
             fontSize =
                 13.sp,

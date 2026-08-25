@@ -17,15 +17,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -52,6 +53,10 @@ import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 import kotlinx.coroutines.delay
 
 
+// ========================================
+// 색상
+// ========================================
+
 private val MainBlue =
     Color(0xFF6A92FE)
 
@@ -68,18 +73,32 @@ private val BorderGray =
     Color(0xFFE9ECF3)
 
 
+// ========================================
+// 서비스 데이터
+// ========================================
+
 data class HomeServiceItem(
     val title: String,
     val iconTint: Color
 )
 
 
+// ========================================
+// 홈 화면
+// ========================================
+
 @Composable
 fun HomeScreen(
     userName: String = "이지연",
+
+    // 현재 위치
+    // 나중에 GPS → 주소 변환 결과를 넣으면 됨
+    currentLocation: String = "서울특별시 영등포구",
+
     onMenuClick: (String) -> Unit = {},
     onEmergencyClick: () -> Unit = {}
 ) {
+
 
     // ========================================
     // 주요 서비스
@@ -87,6 +106,7 @@ fun HomeScreen(
 
     val serviceItems =
         listOf(
+
             HomeServiceItem(
                 title = "안심경로",
                 iconTint = Color(0xFF5E86F7)
@@ -115,7 +135,7 @@ fun HomeScreen(
 
 
     // ========================================
-    // 홈 배너 이미지 3개
+    // 홈 배너
     // ========================================
 
     val bannerImages =
@@ -132,9 +152,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                BgColor
-            )
+            .background(BgColor)
     ) {
 
         Column(
@@ -176,7 +194,7 @@ fun HomeScreen(
                             Icons.Filled.Security,
 
                         contentDescription =
-                            "안온",
+                            "Rimo",
 
                         tint =
                             MainBlue,
@@ -198,7 +216,7 @@ fun HomeScreen(
 
                     Text(
                         text =
-                            "안온",
+                            "Rimo",
 
                         fontSize =
                             27.sp,
@@ -238,7 +256,6 @@ fun HomeScreen(
             }
 
 
-            // 상단 영역과 사용자 카드 사이 여백
             Spacer(
                 modifier =
                     Modifier.height(
@@ -248,8 +265,8 @@ fun HomeScreen(
 
 
             // ========================================
-            // 사용자 카드
-            // ========================================
+// 프로필 카드
+// ========================================
 
             Card(
                 modifier = Modifier
@@ -260,7 +277,7 @@ fun HomeScreen(
 
                 shape =
                     RoundedCornerShape(
-                        16.dp
+                        20.dp
                     ),
 
                 colors =
@@ -276,99 +293,176 @@ fun HomeScreen(
                     )
             ) {
 
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(
-                            horizontal = 16.dp,
-                            vertical = 14.dp
-                        ),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                            horizontal = 18.dp,
+                            vertical = 18.dp
+                        )
                 ) {
 
-                    Box(
-                        modifier = Modifier
-                            .size(
-                                40.dp
-                            )
-                            .clip(
-                                CircleShape
-                            )
-                            .background(
-                                Color(
-                                    0xFFF1F3F7
-                                )
+
+                    // ========================================
+                    // 오른쪽 위 현재 위치
+                    // ========================================
+
+                    Row(
+                        modifier =
+                            Modifier.align(
+                                Alignment.TopEnd
                             ),
 
-                        contentAlignment =
-                            Alignment.Center
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
                         Icon(
                             imageVector =
-                                Icons.Filled.Person,
+                                Icons.Filled.LocationOn,
 
                             contentDescription =
-                                null,
+                                "현재 위치",
 
                             tint =
-                                Color(
-                                    0xFFA1A7B0
-                                ),
+                                MainBlue,
 
                             modifier =
                                 Modifier.size(
-                                    21.dp
+                                    15.dp
                                 )
-                        )
-                    }
-
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(
-                                12.dp
-                            )
-                    )
-
-
-                    Column {
-
-                        Text(
-                            text =
-                                "안녕하세요,",
-
-                            fontSize =
-                                12.sp,
-
-                            color =
-                                TextGray
                         )
 
 
                         Spacer(
                             modifier =
-                                Modifier.height(
-                                    2.dp
+                                Modifier.width(
+                                    3.dp
                                 )
                         )
 
 
                         Text(
                             text =
-                                "${userName}님",
+                                currentLocation,
 
                             fontSize =
-                                18.sp,
+                                12.sp,
 
                             fontWeight =
-                                FontWeight.Bold,
+                                FontWeight.Medium,
 
                             color =
-                                TextBlack
+                                Color(
+                                    0xFF777777
+                                )
                         )
+                    }
+
+
+                    // ========================================
+                    // 프로필 정보
+                    // ========================================
+
+                    Row(
+                        modifier =
+                            Modifier.padding(
+                                top = 10.dp
+                            ),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+
+                        // ========================================
+                        // 프로필 아이콘
+                        // ========================================
+
+                        Box(
+                            modifier = Modifier
+                                .size(
+                                    58.dp
+                                )
+                                .clip(
+                                    CircleShape
+                                )
+                                .background(
+                                    Color(
+                                        0xFFEAF0FF
+                                    )
+                                ),
+
+                            contentAlignment =
+                                Alignment.Center
+                        ) {
+
+                            Icon(
+                                imageVector =
+                                    Icons.Filled.Person,
+
+                                contentDescription =
+                                    "프로필",
+
+                                tint =
+                                    MainBlue,
+
+                                modifier =
+                                    Modifier.size(
+                                        31.dp
+                                    )
+                            )
+                        }
+
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(
+                                    15.dp
+                                )
+                        )
+
+
+                        // ========================================
+                        // 인사말 / 이름
+                        // ========================================
+
+                        Column {
+
+                            Text(
+                                text =
+                                    "안녕하세요!",
+
+                                fontSize =
+                                    13.sp,
+
+                                color =
+                                    TextGray
+                            )
+
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(
+                                        4.dp
+                                    )
+                            )
+
+
+                            Text(
+                                text =
+                                    "${userName}님",
+
+                                fontSize =
+                                    22.sp,
+
+                                fontWeight =
+                                    FontWeight.Bold,
+
+                                color =
+                                    TextBlack
+                            )
+                        }
                     }
                 }
             }
@@ -377,7 +471,7 @@ fun HomeScreen(
             Spacer(
                 modifier =
                     Modifier.height(
-                        16.dp
+                        18.dp
                     )
             )
 
@@ -649,8 +743,7 @@ private fun HomeBannerSlider(
 
 
     // ========================================
-    // 자동 슬라이드
-    // 5초마다 다음 페이지
+    // 5초마다 자동 슬라이드
     // ========================================
 
     LaunchedEffect(Unit) {
@@ -749,7 +842,7 @@ private fun HomeBannerSlider(
 
 
         // ========================================
-        // 배너 페이지 표시
+        // 페이지 표시
         // ========================================
 
         Row(
@@ -894,7 +987,6 @@ private fun HomeServiceCard(
             verticalArrangement =
                 Arrangement.Center
         ) {
-
 
             Icon(
                 imageVector =

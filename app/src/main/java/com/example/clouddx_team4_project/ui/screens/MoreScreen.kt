@@ -62,7 +62,7 @@ data class MoreMenuItem(
 @Composable
 fun MoreScreen(
     userName: String = "이지연",
-    region: String = "영등포구",
+    region: String = "아이디123",
 
     onMenuClick: (String) -> Unit = {},
 
@@ -78,6 +78,11 @@ fun MoreScreen(
     // ========================================
 
     val firstMenuGroup = listOf(
+
+        MoreMenuItem(
+            title = "프로필 설정",
+            icon = Icons.Filled.AccountCircle
+        ),
 
         MoreMenuItem(
             title = "기본 목적지 설정",
