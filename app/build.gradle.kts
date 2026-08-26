@@ -62,6 +62,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+
+        // minSdk 23에서도 java.time 사용 가능하게
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
@@ -71,6 +74,19 @@ android {
 }
 
 dependencies {
+
+    // ========================================
+    // Java 8+ API desugaring
+    // LocalDate / YearMonth 사용
+    // ========================================
+
+    coreLibraryDesugaring(
+        "com.android.tools:desugar_jdk_libs:2.1.5"
+    )
+
+    // ========================================
+    // Compose
+    // ========================================
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -85,7 +101,15 @@ dependencies {
         "androidx.compose.material:material-icons-extended:1.7.8"
     )
 
+    // ViewModel + Compose
+    implementation(
+        "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4"
+    )
+
+    // ========================================
     // Navigation
+    // ========================================
+
     implementation(
         "androidx.navigation:navigation-compose:2.9.5"
     )
@@ -109,7 +133,7 @@ dependencies {
     )
 
     // ========================================
-    // Kakao Local API - Retrofit
+    // Retrofit
     // ========================================
 
     implementation(

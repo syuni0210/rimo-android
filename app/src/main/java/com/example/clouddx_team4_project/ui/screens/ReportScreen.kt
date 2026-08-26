@@ -32,6 +32,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
+import com.example.clouddx_team4_project.ui.viewmodel.ReportViewModel
+import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
+import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -80,113 +83,68 @@ data class ReturnRecord(
 @Composable
 fun ReportScreen(
     onTabSelected: (String) -> Unit = {},
-    onEmergencyClick: () -> Unit = {}
+    onEmergencyClick: () -> Unit = {},
+    viewModel: ReportViewModel = viewModel()
 ) {
+
+    val dimens = rememberResponsiveDimens()
 
     var selectedReportTab by remember {
         mutableStateOf("대시보드")
     }
 
-
     // ========================================
-    // 임시 경로 선호도 데이터
+    // Spring Boot API 데이터
     // ========================================
 
-    val routePreferences = listOf(
+    val summary by viewModel.summary.collectAsState()
+    val apiRoutePreferences by viewModel.routePreferences.collectAsState()
+    val apiRecords by viewModel.records.collectAsState()
+    val topFriend by viewModel.topFriend.collectAsState()
+
+    // 서버의 경로 선호도 DTO -> 화면용 모델
+    val routePreferences = apiRoutePreferences.mapIndexed { index, item ->
+
+        val color = when (item.code) {
+            "R001" -> DeepBlue
+            "R002" -> MiddleBlue
+            "R003" -> LightBlue
+            else -> when (index % 3) {
+                0 -> DeepBlue
+                1 -> MiddleBlue
+                else -> LightBlue
+            }
+        }
 
         RoutePreference(
-            label = "빠른길",
-            percent = 63,
-            color = DeepBlue
-        ),
-
-        RoutePreference(
-            label = "비추천길",
-            percent = 25,
-            color = MiddleBlue
-        ),
-
-        RoutePreference(
-            label = "대로변",
-            percent = 12,
-            color = LightBlue
+            label = item.label,
+            percent = item.percent.toInt(),
+            color = color
         )
-    )
+    }
 
+    // 서버의 귀가 기록 DTO -> 화면용 모델
+    val returnRecords = apiRecords.mapNotNull { item ->
 
-    // ========================================
-    // 임시 귀가 기록
-    // ========================================
+        val parsedDate = runCatching {
+            LocalDate.parse(item.date)
+        }.getOrNull()
 
-    val returnRecords = listOf(
-
-        ReturnRecord(
-            date = LocalDate.of(2026, 7, 3),
-            startLocation = "강남역 2번 출구",
-            destination = "집",
-            startTime = "20:32",
-            arrivalTime = "20:58",
-            duration = "26분",
-            routeType = "빠른길",
-            distance = "1.8km"
-        ),
-
-        ReturnRecord(
-            date = LocalDate.of(2026, 7, 7),
-            startLocation = "역삼역",
-            destination = "집",
-            startTime = "21:11",
-            arrivalTime = "21:34",
-            duration = "23분",
-            routeType = "대로변",
-            distance = "1.5km"
-        ),
-
-        ReturnRecord(
-            date = LocalDate.of(2026, 7, 10),
-            startLocation = "신논현역",
-            destination = "집",
-            startTime = "22:03",
-            arrivalTime = "22:29",
-            duration = "26분",
-            routeType = "빠른길",
-            distance = "1.7km"
-        ),
-
-        ReturnRecord(
-            date = LocalDate.of(2026, 7, 14),
-            startLocation = "강남역 2번 출구",
-            destination = "집",
-            startTime = "21:48",
-            arrivalTime = "22:12",
-            duration = "24분",
-            routeType = "빠른길",
-            distance = "1.6km"
-        ),
-
-        ReturnRecord(
-            date = LocalDate.of(2026, 7, 20),
-            startLocation = "교대역",
-            destination = "집",
-            startTime = "20:40",
-            arrivalTime = "21:08",
-            duration = "28분",
-            routeType = "비추천길",
-            distance = "2.0km"
-        ),
-
-        ReturnRecord(
-            date = LocalDate.of(2026, 7, 27),
-            startLocation = "강남역",
-            destination = "집",
-            startTime = "21:20",
-            arrivalTime = "21:44",
-            duration = "24분",
-            routeType = "빠른길",
-            distance = "1.6km"
-        )
-    )
-
+        if (parsedDate == null) {
+            null
+        } else {
+            ReturnRecord(
+                date = parsedDate,
+                startLocation = item.startLocation,
+                destination = item.destination,
+                startTime = item.startTime,
+                arrivalTime = item.arrivalTime,
+                duration = item.duration,
+                routeType = item.routeType,
+                distance = item.distance
+            )
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -197,7 +155,7 @@ fun ReportScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 100.dp)
+                .padding(bottom = 92.dp)
         ) {
 
             // ========================================
@@ -206,7 +164,7 @@ fun ReportScreen(
 
             Text(
                 text = "사용 리포트",
-                fontSize = 25.sp,
+                fontSize = dimens.titleSize,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF222222),
                 textAlign = TextAlign.Center,
@@ -214,8 +172,8 @@ fun ReportScreen(
                     .statusBarsPadding()
                     .fillMaxWidth()
                     .padding(
-                        top = 18.dp,
-                        bottom = 18.dp
+                        top = dimens.screenVerticalPadding,
+                        bottom = dimens.screenVerticalPadding
                     )
             )
 
@@ -233,7 +191,7 @@ fun ReportScreen(
 
 
             Spacer(
-                modifier = Modifier.height(18.dp)
+                modifier = Modifier.height(dimens.mediumSpacing)
             )
 
 
@@ -244,7 +202,11 @@ fun ReportScreen(
             if (selectedReportTab == "대시보드") {
 
                 DashboardContent(
-                    routePreferences = routePreferences
+                    totalCount = summary?.totalCount ?: 0L,
+                    avgDurationMin = summary?.avgDurationMin ?: 0.0,
+                    routePreferences = routePreferences,
+                    topFriendName = topFriend?.name ?: "-",
+                    topFriendCount = topFriend?.count ?: 0L
                 )
 
             } else {
@@ -282,10 +244,12 @@ private fun ReportTabBar(
     onTabClick: (String) -> Unit
 ) {
 
+    val dimens = rememberResponsiveDimens()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = dimens.screenHorizontalPadding)
             .height(48.dp)
             .clip(
                 RoundedCornerShape(11.dp)
@@ -323,6 +287,8 @@ private fun ReportTabItem(
     onClick: () -> Unit
 ) {
 
+    val dimens = rememberResponsiveDimens()
+
     Box(
         modifier = modifier
             .fillMaxHeight()
@@ -344,7 +310,7 @@ private fun ReportTabItem(
 
         Text(
             text = text,
-            fontSize = 15.sp,
+            fontSize = dimens.bodySize,
             fontWeight =
                 if (selected)
                     FontWeight.Bold
@@ -366,8 +332,14 @@ private fun ReportTabItem(
 
 @Composable
 private fun DashboardContent(
-    routePreferences: List<RoutePreference>
+    totalCount: Long,
+    avgDurationMin: Double,
+    routePreferences: List<RoutePreference>,
+    topFriendName: String,
+    topFriendCount: Long
 ) {
+
+    val dimens = rememberResponsiveDimens()
 
     Column(
         modifier = Modifier
@@ -375,8 +347,8 @@ private fun DashboardContent(
             .verticalScroll(
                 rememberScrollState()
             )
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 30.dp)
+            .padding(horizontal = dimens.screenHorizontalPadding)
+            .padding(bottom = dimens.largeSpacing)
     ) {
 
         // ========================================
@@ -384,24 +356,24 @@ private fun DashboardContent(
         // ========================================
 
         SectionTitle(
-            title = "이번 주 요약"
+            title = "귀가 요약"
         )
 
 
         Spacer(
-            modifier = Modifier.height(12.dp)
+            modifier = Modifier.height(dimens.mediumSpacing)
         )
 
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement =
-                Arrangement.spacedBy(9.dp)
+                Arrangement.spacedBy(dimens.mediumSpacing)
         ) {
 
             SummaryCard(
                 title = "총 귀가 횟수",
-                value = "12",
+                value = totalCount.toString(),
                 unit = "회",
                 iconType = "home",
                 modifier = Modifier.weight(1f)
@@ -410,25 +382,16 @@ private fun DashboardContent(
 
             SummaryCard(
                 title = "평균 소요시간",
-                value = "23",
+                value = avgDurationMin.toInt().toString(),
                 unit = "분",
                 iconType = "time",
-                modifier = Modifier.weight(1f)
-            )
-
-
-            SummaryCard(
-                title = "야간 귀가 수",
-                value = "4",
-                unit = "회",
-                iconType = "night",
                 modifier = Modifier.weight(1f)
             )
         }
 
 
         Spacer(
-            modifier = Modifier.height(28.dp)
+            modifier = Modifier.height(dimens.largeSpacing)
         )
 
 
@@ -442,7 +405,7 @@ private fun DashboardContent(
 
 
         Spacer(
-            modifier = Modifier.height(16.dp)
+            modifier = Modifier.height(dimens.mediumSpacing)
         )
 
 
@@ -452,7 +415,7 @@ private fun DashboardContent(
 
 
         Spacer(
-            modifier = Modifier.height(32.dp)
+            modifier = Modifier.height(dimens.largeSpacing)
         )
 
 
@@ -466,15 +429,18 @@ private fun DashboardContent(
 
 
         Spacer(
-            modifier = Modifier.height(14.dp)
+            modifier = Modifier.height(dimens.mediumSpacing)
         )
 
 
-        FriendCard()
+        FriendCard(
+            name = topFriendName,
+            count = topFriendCount
+        )
 
 
         Spacer(
-            modifier = Modifier.height(30.dp)
+            modifier = Modifier.height(dimens.largeSpacing)
         )
     }
 }
@@ -489,9 +455,11 @@ private fun SectionTitle(
     title: String
 ) {
 
+    val dimens = rememberResponsiveDimens()
+
     Text(
         text = title,
-        fontSize = 18.sp,
+        fontSize = dimens.sectionTitleSize,
         fontWeight = FontWeight.Bold,
         color = Color(0xFF222222)
     )
@@ -511,9 +479,11 @@ private fun SummaryCard(
     modifier: Modifier = Modifier
 ) {
 
+    val dimens = rememberResponsiveDimens()
+
     Column(
         modifier = modifier
-            .height(118.dp)
+            .heightIn(min = 108.dp)
             .shadow(
                 elevation = 2.dp,
                 shape = RoundedCornerShape(14.dp)
@@ -528,8 +498,8 @@ private fun SummaryCard(
                 shape = RoundedCornerShape(14.dp)
             )
             .padding(
-                horizontal = 9.dp,
-                vertical = 13.dp
+                horizontal = dimens.cardPadding,
+                vertical = dimens.cardPadding
             )
     ) {
 
@@ -554,7 +524,7 @@ private fun SummaryCard(
 
                 contentDescription = null,
                 tint = AnOnBlue,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(dimens.smallIconSize)
             )
 
 
@@ -565,7 +535,7 @@ private fun SummaryCard(
 
             Text(
                 text = title,
-                fontSize = 13.sp,
+                fontSize = dimens.captionSize,
                 color = TextGray,
                 maxLines = 1
             )
@@ -596,7 +566,7 @@ private fun SummaryCard(
 
             Text(
                 text = unit,
-                fontSize = 14.sp,
+                fontSize = dimens.bodySize,
                 color = TextGray,
                 modifier = Modifier.padding(
                     bottom = 5.dp
@@ -616,6 +586,11 @@ private fun RoutePreferenceSection(
     preferences: List<RoutePreference>
 ) {
 
+    val dimens = rememberResponsiveDimens()
+
+    val chartOuterSize = if (dimens.screenHorizontalPadding <= 12.dp) 128.dp else 152.dp
+    val chartSize = if (dimens.screenHorizontalPadding <= 12.dp) 118.dp else 140.dp
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -626,12 +601,12 @@ private fun RoutePreferenceSection(
         // ========================================
 
         Box(
-            modifier = Modifier.size(152.dp),
+            modifier = Modifier.size(chartOuterSize),
             contentAlignment = Alignment.Center
         ) {
 
             Canvas(
-                modifier = Modifier.size(140.dp)
+                modifier = Modifier.size(chartSize)
             ) {
 
                 var startAngle = -90f
@@ -672,14 +647,14 @@ private fun RoutePreferenceSection(
                         Icons.Filled.LocationOn,
                     contentDescription = null,
                     tint = AnOnBlue,
-                    modifier = Modifier.size(30.dp)
+                    modifier = Modifier.size(dimens.mediumIconSize)
                 )
             }
         }
 
 
         Spacer(
-            modifier = Modifier.width(18.dp)
+            modifier = Modifier.width(dimens.mediumSpacing)
         )
 
 
@@ -690,7 +665,7 @@ private fun RoutePreferenceSection(
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement =
-                Arrangement.spacedBy(17.dp)
+                Arrangement.spacedBy(dimens.mediumSpacing)
         ) {
 
             preferences.forEach { item ->
@@ -719,14 +694,14 @@ private fun RoutePreferenceSection(
                     Text(
                         text = item.label,
                         modifier = Modifier.weight(1f),
-                        fontSize = 15.sp,
+                        fontSize = dimens.bodySize,
                         color = Color(0xFF444444)
                     )
 
 
                     Text(
                         text = "${item.percent}%",
-                        fontSize = 16.sp,
+                        fontSize = dimens.sectionTitleSize,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF333333)
                     )
@@ -742,12 +717,17 @@ private fun RoutePreferenceSection(
 // ========================================
 
 @Composable
-private fun FriendCard() {
+private fun FriendCard(
+    name: String,
+    count: Long
+) {
+
+    val dimens = rememberResponsiveDimens()
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(108.dp)
+            .heightIn(min = 100.dp)
             .clip(
                 RoundedCornerShape(15.dp)
             )
@@ -757,80 +737,132 @@ private fun FriendCard() {
                 color = BorderColor,
                 shape = RoundedCornerShape(15.dp)
             )
-            .padding(horizontal = 15.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(
+                horizontal = dimens.cardPadding
+            ),
+
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
+        // 친구 아이콘
         Box(
             modifier = Modifier
-                .size(60.dp)
+                .size(if (dimens.screenHorizontalPadding <= 12.dp) 52.dp else 60.dp)
                 .background(
                     Color(0xFFE9F0FF),
                     CircleShape
                 ),
-            contentAlignment = Alignment.Center
+
+            contentAlignment =
+                Alignment.Center
         ) {
 
             Icon(
-                imageVector = Icons.Filled.Person,
-                contentDescription = null,
-                tint = AnOnBlue,
-                modifier = Modifier.size(36.dp)
+                imageVector =
+                    Icons.Filled.Person,
+
+                contentDescription =
+                    null,
+
+                tint =
+                    AnOnBlue,
+
+                modifier =
+                    Modifier.size(dimens.largeIconSize)
             )
         }
 
 
         Spacer(
-            modifier = Modifier.width(15.dp)
+            modifier =
+                Modifier.width(dimens.mediumSpacing)
         )
 
 
         Column(
-            modifier = Modifier.weight(1f)
+            modifier =
+                Modifier.weight(1f)
         ) {
 
+            // ========================================
+            // 친구 이름
+            // ========================================
+
             Text(
-                text = "박민수",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF222222)
+                text = name,
+
+                fontSize =
+                    dimens.sectionTitleSize,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    Color(0xFF222222)
             )
 
 
             Spacer(
-                modifier = Modifier.height(5.dp)
+                modifier =
+                    Modifier.height(5.dp)
             )
 
 
             Text(
-                text = "함께 사용한 횟수",
-                fontSize = 14.sp,
-                color = TextGray
+                text =
+                    "앱 사용 횟수",
+
+                fontSize =
+                    dimens.bodySize,
+
+                color =
+                    TextGray
             )
 
 
             Spacer(
-                modifier = Modifier.height(5.dp)
+                modifier =
+                    Modifier.height(5.dp)
             )
 
 
+            // ========================================
+            // 이번 주 사용 횟수
+            // ========================================
+
             Text(
-                text = "이번 주 18회",
-                color = AnOnBlue,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
+                text =
+                    "이번 주 ${count}회",
+
+                color =
+                    AnOnBlue,
+
+                fontSize =
+                    dimens.bodySize,
+
+                fontWeight =
+                    FontWeight.Bold
             )
         }
 
 
         Icon(
-            imageVector = Icons.Filled.ChevronRight,
-            contentDescription = null,
-            tint = Color.Gray,
-            modifier = Modifier.size(26.dp)
+            imageVector =
+                Icons.Filled.ChevronRight,
+
+            contentDescription =
+                null,
+
+            tint =
+                Color.Gray,
+
+            modifier =
+                Modifier.size(dimens.mediumIconSize)
         )
     }
 }
+
 
 
 // ========================================
@@ -842,31 +874,35 @@ private fun RecordContent(
     returnRecords: List<ReturnRecord>
 ) {
 
+    val dimens = rememberResponsiveDimens()
+
     var currentMonth by remember {
-        mutableStateOf(
-            YearMonth.of(
-                2026,
-                7
-            )
-        )
+        mutableStateOf(YearMonth.now())
     }
 
-
     var selectedDate by remember {
-        mutableStateOf(
-            LocalDate.of(
-                2026,
-                7,
-                14
-            )
-        )
+        mutableStateOf(LocalDate.now())
+    }
+
+    var initializedFromRecords by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(returnRecords) {
+        if (!initializedFromRecords && returnRecords.isNotEmpty()) {
+            val latestDate = returnRecords.maxByOrNull { it.date }!!.date
+
+            currentMonth = YearMonth.from(latestDate)
+            selectedDate = latestDate
+            initializedFromRecords = true
+        }
     }
 
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = dimens.screenHorizontalPadding)
     ) {
 
         // ========================================
@@ -903,7 +939,7 @@ private fun RecordContent(
 
 
         Spacer(
-            modifier = Modifier.height(22.dp)
+            modifier = Modifier.height(dimens.mediumSpacing)
         )
 
 
@@ -915,19 +951,19 @@ private fun RecordContent(
         Text(
             text =
                 "${selectedDate.year}.${selectedDate.monthValue}.${selectedDate.dayOfMonth} 귀가 기록",
-            fontSize = 18.sp,
+            fontSize = dimens.sectionTitleSize,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF222222)
         )
 
 
         Spacer(
-            modifier = Modifier.height(14.dp)
+            modifier = Modifier.height(dimens.mediumSpacing)
         )
 
 
-        val selectedRecord =
-            returnRecords.firstOrNull {
+        val selectedRecords =
+            returnRecords.filter {
                 it.date == selectedDate
             }
 
@@ -943,14 +979,23 @@ private fun RecordContent(
                 .verticalScroll(
                     rememberScrollState()
                 )
-                .padding(bottom = 24.dp)
+                .padding(bottom = dimens.largeSpacing)
         ) {
 
-            if (selectedRecord != null) {
+            if (selectedRecords.isNotEmpty()) {
 
-                ReturnRecordCard(
-                    record = selectedRecord
-                )
+                selectedRecords.forEachIndexed { index, record ->
+
+                    ReturnRecordCard(
+                        record = record
+                    )
+
+                    if (index != selectedRecords.lastIndex) {
+                        Spacer(
+                            modifier = Modifier.height(dimens.mediumSpacing)
+                        )
+                    }
+                }
 
             } else {
 
@@ -975,7 +1020,7 @@ private fun RecordContent(
 
 
             Spacer(
-                modifier = Modifier.height(24.dp)
+                modifier = Modifier.height(dimens.largeSpacing)
             )
         }
     }
@@ -995,6 +1040,8 @@ private fun CalendarCard(
     onNextMonth: () -> Unit,
     onDateClick: (LocalDate) -> Unit
 ) {
+
+    val dimens = rememberResponsiveDimens()
 
     val firstDay =
         currentMonth.atDay(1)
@@ -1019,8 +1066,8 @@ private fun CalendarCard(
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(
-                horizontal = 14.dp,
-                vertical = 16.dp
+                horizontal = dimens.cardPadding,
+                vertical = dimens.cardPadding
             )
     ) {
 
@@ -1029,7 +1076,9 @@ private fun CalendarCard(
         // ========================================
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(dimens.calendarHeaderHeight),
             verticalAlignment =
                 Alignment.CenterVertically,
             horizontalArrangement =
@@ -1042,7 +1091,7 @@ private fun CalendarCard(
                 contentDescription = "이전 달",
                 tint = Color.Gray,
                 modifier = Modifier
-                    .size(30.dp)
+                    .size(dimens.mediumIconSize)
                     .clickable {
                         onPreviousMonth()
                     }
@@ -1052,7 +1101,7 @@ private fun CalendarCard(
             Text(
                 text =
                     "${currentMonth.year}년 ${currentMonth.monthValue}월",
-                fontSize = 18.sp,
+                fontSize = dimens.sectionTitleSize,
                 fontWeight = FontWeight.Bold
             )
 
@@ -1063,7 +1112,7 @@ private fun CalendarCard(
                 contentDescription = "다음 달",
                 tint = Color.Gray,
                 modifier = Modifier
-                    .size(30.dp)
+                    .size(dimens.mediumIconSize)
                     .clickable {
                         onNextMonth()
                     }
@@ -1072,7 +1121,7 @@ private fun CalendarCard(
 
 
         Spacer(
-            modifier = Modifier.height(17.dp)
+            modifier = Modifier.height(dimens.calendarSpacing)
         )
 
 
@@ -1101,7 +1150,7 @@ private fun CalendarCard(
                 Text(
                     text = day,
                     modifier = Modifier.weight(1f),
-                    fontSize = 14.sp,
+                    fontSize = dimens.bodySize,
                     fontWeight = FontWeight.Medium,
                     color = TextGray,
                     textAlign = TextAlign.Center
@@ -1111,7 +1160,7 @@ private fun CalendarCard(
 
 
         Spacer(
-            modifier = Modifier.height(11.dp)
+            modifier = Modifier.height(dimens.calendarSpacing)
         )
 
 
@@ -1131,7 +1180,7 @@ private fun CalendarCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .height(dimens.calendarCellHeight)
             ) {
 
                 repeat(7) { dayOfWeek ->
@@ -1193,14 +1242,15 @@ private fun CalendarDay(
     onClick: () -> Unit
 ) {
 
+    val dimens = rememberResponsiveDimens()
+    val dayCircleSize = dimens.calendarCellHeight - 8.dp
+
     Column(
         horizontalAlignment =
             Alignment.CenterHorizontally,
         modifier = Modifier
-            .size(
-                width = 42.dp,
-                height = 48.dp
-            )
+            .fillMaxWidth()
+            .height(dimens.calendarCellHeight)
             .clickable {
                 onClick()
             }
@@ -1208,7 +1258,7 @@ private fun CalendarDay(
 
         Box(
             modifier = Modifier
-                .size(35.dp)
+                .size(dayCircleSize)
                 .background(
                     color =
                         if (selected)
@@ -1223,7 +1273,7 @@ private fun CalendarDay(
             Text(
                 text =
                     date.dayOfMonth.toString(),
-                fontSize = 15.sp,
+                fontSize = dimens.bodySize,
                 fontWeight =
                     if (selected)
                         FontWeight.Bold
@@ -1241,13 +1291,13 @@ private fun CalendarDay(
         if (hasRecord) {
 
             Spacer(
-                modifier = Modifier.height(2.dp)
+                modifier = Modifier.height(1.dp)
             )
 
 
             Box(
                 modifier = Modifier
-                    .size(5.dp)
+                    .size(if (dimens.calendarCellHeight <= 34.dp) 4.dp else 5.dp)
                     .background(
                         AnOnBlue,
                         CircleShape
@@ -1267,6 +1317,8 @@ private fun ReturnRecordCard(
     record: ReturnRecord
 ) {
 
+    val dimens = rememberResponsiveDimens()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1280,8 +1332,8 @@ private fun ReturnRecordCard(
                 shape = RoundedCornerShape(15.dp)
             )
             .padding(
-                horizontal = 17.dp,
-                vertical = 14.dp
+                horizontal = dimens.cardPadding,
+                vertical = dimens.cardPadding
             )
     ) {
 
@@ -1335,13 +1387,15 @@ private fun RecordRow(
     showDivider: Boolean = true
 ) {
 
+    val dimens = rememberResponsiveDimens()
+
     Column {
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    vertical = 11.dp
+                    vertical = dimens.mediumSpacing
                 ),
             horizontalArrangement =
                 Arrangement.SpaceBetween
@@ -1349,14 +1403,14 @@ private fun RecordRow(
 
             Text(
                 text = title,
-                fontSize = 15.sp,
+                fontSize = dimens.bodySize,
                 color = TextGray
             )
 
 
             Text(
                 text = value,
-                fontSize = 15.sp,
+                fontSize = dimens.bodySize,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF333333)
             )

@@ -23,6 +23,10 @@ import androidx.compose.ui.unit.sp
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 
 
+// ========================================
+// 색상
+// ========================================
+
 private val AnOnBlue =
     Color(0xFF6A92FE)
 
@@ -36,11 +40,15 @@ private val TextGray =
     Color(0xFF888888)
 
 
+// ========================================
+// 안심경로
+// ========================================
+
 @Composable
 fun SafeRouteScreen(
 
     // ========================================
-    // 선택한 목적지 정보
+    // 목적지 정보
     // ========================================
 
     destinationName: String = "",
@@ -48,6 +56,15 @@ fun SafeRouteScreen(
     destinationLatitude: Double? = null,
 
     destinationLongitude: Double? = null,
+
+
+    // ========================================
+    // 선택 경로
+    // ========================================
+
+    showSelectedRoute: Boolean = false,
+
+    selectedRouteMode: String = "BROAD_FIRST",
 
 
     // ========================================
@@ -60,9 +77,20 @@ fun SafeRouteScreen(
 
     onDestinationSearchClick: () -> Unit = {},
 
+    onRouteSearchClick: () -> Unit = {},
+
     onTabSelected: (String) -> Unit = {},
 
-    onEmergencyClick: () -> Unit = {}
+    onEmergencyClick: () -> Unit = {},
+
+
+    // ========================================
+    // 지도 직접 목적지 지정
+    // ========================================
+
+    onMapDestinationSelected:
+        (Double, Double) -> Unit =
+        { _, _ -> }
 ) {
 
     Box(
@@ -90,7 +118,9 @@ fun SafeRouteScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .height(62.dp)
+                    .height(
+                        62.dp
+                    )
                     .padding(
                         horizontal = 20.dp
                     )
@@ -142,7 +172,7 @@ fun SafeRouteScreen(
 
 
             // ========================================
-            // 출발 / 도착 카드
+            // 출발지 / 도착지
             // ========================================
 
             Column(
@@ -225,7 +255,36 @@ fun SafeRouteScreen(
             Spacer(
                 modifier =
                     Modifier.height(
-                        14.dp
+                        12.dp
+                    )
+            )
+
+
+            // ========================================
+            // 지도 직접 지정 안내
+            // ========================================
+
+            Text(
+                text =
+                    "지도를 눌러 도착지 위치를 직접 지정할 수도 있습니다.",
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    TextGray,
+
+                modifier =
+                    Modifier.padding(
+                        horizontal = 20.dp
+                    )
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        12.dp
                     )
             )
 
@@ -298,7 +357,7 @@ fun SafeRouteScreen(
 
 
             // ========================================
-            // 실제 카카오맵
+            // 카카오맵
             // ========================================
 
             Box(
@@ -310,21 +369,58 @@ fun SafeRouteScreen(
             ) {
 
                 KakaoMapView(
-                    modifier = Modifier
-                        .fillMaxSize(),
+
+                    modifier =
+                        Modifier.fillMaxSize(),
+
+                    destinationName =
+                        destinationName,
 
                     destinationLatitude =
                         destinationLatitude,
 
                     destinationLongitude =
-                        destinationLongitude
+                        destinationLongitude,
+
+                    showRoute =
+                        showSelectedRoute,
+
+                    routeMode =
+                        when (
+                            selectedRouteMode
+                        ) {
+
+                            "SHORTEST" ->
+                                "SHORTEST"
+
+                            "BROAD_FIRST" ->
+                                "BROAD_FIRST"
+
+                            // 밝은길은 아직 미구현
+                            // 임시로 경로 표시 안 하도록
+                            "BRIGHT" ->
+                                ""
+
+                            else ->
+                                "BROAD_FIRST"
+                        },
+
+                    onDestinationSelected = {
+                            latitude,
+                            longitude ->
+
+                        onMapDestinationSelected(
+                            latitude,
+                            longitude
+                        )
+                    }
                 )
             }
         }
 
 
         // ========================================
-        // 하단 네비게이션
+        // 하단 바
         // ========================================
 
         AnOnBottomBar(
@@ -348,7 +444,7 @@ fun SafeRouteScreen(
 
 
 // ========================================
-// 위치 입력 한 줄
+// 위치 입력
 // ========================================
 
 @Composable
@@ -413,8 +509,7 @@ private fun LocationInputRow(
 
                 imageVector =
                     if (
-                        title ==
-                        "출발지"
+                        title == "출발지"
                     ) {
 
                         Icons.Filled.LocationOn
@@ -487,7 +582,7 @@ private fun LocationInputRow(
 
 
 // ========================================
-// 즐겨찾기 버튼
+// 즐겨찾기
 // ========================================
 
 @Composable
@@ -547,7 +642,34 @@ private fun FavoritePlaceChip(
                 13.sp,
 
             fontWeight =
-                FontWeight.Medium
+                FontWeight.Medium,
+
+            color =
+                TextBlack
         )
     }
+}
+
+
+// ========================================
+// Preview
+// ========================================
+
+@androidx.compose.ui.tooling.preview.Preview(
+    showBackground = true,
+    showSystemUi = true
+)
+@Composable
+private fun SafeRouteScreenPreview() {
+
+    SafeRouteScreen(
+        destinationName =
+            "강남역",
+
+        destinationLatitude =
+            37.4979,
+
+        destinationLongitude =
+            127.0276
+    )
 }

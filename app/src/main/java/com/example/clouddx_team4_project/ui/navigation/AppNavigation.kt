@@ -4,10 +4,9 @@ import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-
 import com.example.clouddx_team4_project.data.KakaoPlace
-
 import com.example.clouddx_team4_project.ui.components.EmergencyDialog
+import com.example.clouddx_team4_project.ui.screens.ActiveRouteScreen
 import com.example.clouddx_team4_project.ui.screens.DestinationSearchScreen
 import com.example.clouddx_team4_project.ui.screens.FriendScreen
 import com.example.clouddx_team4_project.ui.screens.GuardianRegisterScreen
@@ -17,6 +16,7 @@ import com.example.clouddx_team4_project.ui.screens.MoreScreen
 import com.example.clouddx_team4_project.ui.screens.ProfileSettingScreen
 import com.example.clouddx_team4_project.ui.screens.QuackScreen
 import com.example.clouddx_team4_project.ui.screens.ReportScreen
+import com.example.clouddx_team4_project.ui.screens.RouteSelectScreen
 import com.example.clouddx_team4_project.ui.screens.SafeRouteScreen
 import com.example.clouddx_team4_project.ui.screens.SignUpScreen
 
@@ -29,7 +29,7 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 선택한 목적지
+    // 목적지
     // ========================================
 
     var selectedDestination by remember {
@@ -38,7 +38,25 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 긴급구조 다이얼로그
+    // 선택한 경로
+    // ========================================
+
+    var selectedRouteMode by remember {
+        mutableStateOf("BROAD_FIRST")
+    }
+
+
+    // ========================================
+    // SafeRoute에서 경로 표시 여부
+    // ========================================
+
+    var showSelectedRoute by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // 긴급구조
     // ========================================
 
     var showEmergencyDialog by remember {
@@ -46,40 +64,44 @@ fun AppNavigation() {
     }
 
 
-    // ========================================
-    // 전체 네비게이션
-    // ========================================
-
     NavHost(
-        navController = navController,
+        navController =
+            navController,
 
-        // 로그인 화면부터 시작
-        startDestination = "login"
+        startDestination =
+            "login"
     ) {
 
 
         // ========================================
-        // 1. 로그인
+        // 로그인
         // ========================================
 
-        composable("login") {
+        composable(
+            "login"
+        ) {
 
             LoginScreen(
 
-                onLoginClick = { id, password ->
+                onLoginClick = {
+                        _,
+                        _ ->
 
-                    // ========================================
-                    // 현재는 로그인 성공 시 홈 이동
-                    // 나중에 Spring Boot 로그인 API 연결
-                    // ========================================
+                    navController.navigate(
+                        "home"
+                    ) {
 
-                    navController.navigate("home") {
+                        popUpTo(
+                            "login"
+                        ) {
 
-                        popUpTo("login") {
-                            inclusive = true
+                            inclusive =
+                                true
                         }
 
-                        launchSingleTop = true
+
+                        launchSingleTop =
+                            true
                     }
                 },
 
@@ -95,10 +117,12 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 2. 회원가입
+        // 회원가입
         // ========================================
 
-        composable("signup") {
+        composable(
+            "signup"
+        ) {
 
             SignUpScreen(
 
@@ -117,10 +141,12 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 3. 홈
+        // 홈
         // ========================================
 
-        composable("home") {
+        composable(
+            "home"
+        ) {
 
             HomeScreen(
 
@@ -128,117 +154,74 @@ fun AppNavigation() {
 
                     when (menu) {
 
-
-                        // ========================================
-                        // 안심경로
-                        // ========================================
-
                         "안심경로" -> {
+
+                            showSelectedRoute =
+                                false
+
 
                             navController.navigate(
                                 "safe_route"
                             ) {
 
-                                launchSingleTop = true
+                                launchSingleTop =
+                                    true
                             }
                         }
 
-
-                        // ========================================
-                        // 안심친구
-                        // ========================================
 
                         "안심친구" -> {
 
                             navController.navigate(
                                 "friend"
-                            ) {
-
-                                launchSingleTop = true
-                            }
+                            )
                         }
 
-
-                        // ========================================
-                        // 꽥꽥이
-                        // ========================================
 
                         "꽥꽥이" -> {
 
                             navController.navigate(
                                 "quack"
-                            ) {
-
-                                launchSingleTop = true
-                            }
+                            )
                         }
 
-
-                        // ========================================
-                        // 안심지도
-                        // ========================================
-
-                        "안심지도" -> {
-
-                            // 나중에 별도 지도 화면 연결
-                        }
-
-
-                        // ========================================
-                        // 사용 리포트
-                        // ========================================
 
                         "사용 리포트" -> {
 
                             navController.navigate(
                                 "report"
-                            ) {
-
-                                launchSingleTop = true
-                            }
+                            )
                         }
 
-
-                        // ========================================
-                        // 더보기
-                        // ========================================
 
                         "더보기" -> {
 
                             navController.navigate(
                                 "more"
-                            ) {
-
-                                launchSingleTop = true
-                            }
+                            )
                         }
                     }
                 },
 
 
-                // ========================================
-                // 긴급구조
-                // ========================================
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog = true
+                    showEmergencyDialog =
+                        true
                 }
             )
         }
 
 
         // ========================================
-        // 4. 안심경로
+        // 안심경로
         // ========================================
 
-        composable("safe_route") {
+        composable(
+            "safe_route"
+        ) {
 
             SafeRouteScreen(
-
-                // ========================================
-                // 선택된 목적지
-                // ========================================
 
                 destinationName =
                     selectedDestination
@@ -258,9 +241,13 @@ fun AppNavigation() {
                         ?.toDoubleOrNull(),
 
 
-                // ========================================
-                // 뒤로가기
-                // ========================================
+                showSelectedRoute =
+                    showSelectedRoute,
+
+
+                selectedRouteMode =
+                    selectedRouteMode,
+
 
                 onBackClick = {
 
@@ -268,22 +255,17 @@ fun AppNavigation() {
                 },
 
 
-                // ========================================
-                // 출발지 클릭
-                // ========================================
-
                 onStartSearchClick = {
 
-                    // 현재 위치를 기본 출발지로 사용
-                    // 나중에 출발지 검색 연결
+                    // 현재 위치 고정
                 },
 
 
-                // ========================================
-                // 목적지 검색
-                // ========================================
-
                 onDestinationSearchClick = {
+
+                    showSelectedRoute =
+                        false
+
 
                     navController.navigate(
                         "destination_search"
@@ -291,9 +273,47 @@ fun AppNavigation() {
                 },
 
 
-                // ========================================
-                // 하단 네비게이션
-                // ========================================
+                onRouteSearchClick = {
+
+                    if (
+                        selectedDestination != null
+                    ) {
+
+                        navController.navigate(
+                            "route_select"
+                        )
+                    }
+                },
+
+
+                onMapDestinationSelected = {
+                        latitude,
+                        longitude ->
+
+
+                    selectedDestination =
+                        KakaoPlace(
+
+                            id =
+                                "manual_location",
+
+                            placeName =
+                                "선택한 위치",
+
+                            addressName =
+                                "",
+
+                            roadAddressName =
+                                "",
+
+                            longitude =
+                                longitude.toString(),
+
+                            latitude =
+                                latitude.toString()
+                        )
+                },
+
 
                 onTabSelected = { tab ->
 
@@ -303,14 +323,7 @@ fun AppNavigation() {
 
                             navController.navigate(
                                 "home"
-                            ) {
-
-                                popUpTo("home") {
-                                    inclusive = false
-                                }
-
-                                launchSingleTop = true
-                            }
+                            )
                         }
 
 
@@ -318,29 +331,23 @@ fun AppNavigation() {
 
                             navController.navigate(
                                 "more"
-                            ) {
-
-                                launchSingleTop = true
-                            }
+                            )
                         }
                     }
                 },
 
 
-                // ========================================
-                // 긴급구조
-                // ========================================
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog = true
+                    showEmergencyDialog =
+                        true
                 }
             )
         }
 
 
         // ========================================
-        // 5. 목적지 검색
+        // 목적지 검색
         // ========================================
 
         composable(
@@ -349,41 +356,79 @@ fun AppNavigation() {
 
             DestinationSearchScreen(
 
-                // ========================================
-                // 뒤로가기
-                // ========================================
-
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
 
-                // ========================================
-                // 장소 선택
-                // ========================================
-
                 onPlaceSelected = { place ->
 
-                    selectedDestination = place
+                    selectedDestination =
+                        place
 
-                    navController.popBackStack()
+
+                    showSelectedRoute =
+                        false
+
+
+                    // ========================================
+                    // 목적지 선택하자마자
+                    // 경로 선택 화면으로
+                    // ========================================
+
+                    navController.navigate(
+                        "route_select"
+                    ) {
+
+                        popUpTo(
+                            "destination_search"
+                        ) {
+
+                            inclusive =
+                                true
+                        }
+
+
+                        launchSingleTop =
+                            true
+                    }
                 }
             )
         }
 
 
         // ========================================
-        // 6. 안심친구
+        // 경로 선택
         // ========================================
 
-        composable("friend") {
+        composable(
+            "route_select"
+        ) {
 
-            FriendScreen(
+            RouteSelectScreen(
 
-                // ========================================
-                // 뒤로가기
-                // ========================================
+                startName =
+                    "현재 위치",
+
+
+                destinationName =
+                    selectedDestination
+                        ?.placeName
+                        ?: "목적지",
+
+
+                destinationLatitude =
+                    selectedDestination
+                        ?.latitude
+                        ?.toDoubleOrNull(),
+
+
+                destinationLongitude =
+                    selectedDestination
+                        ?.longitude
+                        ?.toDoubleOrNull(),
+
 
                 onBackClick = {
 
@@ -392,112 +437,97 @@ fun AppNavigation() {
 
 
                 // ========================================
-                // 기존 친구 추가 콜백
+                // 빠른길
                 // ========================================
 
-                onAddFriendClick = {
+                onFastRouteClick = {
 
-                    // 팝업에서 추가 완료 후 호출됨
-                },
-
-
-                // ========================================
-                // 친구 추가
-                // 이름 + 아이디
-                // ========================================
-
-                onAddFriendSubmit = { name, id ->
-
-                    // ========================================
-                    // TODO
-                    // 나중에 Spring Boot 친구 추가 API 연결
-                    //
-                    // 예:
-                    // POST /api/friends
-                    //
-                    // name
-                    // id
-                    // ========================================
-
-                    println("친구 추가")
-                    println("이름 : $name")
-                    println("아이디 : $id")
-                },
+                    selectedRouteMode =
+                        "SHORTEST"
 
 
-                // ========================================
-                // 친구 요청 수락
-                // ========================================
+                    navController.navigate(
+                        "active_route"
+                    ) {
 
-                onAcceptRequest = { name ->
-
-                    // 나중에 Spring Boot API 연결
-                },
-
-
-                // ========================================
-                // 친구 요청 거절
-                // ========================================
-
-                onRejectRequest = { name ->
-
-                    // 나중에 Spring Boot API 연결
-                },
-
-
-                // ========================================
-                // 친구 삭제
-                // ========================================
-
-                onDeleteFriend = { name ->
-
-                    // 나중에 Spring Boot API 연결
-                },
-
-
-                // ========================================
-                // 친구 위치
-                // ========================================
-
-                onLocationClick = { name ->
-
-                    // 나중에 친구 위치 지도 연결
-                },
-
-
-                // ========================================
-                // 하단 네비게이션
-                // ========================================
-
-                onTabSelected = { tab ->
-
-                    when (tab) {
-
-                        "홈" -> {
-
-                            navController.navigate(
-                                "home"
-                            ) {
-
-                                popUpTo("home") {
-                                    inclusive = false
-                                }
-
-                                launchSingleTop = true
-                            }
-                        }
-
-
-                        "더보기" -> {
-
-                            navController.navigate(
-                                "more"
-                            ) {
-
-                                launchSingleTop = true
-                            }
-                        }
+                        launchSingleTop =
+                            true
                     }
+                },
+
+
+                // ========================================
+                // 밝은길
+                // 아직 준비 중
+                // ========================================
+
+                onBrightRouteClick = {
+
+                    // 현재 비활성화
+                },
+
+
+                // ========================================
+                // 대로변
+                // ========================================
+
+                onBroadRouteClick = {
+
+                    selectedRouteMode =
+                        "BROAD_FIRST"
+
+
+                    navController.navigate(
+                        "active_route"
+                    ) {
+
+                        launchSingleTop =
+                            true
+                    }
+                }
+            )
+        }
+
+
+        // ========================================
+        // 귀가 진행 중
+        // ========================================
+
+        composable(
+            "active_route"
+        ) {
+
+            ActiveRouteScreen(
+
+                destinationName =
+                    selectedDestination
+                        ?.placeName
+                        ?: "목적지",
+
+
+                destinationLatitude =
+                    selectedDestination
+                        ?.latitude
+                        ?.toDoubleOrNull(),
+
+
+                destinationLongitude =
+                    selectedDestination
+                        ?.longitude
+                        ?.toDoubleOrNull(),
+
+
+                routeMode =
+                    selectedRouteMode,
+
+
+                // ========================================
+                // 뒤로
+                // ========================================
+
+                onBackClick = {
+
+                    navController.popBackStack()
                 },
 
 
@@ -507,23 +537,71 @@ fun AppNavigation() {
 
                 onEmergencyClick = {
 
-                    showEmergencyDialog = true
+                    showEmergencyDialog =
+                        true
+                },
+
+
+                // ========================================
+                // 꽥꽥이
+                // ========================================
+
+                onQuackClick = {
+
+                    navController.navigate(
+                        "quack"
+                    ) {
+
+                        launchSingleTop =
+                            true
+                    }
+                },
+
+
+                // ========================================
+                // 안내 종료
+                // ========================================
+
+                onFinishClick = {
+
+                    showSelectedRoute =
+                        false
+
+
+                    selectedDestination =
+                        null
+
+
+                    navController.navigate(
+                        "home"
+                    ) {
+
+                        popUpTo(
+                            "home"
+                        ) {
+
+                            inclusive =
+                                false
+                        }
+
+
+                        launchSingleTop =
+                            true
+                    }
                 }
             )
         }
 
 
         // ========================================
-        // 7. 꽥꽥이
+        // 안심친구
         // ========================================
 
-        composable("quack") {
+        composable(
+            "friend"
+        ) {
 
-            QuackScreen(
-
-                // ========================================
-                // 뒤로가기
-                // ========================================
+            FriendScreen(
 
                 onBackClick = {
 
@@ -531,9 +609,62 @@ fun AppNavigation() {
                 },
 
 
-                // ========================================
-                // 중지
-                // ========================================
+                onAddFriendClick = {},
+
+                onAddFriendSubmit = {
+                        _,
+                        _ -> },
+
+                onAcceptRequest = {},
+
+                onRejectRequest = {},
+
+                onDeleteFriend = {},
+
+                onLocationClick = {},
+
+
+                onTabSelected = { tab ->
+
+                    when (tab) {
+
+                        "홈" ->
+                            navController.navigate(
+                                "home"
+                            )
+
+                        "더보기" ->
+                            navController.navigate(
+                                "more"
+                            )
+                    }
+                },
+
+
+                onEmergencyClick = {
+
+                    showEmergencyDialog =
+                        true
+                }
+            )
+        }
+
+
+        // ========================================
+        // 꽥꽥이
+        // ========================================
+
+        composable(
+            "quack"
+        ) {
+
+            QuackScreen(
+
+                onBackClick = {
+
+                    navController.popBackStack()
+                },
+
 
                 onStopClick = {
 
@@ -541,265 +672,127 @@ fun AppNavigation() {
                 },
 
 
-                // ========================================
-                // 하단 네비게이션
-                // ========================================
-
                 onTabSelected = { tab ->
 
                     when (tab) {
 
-                        "홈" -> {
-
+                        "홈" ->
                             navController.navigate(
                                 "home"
-                            ) {
+                            )
 
-                                popUpTo("home") {
-                                    inclusive = false
-                                }
-
-                                launchSingleTop = true
-                            }
-                        }
-
-
-                        "더보기" -> {
-
+                        "더보기" ->
                             navController.navigate(
                                 "more"
-                            ) {
-
-                                launchSingleTop = true
-                            }
-                        }
+                            )
                     }
                 },
 
 
-                // ========================================
-                // 긴급구조
-                // ========================================
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog = true
+                    showEmergencyDialog =
+                        true
                 }
             )
         }
 
 
         // ========================================
-        // 8. 사용 리포트
+        // 리포트
         // ========================================
 
-        composable("report") {
+        composable(
+            "report"
+        ) {
 
             ReportScreen(
 
-                // ========================================
-                // 하단 네비게이션
-                // ========================================
-
                 onTabSelected = { tab ->
 
                     when (tab) {
 
-                        "홈" -> {
-
+                        "홈" ->
                             navController.navigate(
                                 "home"
-                            ) {
+                            )
 
-                                popUpTo("home") {
-                                    inclusive = false
-                                }
-
-                                launchSingleTop = true
-                            }
-                        }
-
-
-                        "더보기" -> {
-
+                        "더보기" ->
                             navController.navigate(
                                 "more"
-                            ) {
-
-                                launchSingleTop = true
-                            }
-                        }
+                            )
                     }
                 },
 
 
-                // ========================================
-                // 긴급구조
-                // ========================================
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog = true
+                    showEmergencyDialog =
+                        true
                 }
             )
         }
 
 
         // ========================================
-        // 9. 더보기
+        // 더보기
         // ========================================
 
-        composable("more") {
+        composable(
+            "more"
+        ) {
 
             MoreScreen(
-
-                // ========================================
-                // 더보기 메뉴 클릭
-                // ========================================
 
                 onMenuClick = { menu ->
 
                     when (menu) {
 
-
-                        // ========================================
-                        // 프로필 설정
-                        // ========================================
-
                         "프로필 설정" -> {
 
                             navController.navigate(
                                 "profile_setting"
-                            ) {
-
-                                launchSingleTop = true
-                            }
+                            )
                         }
 
-
-                        // ========================================
-                        // 기본 목적지 설정
-                        // ========================================
-
-                        "기본 목적지 설정" -> {
-
-                            // 나중에 화면 연결
-                        }
-
-
-                        // ========================================
-                        // 보호자 등록
-                        // ========================================
 
                         "보호자 등록" -> {
 
                             navController.navigate(
                                 "guardian_register"
-                            ) {
-
-                                launchSingleTop = true
-                            }
-                        }
-
-
-                        // ========================================
-                        // 공지사항 및 문의하기
-                        // ========================================
-
-                        "공지사항 및 문의하기" -> {
-
-                            // 나중에 화면 연결
-                        }
-
-
-                        // ========================================
-                        // 도움말
-                        // ========================================
-
-                        "도움말" -> {
-
-                            // 나중에 화면 연결
-                        }
-
-
-                        // ========================================
-                        // 서비스 소개
-                        // ========================================
-
-                        "서비스 소개" -> {
-
-                            // 나중에 화면 연결
-                        }
-
-
-                        // ========================================
-                        // 개인정보처리방침
-                        // ========================================
-
-                        "개인정보처리방침" -> {
-
-                            // 나중에 화면 연결
+                            )
                         }
                     }
                 },
 
 
-                // ========================================
-                // 우측 상단 설정
-                // ========================================
+                onSettingsClick = {},
 
-                onSettingsClick = {
-
-                    // 현재는 별도 설정 화면 없음
-                },
-
-
-                // ========================================
-                // 하단 네비게이션
-                // ========================================
 
                 onTabSelected = { tab ->
 
-                    when (tab) {
+                    if (
+                        tab == "홈"
+                    ) {
 
-                        "홈" -> {
-
-                            navController.navigate(
-                                "home"
-                            ) {
-
-                                popUpTo("home") {
-                                    inclusive = false
-                                }
-
-                                launchSingleTop = true
-                            }
-                        }
-
-
-                        "더보기" -> {
-
-                            // 현재 더보기 화면
-                            // 아무 동작 없음
-                        }
+                        navController.navigate(
+                            "home"
+                        )
                     }
                 },
 
 
-                // ========================================
-                // 긴급구조
-                // ========================================
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog = true
+                    showEmergencyDialog =
+                        true
                 }
             )
         }
 
 
         // ========================================
-        // 10. 보호자 등록
+        // 보호자 등록
         // ========================================
 
         composable(
@@ -808,36 +801,17 @@ fun AppNavigation() {
 
             GuardianRegisterScreen(
 
-                // ========================================
-                // 뒤로가기
-                // ========================================
-
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
 
-                // ========================================
-                // 보호자 등록
-                // ========================================
-
                 onRegisterClick = {
-                        name,
-                        phone,
-                        emergencyMessage,
-                        otherMessage ->
-
-
-                    // ========================================
-                    // TODO
-                    //
-                    // 나중에 Spring Boot 보호자 등록 API
-                    //
-                    // POST /api/guardians
-                    //
-                    // 현재는 등록하면 더보기로 복귀
-                    // ========================================
+                        _,
+                        _,
+                        _,
+                        _ ->
 
                     navController.popBackStack()
                 }
@@ -846,7 +820,7 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 11. 프로필 설정
+        // 프로필 설정
         // ========================================
 
         composable(
@@ -854,11 +828,6 @@ fun AppNavigation() {
         ) {
 
             ProfileSettingScreen(
-
-                // ========================================
-                // 현재는 UI 확인용 사용자 정보
-                // 나중에 로그인 사용자 정보로 변경
-                // ========================================
 
                 initialName =
                     "이지연",
@@ -870,43 +839,15 @@ fun AppNavigation() {
                     "jiyeon@example.com",
 
 
-                // ========================================
-                // 뒤로가기
-                // ========================================
-
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
 
-                // ========================================
-                // 프로필 저장
-                // ========================================
-
-                onSaveClick = { name, email ->
-
-                    // ========================================
-                    // TODO
-                    //
-                    // 나중에 Spring Boot
-                    // 프로필 수정 API 연결
-                    //
-                    // 예:
-                    // PUT /api/users/profile
-                    //
-                    // name
-                    // email
-                    // ========================================
-
-                    println("프로필 수정")
-                    println("이름 : $name")
-                    println("이메일 : $email")
-
-
-                    // ========================================
-                    // 저장 후 더보기 화면으로 복귀
-                    // ========================================
+                onSaveClick = {
+                        _,
+                        _ ->
 
                     navController.popBackStack()
                 }
@@ -916,61 +857,40 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 12. 공용 긴급구조 Dialog
+    // 공용 긴급구조 팝업
     // ========================================
 
-    if (showEmergencyDialog) {
+    if (
+        showEmergencyDialog
+    ) {
 
         EmergencyDialog(
 
-            // ========================================
-            // 취소
-            // ========================================
-
             onDismiss = {
 
-                showEmergencyDialog = false
+                showEmergencyDialog =
+                    false
             },
 
-
-            // ========================================
-            // 긴급신고 확정
-            // ========================================
 
             onEmergencyConfirmed = {
 
-                // ========================================
-                // TODO
-                //
-                // 나중에:
-                //
-                // Android
-                // ↓
-                // Spring Boot
-                // ↓
-                // SQS
-                // ↓
-                // Emergency Worker
-                // ↓
-                // 보호자 문자
-                // ========================================
+                // 나중에 실제 긴급신고 API
             },
 
 
-            // ========================================
-            // 꽥꽥이 사용
-            // ========================================
-
             onQuackClick = {
 
-                showEmergencyDialog = false
+                showEmergencyDialog =
+                    false
 
 
                 navController.navigate(
                     "quack"
                 ) {
 
-                    launchSingleTop = true
+                    launchSingleTop =
+                        true
                 }
             }
         )
