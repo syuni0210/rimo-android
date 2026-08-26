@@ -8,7 +8,9 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- networkSecurityConfig 추가함 - localhost HTTP 통신 허용을 위한 네트워크 보안 설정 -->
     <application
+        android:networkSecurityConfig="@xml/network_security_config"
         android:name=".App"
         android:allowBackup="true"
         android:usesCleartextTraffic="true"
@@ -29,7 +31,6 @@
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
