@@ -17,6 +17,7 @@ import com.example.clouddx_team4_project.ui.screens.ProfileSettingScreen
 import com.example.clouddx_team4_project.ui.screens.QuackScreen
 import com.example.clouddx_team4_project.ui.screens.ReportScreen
 import com.example.clouddx_team4_project.ui.screens.RouteSelectScreen
+import com.example.clouddx_team4_project.ui.screens.SafeMapScreen
 import com.example.clouddx_team4_project.ui.screens.SafeRouteScreen
 import com.example.clouddx_team4_project.ui.screens.SignUpScreen
 
@@ -64,12 +65,13 @@ fun AppNavigation() {
     }
 
 
-    NavHost(
-        navController =
-            navController,
+    // ========================================
+    // 전체 Navigation
+    // ========================================
 
-        startDestination =
-            "login"
+    NavHost(
+        navController = navController,
+        startDestination = "login"
     ) {
 
 
@@ -154,6 +156,11 @@ fun AppNavigation() {
 
                     when (menu) {
 
+
+                        // ========================================
+                        // 안심경로
+                        // ========================================
+
                         "안심경로" -> {
 
                             showSelectedRoute =
@@ -170,35 +177,83 @@ fun AppNavigation() {
                         }
 
 
+                        // ========================================
+                        // 안심친구
+                        // ========================================
+
                         "안심친구" -> {
 
                             navController.navigate(
                                 "friend"
-                            )
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
                         }
 
+
+                        // ========================================
+                        // 꽥꽥이
+                        // ========================================
 
                         "꽥꽥이" -> {
 
                             navController.navigate(
                                 "quack"
-                            )
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
                         }
 
+
+                        // ========================================
+                        // 안심지도
+                        // ========================================
+
+                        "안심지도" -> {
+
+                            navController.navigate(
+                                "safe_map"
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
+
+
+                        // ========================================
+                        // 사용 리포트
+                        // ========================================
 
                         "사용 리포트" -> {
 
                             navController.navigate(
                                 "report"
-                            )
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
                         }
 
+
+                        // ========================================
+                        // 더보기
+                        // ========================================
 
                         "더보기" -> {
 
                             navController.navigate(
                                 "more"
-                            )
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
                         }
                     }
                 },
@@ -319,11 +374,25 @@ fun AppNavigation() {
 
                     when (tab) {
 
+
                         "홈" -> {
 
                             navController.navigate(
                                 "home"
-                            )
+                            ) {
+
+                                popUpTo(
+                                    "home"
+                                ) {
+
+                                    inclusive =
+                                        false
+                                }
+
+
+                                launchSingleTop =
+                                    true
+                            }
                         }
 
 
@@ -331,7 +400,11 @@ fun AppNavigation() {
 
                             navController.navigate(
                                 "more"
-                            )
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
                         }
                     }
                 },
@@ -373,8 +446,7 @@ fun AppNavigation() {
 
 
                     // ========================================
-                    // 목적지 선택하자마자
-                    // 경로 선택 화면으로
+                    // 목적지 선택 후 경로 선택 화면으로 이동
                     // ========================================
 
                     navController.navigate(
@@ -611,9 +683,11 @@ fun AppNavigation() {
 
                 onAddFriendClick = {},
 
+
                 onAddFriendSubmit = {
                         _,
                         _ -> },
+
 
                 onAcceptRequest = {},
 
@@ -628,15 +702,38 @@ fun AppNavigation() {
 
                     when (tab) {
 
-                        "홈" ->
+
+                        "홈" -> {
+
                             navController.navigate(
                                 "home"
-                            )
+                            ) {
 
-                        "더보기" ->
+                                popUpTo(
+                                    "home"
+                                ) {
+
+                                    inclusive =
+                                        false
+                                }
+
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
+
+
+                        "더보기" -> {
+
                             navController.navigate(
                                 "more"
-                            )
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
                     }
                 },
 
@@ -676,15 +773,38 @@ fun AppNavigation() {
 
                     when (tab) {
 
-                        "홈" ->
+
+                        "홈" -> {
+
                             navController.navigate(
                                 "home"
-                            )
+                            ) {
 
-                        "더보기" ->
+                                popUpTo(
+                                    "home"
+                                ) {
+
+                                    inclusive =
+                                        false
+                                }
+
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
+
+
+                        "더보기" -> {
+
                             navController.navigate(
                                 "more"
-                            )
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
                     }
                 },
 
@@ -699,7 +819,7 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 리포트
+        // 사용 리포트
         // ========================================
 
         composable(
@@ -712,18 +832,122 @@ fun AppNavigation() {
 
                     when (tab) {
 
-                        "홈" ->
+
+                        "홈" -> {
+
                             navController.navigate(
                                 "home"
-                            )
+                            ) {
 
-                        "더보기" ->
+                                popUpTo(
+                                    "home"
+                                ) {
+
+                                    inclusive =
+                                        false
+                                }
+
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
+
+
+                        "더보기" -> {
+
                             navController.navigate(
                                 "more"
-                            )
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
                     }
                 },
 
+
+                onEmergencyClick = {
+
+                    showEmergencyDialog =
+                        true
+                }
+            )
+        }
+
+
+        // ========================================
+        // 안심지도
+        // ========================================
+
+        composable(
+            "safe_map"
+        ) {
+
+            SafeMapScreen(
+
+                currentLocationText =
+                    "현재 위치 확인 중",
+
+
+                // ========================================
+                // 뒤로가기
+                // ========================================
+
+                onBackClick = {
+
+                    navController.popBackStack()
+                },
+
+
+                // ========================================
+                // 하단 네비게이션
+                // ========================================
+
+                onTabSelected = { tab ->
+
+                    when (tab) {
+
+
+                        "홈" -> {
+
+                            navController.navigate(
+                                "home"
+                            ) {
+
+                                popUpTo(
+                                    "home"
+                                ) {
+
+                                    inclusive =
+                                        false
+                                }
+
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
+
+
+                        "더보기" -> {
+
+                            navController.navigate(
+                                "more"
+                            ) {
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
+                    }
+                },
+
+
+                // ========================================
+                // 긴급구조
+                // ========================================
 
                 onEmergencyClick = {
 
@@ -748,6 +972,7 @@ fun AppNavigation() {
 
                     when (menu) {
 
+
                         "프로필 설정" -> {
 
                             navController.navigate(
@@ -766,18 +991,42 @@ fun AppNavigation() {
                 },
 
 
-                onSettingsClick = {},
+                onSettingsClick = {
+
+                    // 설정 화면 추후 연결
+                },
 
 
                 onTabSelected = { tab ->
 
-                    if (
-                        tab == "홈"
-                    ) {
+                    when (tab) {
 
-                        navController.navigate(
-                            "home"
-                        )
+
+                        "홈" -> {
+
+                            navController.navigate(
+                                "home"
+                            ) {
+
+                                popUpTo(
+                                    "home"
+                                ) {
+
+                                    inclusive =
+                                        false
+                                }
+
+
+                                launchSingleTop =
+                                    true
+                            }
+                        }
+
+
+                        "더보기" -> {
+
+                            // 현재 화면
+                        }
                     }
                 },
 
@@ -875,7 +1124,7 @@ fun AppNavigation() {
 
             onEmergencyConfirmed = {
 
-                // 나중에 실제 긴급신고 API
+                // 나중에 실제 긴급신고 API 연결
             },
 
 
