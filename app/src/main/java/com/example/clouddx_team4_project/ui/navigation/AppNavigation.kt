@@ -1093,25 +1093,20 @@ fun AppNavigation() {
         // 보호자 등록
         // ========================================
 
-        composable(
-            "guardian_register"
-        ) {
+        composable("guardian_register") {
 
             GuardianRegisterScreen(
 
                 onBackClick = {
-
                     navController.popBackStack()
                 },
 
+                onRegisterClick = { _, _, _ ->
+                    // GuardianRegisterScreen 내부에서 API 처리
+                },
 
-                onRegisterClick = {
-                        _,
-                        _,
-                        _,
-                        _ ->
-
-                    navController.popBackStack()
+                onDeleteClick = { _ ->
+                    // GuardianRegisterScreen 내부에서 API 처리
                 }
             )
         }
