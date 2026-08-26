@@ -5,32 +5,26 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.clouddx_team4_project.network.ProfileUpdateRequest
+import com.example.clouddx_team4_project.network.RetrofitClient
+import kotlinx.coroutines.launch
 
-
-// ========================================
-// 색상
-// ========================================
 
 private val ProfileBlue =
     Color(0xFF6A92FE)
 
-private val ProfileScreenBackground =
+private val ProfileBackground =
     Color(0xFFF8F9FC)
 
 private val ProfileTextBlack =
@@ -39,60 +33,103 @@ private val ProfileTextBlack =
 private val ProfileTextGray =
     Color(0xFF888888)
 
-private val ProfileBorderGray =
-    Color(0xFFE4E7EE)
-
 
 // ========================================
-// 프로필 설정 화면
+// 프로필 설정
 // ========================================
 
 @Composable
 fun ProfileSettingScreen(
 
-    // ========================================
-    // 초기 사용자 정보
-    // ========================================
+    // 로그인 완성 전 테스트 회원
+    memberId: Long = 3L,
 
-    initialName: String = "이지연",
+    onBackClick: () -> Unit = {}
 
-    userId: String = "jiyeon123",
-
-    initialEmail: String = "jiyeon@example.com",
-
-
-    // ========================================
-    // 뒤로가기
-    // ========================================
-
-    onBackClick: () -> Unit = {},
-
-
-    // ========================================
-    // 저장
-    // ========================================
-
-    onSaveClick: (
-        name: String,
-        email: String
-    ) -> Unit = { _, _ -> }
 ) {
 
-    // ========================================
-    // 입력 상태
-    // ========================================
+    var memberName by remember {
+        mutableStateOf("")
+    }
 
-    var name by remember {
-        mutableStateOf(
-            initialName
-        )
+    var loginId by remember {
+        mutableStateOf("")
+    }
+
+    var email by remember {
+        mutableStateOf("")
+    }
+
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var isSaving by remember {
+        mutableStateOf(false)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var showSuccessDialog by remember {
+        mutableStateOf(false)
     }
 
 
-    var email by remember {
-        mutableStateOf(
-            initialEmail
-        )
+    val coroutineScope =
+        rememberCoroutineScope()
+
+
+    // ========================================
+    // 프로필 조회
+    // ========================================
+
+    LaunchedEffect(
+        memberId
+    ) {
+
+        isLoading =
+            true
+
+        errorMessage =
+            null
+
+
+        try {
+
+            val profile =
+                RetrofitClient
+                    .memberApi
+                    .getProfile(
+                        memberId
+                    )
+
+
+            memberName =
+                profile.memberName
+
+            loginId =
+                profile.loginId
+
+            email =
+                profile.email
+
+
+        } catch (
+            e: Exception
+        ) {
+
+            errorMessage =
+                "프로필 정보를 불러오지 못했습니다."
+
+            e.printStackTrace()
+
+        } finally {
+
+            isLoading =
+                false
+        }
     }
 
 
@@ -100,34 +137,26 @@ fun ProfileSettingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                ProfileScreenBackground
+                ProfileBackground
             )
     ) {
 
 
         // ========================================
-        // 상단바
+        // 상단
         // ========================================
 
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .height(
-                    64.dp
+                    62.dp
                 )
                 .padding(
                     horizontal = 20.dp
-                ),
-
-            verticalAlignment =
-                Alignment.CenterVertically
+                )
         ) {
-
-
-            // ========================================
-            // 뒤로가기
-            // ========================================
 
             Icon(
                 imageVector =
@@ -140,8 +169,11 @@ fun ProfileSettingScreen(
                     ProfileTextBlack,
 
                 modifier = Modifier
+                    .align(
+                        Alignment.CenterStart
+                    )
                     .size(
-                        22.dp
+                        21.dp
                     )
                     .clickable {
 
@@ -149,10 +181,6 @@ fun ProfileSettingScreen(
                     }
             )
 
-
-            // ========================================
-            // 제목
-            // ========================================
 
             Text(
                 text =
@@ -167,63 +195,72 @@ fun ProfileSettingScreen(
                 color =
                     ProfileTextBlack,
 
-                textAlign =
-                    TextAlign.Center,
-
                 modifier =
-                    Modifier.weight(
-                        1f
-                    )
-            )
-
-
-            // 제목 중앙 정렬용
-            Spacer(
-                modifier =
-                    Modifier.size(
-                        22.dp
+                    Modifier.align(
+                        Alignment.Center
                     )
             )
         }
 
 
-        // ========================================
-        // 프로필 영역
-        // ========================================
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    top = 26.dp
-                ),
-
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+        if (
+            isLoading
         ) {
 
-
-            // ========================================
-            // 프로필 이미지
-            // ========================================
-
             Box(
+                modifier =
+                    Modifier.fillMaxSize(),
+
                 contentAlignment =
-                    Alignment.BottomEnd
+                    Alignment.Center
             ) {
+
+                CircularProgressIndicator(
+                    color =
+                        ProfileBlue
+                )
+            }
+
+
+        } else {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 22.dp
+                    ),
+
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
+            ) {
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            20.dp
+                        )
+                )
+
+
+                // ========================================
+                // 프로필 이미지
+                // ========================================
 
                 Box(
                     modifier = Modifier
                         .size(
-                            104.dp
-                        )
-                        .clip(
-                            CircleShape
+                            88.dp
                         )
                         .background(
-                            Color(
-                                0xFFE8EEFF
-                            )
+                            color =
+                                Color(
+                                    0xFFE8EEFF
+                                ),
+
+                            shape =
+                                CircleShape
                         ),
 
                     contentAlignment =
@@ -242,472 +279,420 @@ fun ProfileSettingScreen(
 
                         modifier =
                             Modifier.size(
-                                82.dp
+                                70.dp
                             )
                     )
                 }
 
 
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            30.dp
+                        )
+                )
+
+
                 // ========================================
-                // 프로필 수정 아이콘
+                // 이름
                 // ========================================
 
-                Box(
-                    modifier = Modifier
-                        .size(
-                            34.dp
+                ProfileLabel(
+                    text =
+                        "이름"
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            8.dp
                         )
-                        .clip(
-                            CircleShape
-                        )
-                        .background(
-                            ProfileBlue
+                )
+
+
+                OutlinedTextField(
+                    value =
+                        memberName,
+
+                    onValueChange = {
+
+                        memberName =
+                            it
+                    },
+
+                    singleLine =
+                        true,
+
+                    shape =
+                        RoundedCornerShape(
+                            12.dp
                         ),
 
-                    contentAlignment =
-                        Alignment.Center
-                ) {
+                    colors =
+                        profileTextFieldColors(),
 
-                    Icon(
-                        imageVector =
-                            Icons.Filled.Edit,
+                    modifier =
+                        Modifier.fillMaxWidth()
+                )
 
-                        contentDescription =
-                            "프로필 수정",
 
-                        tint =
-                            Color.White,
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            20.dp
+                        )
+                )
+
+
+                // ========================================
+                // 아이디
+                // 수정 불가
+                // ========================================
+
+                ProfileLabel(
+                    text =
+                        "아이디"
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            8.dp
+                        )
+                )
+
+
+                OutlinedTextField(
+                    value =
+                        loginId,
+
+                    onValueChange =
+                        {},
+
+                    enabled =
+                        false,
+
+                    singleLine =
+                        true,
+
+                    shape =
+                        RoundedCornerShape(
+                            12.dp
+                        ),
+
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+
+                            disabledContainerColor =
+                                Color(
+                                    0xFFF0F1F4
+                                ),
+
+                            disabledTextColor =
+                                ProfileTextGray,
+
+                            disabledBorderColor =
+                                Color(
+                                    0xFFE3E4E8
+                                )
+                        ),
+
+                    modifier =
+                        Modifier.fillMaxWidth()
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            20.dp
+                        )
+                )
+
+
+                // ========================================
+                // 이메일
+                // ========================================
+
+                ProfileLabel(
+                    text =
+                        "이메일"
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            8.dp
+                        )
+                )
+
+
+                OutlinedTextField(
+                    value =
+                        email,
+
+                    onValueChange = {
+
+                        email =
+                            it
+                    },
+
+                    singleLine =
+                        true,
+
+                    shape =
+                        RoundedCornerShape(
+                            12.dp
+                        ),
+
+                    colors =
+                        profileTextFieldColors(),
+
+                    modifier =
+                        Modifier.fillMaxWidth()
+                )
+
+
+                // ========================================
+                // 오류 메시지
+                // ========================================
+
+                errorMessage?.let {
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                12.dp
+                            )
+                    )
+
+
+                    Text(
+                        text =
+                            it,
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .error,
 
                         modifier =
-                            Modifier.size(
-                                17.dp
-                            )
+                            Modifier.fillMaxWidth()
+                    )
+                }
+
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            32.dp
+                        )
+                )
+
+
+                // ========================================
+                // 저장하기
+                // ========================================
+
+                Button(
+                    onClick = {
+
+                        if (
+                            memberName.isBlank() ||
+                            email.isBlank()
+                        ) {
+
+                            errorMessage =
+                                "이름과 이메일을 입력해주세요."
+
+                            return@Button
+                        }
+
+
+                        coroutineScope.launch {
+
+                            isSaving =
+                                true
+
+                            errorMessage =
+                                null
+
+
+                            try {
+
+                                val response =
+                                    RetrofitClient
+                                        .memberApi
+                                        .updateProfile(
+
+                                            memberId =
+                                                memberId,
+
+                                            request =
+                                                ProfileUpdateRequest(
+                                                    memberName =
+                                                        memberName.trim(),
+
+                                                    email =
+                                                        email.trim()
+                                                )
+                                        )
+
+
+                                if (
+                                    response.isSuccessful
+                                ) {
+
+                                    showSuccessDialog =
+                                        true
+
+                                } else {
+
+                                    errorMessage =
+                                        "프로필 수정에 실패했습니다."
+                                }
+
+
+                            } catch (
+                                e: Exception
+                            ) {
+
+                                errorMessage =
+                                    "서버와 통신할 수 없습니다."
+
+                                e.printStackTrace()
+
+                            } finally {
+
+                                isSaving =
+                                    false
+                            }
+                        }
+                    },
+
+                    enabled =
+                        !isSaving,
+
+                    colors =
+                        ButtonDefaults
+                            .buttonColors(
+                                containerColor =
+                                    ProfileBlue
+                            ),
+
+                    shape =
+                        RoundedCornerShape(
+                            14.dp
+                        ),
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(
+                            56.dp
+                        )
+                ) {
+
+                    if (
+                        isSaving
+                    ) {
+
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.size(
+                                    22.dp
+                                ),
+
+                            color =
+                                Color.White,
+
+                            strokeWidth =
+                                2.dp
+                        )
+
+                    } else {
+
+                        Text(
+                            text =
+                                "저장하기",
+
+                            fontSize =
+                                16.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+
+    // ========================================
+    // 저장 성공 팝업
+    // ========================================
+
+    if (
+        showSuccessDialog
+    ) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                showSuccessDialog =
+                    false
+            },
+
+            title = {
+
+                Text(
+                    text =
+                        "프로필 수정",
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            },
+
+            text = {
+
+                Text(
+                    text =
+                        "프로필이 수정되었습니다."
+                )
+            },
+
+            confirmButton = {
+
+                TextButton(
+                    onClick = {
+
+                        showSuccessDialog =
+                            false
+
+                        onBackClick()
+                    }
+                ) {
+
+                    Text(
+                        text =
+                            "확인",
+
+                        color =
+                            ProfileBlue
                     )
                 }
             }
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        13.dp
-                    )
-            )
-
-
-            Text(
-                text =
-                    "${name}님",
-
-                fontSize =
-                    21.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    ProfileTextBlack
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        5.dp
-                    )
-            )
-
-
-            Text(
-                text =
-                    "@$userId",
-
-                fontSize =
-                    14.sp,
-
-                color =
-                    ProfileTextGray
-            )
-        }
-
-
-        Spacer(
-            modifier =
-                Modifier.height(
-                    32.dp
-                )
-        )
-
-
-        // ========================================
-        // 프로필 정보 카드
-        // ========================================
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 20.dp
-                )
-                .clip(
-                    RoundedCornerShape(
-                        20.dp
-                    )
-                )
-                .background(
-                    Color.White
-                )
-                .padding(
-                    horizontal = 20.dp,
-                    vertical = 24.dp
-                )
-        ) {
-
-
-            // ========================================
-            // 이름
-            // ========================================
-
-            ProfileSettingLabel(
-                text = "이름"
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        8.dp
-                    )
-            )
-
-
-            OutlinedTextField(
-                value =
-                    name,
-
-                onValueChange = {
-
-                    name = it
-                },
-
-                placeholder = {
-
-                    Text(
-                        text =
-                            "이름을 입력해주세요",
-
-                        color =
-                            Color(
-                                0xFFAAAAAA
-                            )
-                    )
-                },
-
-                singleLine =
-                    true,
-
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(
-                        12.dp
-                    ),
-
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-
-                        focusedBorderColor =
-                            ProfileBlue,
-
-                        unfocusedBorderColor =
-                            ProfileBorderGray,
-
-                        cursorColor =
-                            ProfileBlue,
-
-                        focusedContainerColor =
-                            Color.White,
-
-                        unfocusedContainerColor =
-                            Color.White
-                    )
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        22.dp
-                    )
-            )
-
-
-            // ========================================
-            // 아이디
-            // ========================================
-
-            ProfileSettingLabel(
-                text = "아이디"
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        8.dp
-                    )
-            )
-
-
-            OutlinedTextField(
-                value =
-                    userId,
-
-                onValueChange = {},
-
-                readOnly =
-                    true,
-
-                singleLine =
-                    true,
-
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(
-                        12.dp
-                    ),
-
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-
-                        focusedBorderColor =
-                            ProfileBorderGray,
-
-                        unfocusedBorderColor =
-                            ProfileBorderGray,
-
-                        cursorColor =
-                            Color.Transparent,
-
-                        focusedContainerColor =
-                            Color(
-                                0xFFF5F6F8
-                            ),
-
-                        unfocusedContainerColor =
-                            Color(
-                                0xFFF5F6F8
-                            ),
-
-                        focusedTextColor =
-                            Color(
-                                0xFF777777
-                            ),
-
-                        unfocusedTextColor =
-                            Color(
-                                0xFF777777
-                            )
-                    )
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        6.dp
-                    )
-            )
-
-
-            Text(
-                text =
-                    "아이디는 변경할 수 없어요.",
-
-                fontSize =
-                    12.sp,
-
-                color =
-                    Color(
-                        0xFFAAAAAA
-                    )
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        22.dp
-                    )
-            )
-
-
-            // ========================================
-            // 이메일
-            // ========================================
-
-            ProfileSettingLabel(
-                text =
-                    "이메일"
-            )
-
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        8.dp
-                    )
-            )
-
-
-            OutlinedTextField(
-                value =
-                    email,
-
-                onValueChange = {
-
-                    email = it
-                },
-
-                placeholder = {
-
-                    Text(
-                        text =
-                            "이메일을 입력해주세요",
-
-                        color =
-                            Color(
-                                0xFFAAAAAA
-                            )
-                    )
-                },
-
-                singleLine =
-                    true,
-
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType =
-                            KeyboardType.Email
-                    ),
-
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(
-                        12.dp
-                    ),
-
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-
-                        focusedBorderColor =
-                            ProfileBlue,
-
-                        unfocusedBorderColor =
-                            ProfileBorderGray,
-
-                        cursorColor =
-                            ProfileBlue,
-
-                        focusedContainerColor =
-                            Color.White,
-
-                        unfocusedContainerColor =
-                            Color.White
-                    )
-            )
-        }
-
-
-        // ========================================
-        // 아래 공간
-        // ========================================
-
-        Spacer(
-            modifier =
-                Modifier.weight(
-                    1f
-                )
-        )
-
-
-        // ========================================
-        // 저장 버튼
-        // ========================================
-
-        Button(
-            onClick = {
-
-                if (
-                    name.isNotBlank() &&
-                    email.isNotBlank()
-                ) {
-
-                    onSaveClick(
-                        name.trim(),
-                        email.trim()
-                    )
-                }
-            },
-
-            enabled =
-                name.isNotBlank() &&
-                        email.isNotBlank(),
-
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 20.dp
-                )
-                .height(
-                    56.dp
-                ),
-
-            shape =
-                RoundedCornerShape(
-                    14.dp
-                ),
-
-            colors =
-                ButtonDefaults.buttonColors(
-
-                    containerColor =
-                        ProfileBlue,
-
-                    disabledContainerColor =
-                        Color(
-                            0xFFD2DCF6
-                        )
-                )
-        ) {
-
-            Text(
-                text =
-                    "저장하기",
-
-                fontSize =
-                    17.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                color =
-                    Color.White
-            )
-        }
-
-
-        Spacer(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .height(
-                    20.dp
-                )
         )
     }
 }
@@ -718,7 +703,7 @@ fun ProfileSettingScreen(
 // ========================================
 
 @Composable
-private fun ProfileSettingLabel(
+private fun ProfileLabel(
     text: String
 ) {
 
@@ -733,22 +718,33 @@ private fun ProfileSettingLabel(
             FontWeight.SemiBold,
 
         color =
-            Color(
-                0xFF333333
-            )
+            ProfileTextBlack,
+
+        modifier =
+            Modifier.fillMaxWidth()
     )
 }
 
 
 // ========================================
-// Preview
+// 입력창 색상
 // ========================================
 
-@androidx.compose.ui.tooling.preview.Preview(
-    showBackground = true
-)
 @Composable
-fun ProfileSettingScreenPreview() {
+private fun profileTextFieldColors() =
+    OutlinedTextFieldDefaults.colors(
 
-    ProfileSettingScreen()
-}
+        focusedBorderColor =
+            ProfileBlue,
+
+        unfocusedBorderColor =
+            Color(
+                0xFFE3E4E8
+            ),
+
+        focusedContainerColor =
+            Color.White,
+
+        unfocusedContainerColor =
+            Color.White
+    )
