@@ -1,4 +1,7 @@
 package com.example.clouddx_team4_project.ui.screens
+import com.example.clouddx_team4_project.data.GuardianApiClient
+import com.example.clouddx_team4_project.data.GuardianRequest
+import kotlinx.coroutines.launch
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -152,6 +155,31 @@ fun GuardianRegisterScreen(
         mutableStateOf<List<GuardianUiModel>>(
             emptyList()
         )
+    }
+
+    // ========================================
+    // API 연동
+    // ========================================
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // 테스트용 고정값 (!!!로그인 연동 전까지!!!!)
+    val currentMemberId = 1L
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = GuardianApiClient.api.getGuardians(currentMemberId)
+            guardians = response.map {
+                GuardianUiModel(
+                    guardianId = it.guardianId,
+                    name = it.guardianName,
+                    phone = it.phoneNumber,
+                    relation = it.relationName
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
 
@@ -512,44 +540,35 @@ fun GuardianRegisterScreen(
                         false
                 },
 
-
                 onRegister = {
                         name,
                         phone,
                         relation ->
 
+                    coroutineScope.launch {
+                        try {
+                            GuardianApiClient.api.registerGuardian(
+                                GuardianRequest(
+                                    memberId = currentMemberId,
+                                    guardianName = name,
+                                    phoneNumber = phone,
+                                    relationName = relation
+                                )
+                            )
 
-                    // ========================================
-                    // 현재는 UI 테스트용으로
-                    // 화면 목록에 바로 추가
-                    // ========================================
-
-                    val newGuardian =
-                        GuardianUiModel(
-
-                            guardianId =
-                                System
-                                    .currentTimeMillis(),
-
-                            name =
-                                name,
-
-                            phone =
-                                phone,
-
-                            relation =
-                                relation
-                        )
-
-
-                    guardians =
-                        guardians +
-                                newGuardian
-
-
-                    // ========================================
-                    // POST /api/guardians 연결 자리
-                    // ========================================
+                            val response = GuardianApiClient.api.getGuardians(currentMemberId)
+                            guardians = response.map {
+                                GuardianUiModel(
+                                    guardianId = it.guardianId,
+                                    name = it.guardianName,
+                                    phone = it.phoneNumber,
+                                    relation = it.relationName
+                                )
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
 
                     onRegisterClick(
                         name,
@@ -557,12 +576,10 @@ fun GuardianRegisterScreen(
                         relation
                     )
 
-
                     // 팝업 닫기
                     showAddGuardianDialog =
                         false
-                }
-            )
+                }            )
         }
 
 
@@ -586,30 +603,29 @@ fun GuardianRegisterScreen(
                             null
                     },
 
-
                     onDelete = {
 
+                        coroutineScope.launch {
+                            try {
+                                GuardianApiClient.api.deleteGuardian(guardian.guardianId)
 
-                        // ========================================
-                        // 현재 화면 목록에서 삭제
-                        // ========================================
-
-                        guardians =
-                            guardians.filterNot {
-
-                                it.guardianId ==
-                                        guardian.guardianId
+                                val response = GuardianApiClient.api.getGuardians(currentMemberId)
+                                guardians = response.map {
+                                    GuardianUiModel(
+                                        guardianId = it.guardianId,
+                                        name = it.guardianName,
+                                        phone = it.phoneNumber,
+                                        relation = it.relationName
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
                             }
-
-
-                        // ========================================
-                        // DELETE API가 생기면 연결
-                        // ========================================
+                        }
 
                         onDeleteClick(
                             guardian.guardianId
                         )
-
 
                         guardianToDelete =
                             null
