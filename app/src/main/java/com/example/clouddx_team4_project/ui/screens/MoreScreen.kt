@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Help
@@ -19,7 +20,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 import com.example.clouddx_team4_project.ui.theme.ResponsiveDimens
 import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
@@ -37,7 +39,8 @@ import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
 // 색상
 // ========================================
 
-private val AnOnBlue = Color(0xFF6A92FE)
+private val AnOnBlue =
+    Color(0xFF6A92FE)
 
 private val ScreenBackground =
     Color(0xFFF4F5F8)
@@ -69,9 +72,8 @@ data class MoreMenuItem(
 @Composable
 fun MoreScreen(
 
-    userName: String = "이지연",
-
-    region: String = "아이디123",
+    // 로그인 완성 전 테스트 회원 ID
+    memberId: Long = 3L,
 
     onMenuClick: (String) -> Unit = {},
 
@@ -80,10 +82,81 @@ fun MoreScreen(
     onTabSelected: (String) -> Unit = {},
 
     onEmergencyClick: () -> Unit = {}
+
 ) {
 
     val dimens =
         rememberResponsiveDimens()
+
+
+    // ========================================
+    // 사용자 프로필 정보
+    // ========================================
+
+    var userName by remember {
+        mutableStateOf("")
+    }
+
+
+    var loginId by remember {
+        mutableStateOf("")
+    }
+
+
+    var profileLoadFailed by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // DB에서 프로필 조회
+    // ========================================
+
+    LaunchedEffect(
+        memberId
+    ) {
+
+        try {
+
+            val profile =
+                RetrofitClient
+                    .memberApi
+                    .getProfile(
+                        memberId
+                    )
+
+
+            userName =
+                profile.memberName
+
+
+            loginId =
+                profile.loginId
+
+
+            profileLoadFailed =
+                false
+
+
+        } catch (
+            e: Exception
+        ) {
+
+            e.printStackTrace()
+
+
+            userName =
+                "사용자"
+
+
+            loginId =
+                "정보를 불러올 수 없습니다"
+
+
+            profileLoadFailed =
+                true
+        }
+    }
 
 
     // ========================================
@@ -118,8 +191,13 @@ fun MoreScreen(
         listOf(
 
             MoreMenuItem(
-                title = "공지사항 및 문의하기",
+                title = "공지사항",
                 icon = Icons.Filled.Notifications
+            ),
+
+            MoreMenuItem(
+                title = "문의하기",
+                icon = Icons.Filled.Chat
             ),
 
             MoreMenuItem(
@@ -236,7 +314,9 @@ fun MoreScreen(
 
                 Spacer(
                     modifier =
-                        Modifier.weight(1f)
+                        Modifier.weight(
+                            1f
+                        )
                 )
 
 
@@ -252,13 +332,16 @@ fun MoreScreen(
                         "설정",
 
                     tint =
-                        Color(0xFF969696),
+                        Color(
+                            0xFF969696
+                        ),
 
                     modifier = Modifier
                         .size(
                             dimens.mediumIconSize
                         )
                         .clickable {
+
                             onSettingsClick()
                         }
                 )
@@ -302,7 +385,9 @@ fun MoreScreen(
                         )
                         .background(
                             color =
-                                Color(0xFFE8EEFF),
+                                Color(
+                                    0xFFE8EEFF
+                                ),
 
                             shape =
                                 RoundedCornerShape(
@@ -346,12 +431,23 @@ fun MoreScreen(
 
                 Column(
                     modifier =
-                        Modifier.weight(1f)
+                        Modifier.weight(
+                            1f
+                        )
                 ) {
 
                     Text(
                         text =
-                            "${userName}님",
+                            if (
+                                userName.isBlank()
+                            ) {
+
+                                "불러오는 중..."
+
+                            } else {
+
+                                "${userName}님"
+                            },
 
                         fontSize =
                             dimens.titleSize,
@@ -360,7 +456,9 @@ fun MoreScreen(
                             FontWeight.Bold,
 
                         color =
-                            Color(0xFF222222)
+                            Color(
+                                0xFF222222
+                            )
                     )
 
 
@@ -374,7 +472,16 @@ fun MoreScreen(
 
                     Text(
                         text =
-                            region,
+                            if (
+                                loginId.isBlank()
+                            ) {
+
+                                "사용자 정보 확인 중"
+
+                            } else {
+
+                                loginId
+                            },
 
                         fontSize =
                             dimens.bodySize,
@@ -383,7 +490,18 @@ fun MoreScreen(
                             FontWeight.Medium,
 
                         color =
-                            TextGray
+                            if (
+                                profileLoadFailed
+                            ) {
+
+                                Color(
+                                    0xFFE57373
+                                )
+
+                            } else {
+
+                                TextGray
+                            }
                     )
                 }
             }
@@ -494,6 +612,7 @@ private fun MenuGroupCard(
 
     onMenuClick:
         (String) -> Unit
+
 ) {
 
     Column(
@@ -553,6 +672,7 @@ private fun MoreMenuRow(
 
     onClick:
         () -> Unit
+
 ) {
 
     Row(
@@ -564,6 +684,7 @@ private fun MoreMenuRow(
             )
 
             .clickable {
+
                 onClick()
             }
 
@@ -632,10 +753,14 @@ private fun MoreMenuRow(
                 FontWeight.Medium,
 
             color =
-                Color(0xFF222222),
+                Color(
+                    0xFF222222
+                ),
 
             modifier =
-                Modifier.weight(1f)
+                Modifier.weight(
+                    1f
+                )
         )
 
 
@@ -651,7 +776,9 @@ private fun MoreMenuRow(
                 null,
 
             tint =
-                Color(0xFFC4C4C4),
+                Color(
+                    0xFFC4C4C4
+                ),
 
             modifier =
                 Modifier.size(
