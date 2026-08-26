@@ -9,10 +9,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,7 +96,17 @@ fun SafeRouteScreen(
     onMapDestinationSelected:
         (Double, Double) -> Unit =
         { _, _ -> }
+
 ) {
+
+    // ========================================
+    // 현재 위치 복귀 요청값
+    // ========================================
+
+    var recenterRequestKey by remember {
+        mutableIntStateOf(0)
+    }
+
 
     Box(
         modifier = Modifier
@@ -405,6 +420,16 @@ fun SafeRouteScreen(
                                 "BROAD_FIRST"
                         },
 
+
+                    // ========================================
+                    // 추가된 부분:
+                    // 현재 위치로 다시 이동
+                    // ========================================
+
+                    recenterRequestKey =
+                        recenterRequestKey,
+
+
                     onDestinationSelected = {
                             latitude,
                             longitude ->
@@ -415,6 +440,56 @@ fun SafeRouteScreen(
                         )
                     }
                 )
+
+
+                // ========================================
+                // 추가된 부분:
+                // 현재 위치 버튼
+                // ========================================
+
+                Box(
+                    modifier = Modifier
+                        .align(
+                            Alignment.BottomEnd
+                        )
+                        .padding(
+                            end = 18.dp,
+                            bottom = 18.dp
+                        )
+                        .size(
+                            46.dp
+                        )
+                        .clip(
+                            CircleShape
+                        )
+                        .background(
+                            Color.White
+                        )
+                        .clickable {
+
+                            recenterRequestKey++
+                        },
+
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Filled.MyLocation,
+
+                        contentDescription =
+                            "현재 위치로 이동",
+
+                        tint =
+                            TextBlack,
+
+                        modifier =
+                            Modifier.size(
+                                23.dp
+                            )
+                    )
+                }
             }
         }
 

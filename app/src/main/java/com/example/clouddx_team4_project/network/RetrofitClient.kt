@@ -10,28 +10,67 @@ object RetrofitClient {
         "https://dec046b05962b6.lhr.life/"
 
     // Ubuntu Spring Boot 서버
-    private const val REPORT_BASE_URL =
+    // 사용 리포트 + 프로필 API 공용
+    private const val RIMO_API_BASE_URL =
         "http://127.0.0.1:8080/"
 
+
+    // ========================================
     // 로그인 / 회원가입 API
+    // ========================================
+
     val authApi: AuthApi by lazy {
+
         Retrofit.Builder()
-            .baseUrl(AUTH_BASE_URL)
+            .baseUrl(
+                AUTH_BASE_URL
+            )
             .addConverterFactory(
                 GsonConverterFactory.create()
             )
             .build()
-            .create(AuthApi::class.java)
+            .create(
+                AuthApi::class.java
+            )
     }
 
+
+    // ========================================
     // 사용 리포트 API
+    // ========================================
+
     val reportApi: ReportApi by lazy {
+
         Retrofit.Builder()
-            .baseUrl(REPORT_BASE_URL)
+            .baseUrl(
+                RIMO_API_BASE_URL
+            )
             .addConverterFactory(
                 GsonConverterFactory.create()
             )
             .build()
-            .create(ReportApi::class.java)
+            .create(
+                ReportApi::class.java
+            )
+    }
+
+
+    // ========================================
+    // 회원 / 프로필 API
+    // ========================================
+
+    val memberApi: MemberApi by lazy {
+
+        Retrofit.Builder()
+            .baseUrl(
+                RIMO_API_BASE_URL
+            )
+            .addConverterFactory(
+                GsonConverterFactory.create()
+            )
+            .build()
+            .create(
+                MemberApi::class.java
+            )
     }
 }

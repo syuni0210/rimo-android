@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Help
@@ -15,34 +16,43 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
+import com.example.clouddx_team4_project.ui.theme.ResponsiveDimens
+import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
 
 
 // ========================================
 // 색상
 // ========================================
 
-private val AnOnBlue = Color(0xFF6A92FE)
+private val AnOnBlue =
+    Color(0xFF6A92FE)
 
-private val ScreenBackground = Color(0xFFF4F5F8)
+private val ScreenBackground =
+    Color(0xFFF4F5F8)
 
-private val CardBackground = Color.White
+private val CardBackground =
+    Color.White
 
-private val IconGray = Color(0xFFB8B8B8)
+private val IconGray =
+    Color(0xFFB8B8B8)
 
-private val TextGray = Color(0xFF8B8B8B)
+private val TextGray =
+    Color(0xFF8B8B8B)
 
 
 // ========================================
@@ -61,8 +71,9 @@ data class MoreMenuItem(
 
 @Composable
 fun MoreScreen(
-    userName: String = "이지연",
-    region: String = "아이디123",
+
+    // 로그인 완성 전 테스트 회원 ID
+    memberId: Long = 3L,
 
     onMenuClick: (String) -> Unit = {},
 
@@ -71,57 +82,139 @@ fun MoreScreen(
     onTabSelected: (String) -> Unit = {},
 
     onEmergencyClick: () -> Unit = {}
+
 ) {
 
+    val dimens =
+        rememberResponsiveDimens()
+
+
     // ========================================
-    // 첫 번째 그룹
+    // 사용자 프로필 정보
     // ========================================
 
-    val firstMenuGroup = listOf(
+    var userName by remember {
+        mutableStateOf("")
+    }
 
-        MoreMenuItem(
-            title = "프로필 설정",
-            icon = Icons.Filled.AccountCircle
-        ),
 
-        MoreMenuItem(
-            title = "기본 목적지 설정",
-            icon = Icons.Filled.LocationOn
-        ),
+    var loginId by remember {
+        mutableStateOf("")
+    }
 
-        MoreMenuItem(
-            title = "보호자 등록",
-            icon = Icons.Filled.Person
+
+    var profileLoadFailed by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // DB에서 프로필 조회
+    // ========================================
+
+    LaunchedEffect(
+        memberId
+    ) {
+
+        try {
+
+            val profile =
+                RetrofitClient
+                    .memberApi
+                    .getProfile(
+                        memberId
+                    )
+
+
+            userName =
+                profile.memberName
+
+
+            loginId =
+                profile.loginId
+
+
+            profileLoadFailed =
+                false
+
+
+        } catch (
+            e: Exception
+        ) {
+
+            e.printStackTrace()
+
+
+            userName =
+                "사용자"
+
+
+            loginId =
+                "정보를 불러올 수 없습니다"
+
+
+            profileLoadFailed =
+                true
+        }
+    }
+
+
+    // ========================================
+    // 첫 번째 메뉴 그룹
+    // ========================================
+
+    val firstMenuGroup =
+        listOf(
+
+            MoreMenuItem(
+                title = "프로필 설정",
+                icon = Icons.Filled.AccountCircle
+            ),
+
+            MoreMenuItem(
+                title = "기본 목적지 설정",
+                icon = Icons.Filled.LocationOn
+            ),
+
+            MoreMenuItem(
+                title = "보호자 등록",
+                icon = Icons.Filled.Person
+            )
         )
-    )
 
 
     // ========================================
-    // 두 번째 그룹
+    // 두 번째 메뉴 그룹
     // ========================================
 
-    val secondMenuGroup = listOf(
+    val secondMenuGroup =
+        listOf(
 
-        MoreMenuItem(
-            title = "공지사항 및 문의하기",
-            icon = Icons.Filled.Notifications
-        ),
+            MoreMenuItem(
+                title = "공지사항",
+                icon = Icons.Filled.Notifications
+            ),
 
-        MoreMenuItem(
-            title = "도움말",
-            icon = Icons.Filled.Help
-        ),
+            MoreMenuItem(
+                title = "문의하기",
+                icon = Icons.Filled.Chat
+            ),
 
-        MoreMenuItem(
-            title = "서비스 소개",
-            icon = Icons.Filled.Info
-        ),
+            MoreMenuItem(
+                title = "도움말",
+                icon = Icons.Filled.Help
+            ),
 
-        MoreMenuItem(
-            title = "개인정보처리방침",
-            icon = Icons.Filled.Description
+            MoreMenuItem(
+                title = "서비스 소개",
+                icon = Icons.Filled.Info
+            ),
+
+            MoreMenuItem(
+                title = "개인정보처리방침",
+                icon = Icons.Filled.Description
+            )
         )
-    )
 
 
     // ========================================
@@ -131,20 +224,25 @@ fun MoreScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .background(
+                ScreenBackground
+            )
     ) {
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 100.dp)
                 .verticalScroll(
                     rememberScrollState()
                 )
+                .padding(
+                    bottom = 100.dp
+                )
         ) {
 
+
             // ========================================
-            // 1. 프로필 영역
+            // 1. 상단 Rimo / 설정
             // ========================================
 
             Row(
@@ -152,39 +250,178 @@ fun MoreScreen(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(
-                        start = 24.dp,
-                        end = 24.dp,
-                        top = 24.dp,
-                        bottom = 24.dp
+                        horizontal =
+                            dimens.screenHorizontalPadding,
+
+                        vertical =
+                            dimens.screenVerticalPadding
                     ),
-                verticalAlignment = Alignment.CenterVertically
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
+
                 // ========================================
-                // 프로필
+                // Rimo 로고
                 // ========================================
 
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .background(
-                            color = Color(0xFFE8EEFF),
-                            shape = RoundedCornerShape(20.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
                     Icon(
-                        imageVector = Icons.Filled.AccountCircle,
-                        contentDescription = "프로필",
-                        tint = AnOnBlue,
-                        modifier = Modifier.size(54.dp)
+                        imageVector =
+                            Icons.Filled.Security,
+
+                        contentDescription =
+                            "Rimo",
+
+                        tint =
+                            AnOnBlue,
+
+                        modifier =
+                            Modifier.size(
+                                dimens.homeLogoSize
+                            )
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                dimens.smallSpacing
+                            )
+                    )
+
+
+                    Text(
+                        text =
+                            "Rimo",
+
+                        fontSize =
+                            dimens.titleSize,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            AnOnBlue
                     )
                 }
 
 
                 Spacer(
-                    modifier = Modifier.width(18.dp)
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        )
+                )
+
+
+                // ========================================
+                // 설정 버튼
+                // ========================================
+
+                Icon(
+                    imageVector =
+                        Icons.Filled.Settings,
+
+                    contentDescription =
+                        "설정",
+
+                    tint =
+                        Color(
+                            0xFF969696
+                        ),
+
+                    modifier = Modifier
+                        .size(
+                            dimens.mediumIconSize
+                        )
+                        .clickable {
+
+                            onSettingsClick()
+                        }
+                )
+            }
+
+
+            // ========================================
+            // 2. 사용자 프로필 영역
+            // ========================================
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start =
+                            dimens.screenHorizontalPadding,
+
+                        end =
+                            dimens.screenHorizontalPadding,
+
+                        top =
+                            dimens.smallSpacing,
+
+                        bottom =
+                            dimens.largeSpacing
+                    ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+
+                // ========================================
+                // 프로필 아이콘
+                // ========================================
+
+                Box(
+                    modifier = Modifier
+                        .size(
+                            dimens.largeIconSize + 30.dp
+                        )
+                        .background(
+                            color =
+                                Color(
+                                    0xFFE8EEFF
+                                ),
+
+                            shape =
+                                RoundedCornerShape(
+                                    dimens.cardRadius
+                                )
+                        ),
+
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Filled.AccountCircle,
+
+                        contentDescription =
+                            "프로필",
+
+                        tint =
+                            AnOnBlue,
+
+                        modifier =
+                            Modifier.size(
+                                dimens.largeIconSize + 10.dp
+                            )
+                    )
+                }
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            dimens.mediumSpacing
+                        )
                 )
 
 
@@ -193,79 +430,142 @@ fun MoreScreen(
                 // ========================================
 
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        )
                 ) {
 
                     Text(
-                        text = "${userName}님",
-                        fontSize = 25.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF222222)
+                        text =
+                            if (
+                                userName.isBlank()
+                            ) {
+
+                                "불러오는 중..."
+
+                            } else {
+
+                                "${userName}님"
+                            },
+
+                        fontSize =
+                            dimens.titleSize,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            Color(
+                                0xFF222222
+                            )
                     )
 
 
                     Spacer(
-                        modifier = Modifier.height(5.dp)
+                        modifier =
+                            Modifier.height(
+                                dimens.smallSpacing
+                            )
                     )
 
 
                     Text(
-                        text = region,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextGray
+                        text =
+                            if (
+                                loginId.isBlank()
+                            ) {
+
+                                "사용자 정보 확인 중"
+
+                            } else {
+
+                                loginId
+                            },
+
+                        fontSize =
+                            dimens.bodySize,
+
+                        fontWeight =
+                            FontWeight.Medium,
+
+                        color =
+                            if (
+                                profileLoadFailed
+                            ) {
+
+                                Color(
+                                    0xFFE57373
+                                )
+
+                            } else {
+
+                                TextGray
+                            }
                     )
                 }
-
-
-                // ========================================
-                // 설정
-                // ========================================
-
-                Icon(
-                    imageVector = Icons.Filled.Settings,
-                    contentDescription = "설정",
-                    tint = Color(0xFF969696),
-                    modifier = Modifier
-                        .size(35.dp)
-                        .clickable {
-                            onSettingsClick()
-                        }
-                )
             }
 
 
             // ========================================
-            // 2. 기본 설정 메뉴
+            // 3. 기본 설정 메뉴
             // ========================================
 
             MenuGroupCard(
-                menuItems = firstMenuGroup,
-                modifier = Modifier
-                    .padding(horizontal = 20.dp),
-                onMenuClick = onMenuClick
+
+                menuItems =
+                    firstMenuGroup,
+
+                dimens =
+                    dimens,
+
+                modifier =
+                    Modifier.padding(
+                        horizontal =
+                            dimens.screenHorizontalPadding
+                    ),
+
+                onMenuClick =
+                    onMenuClick
             )
 
 
             Spacer(
-                modifier = Modifier.height(22.dp)
+                modifier =
+                    Modifier.height(
+                        dimens.largeSpacing
+                    )
             )
 
 
             // ========================================
-            // 3. 안내 메뉴
+            // 4. 안내 메뉴
             // ========================================
 
             MenuGroupCard(
-                menuItems = secondMenuGroup,
-                modifier = Modifier
-                    .padding(horizontal = 20.dp),
-                onMenuClick = onMenuClick
+
+                menuItems =
+                    secondMenuGroup,
+
+                dimens =
+                    dimens,
+
+                modifier =
+                    Modifier.padding(
+                        horizontal =
+                            dimens.screenHorizontalPadding
+                    ),
+
+                onMenuClick =
+                    onMenuClick
             )
 
 
             Spacer(
-                modifier = Modifier.height(24.dp)
+                modifier =
+                    Modifier.height(
+                        dimens.largeSpacing
+                    )
             )
         }
 
@@ -276,15 +576,19 @@ fun MoreScreen(
 
         AnOnBottomBar(
 
-            selectedTab = "더보기",
+            selectedTab =
+                "더보기",
 
-            onTabSelected = onTabSelected,
+            onTabSelected =
+                onTabSelected,
 
-            onEmergencyClick = onEmergencyClick,
+            onEmergencyClick =
+                onEmergencyClick,
 
-            modifier = Modifier.align(
-                Alignment.BottomCenter
-            )
+            modifier =
+                Modifier.align(
+                    Alignment.BottomCenter
+                )
         )
     }
 }
@@ -296,29 +600,51 @@ fun MoreScreen(
 
 @Composable
 private fun MenuGroupCard(
-    menuItems: List<MoreMenuItem>,
-    modifier: Modifier = Modifier,
-    onMenuClick: (String) -> Unit
+
+    menuItems:
+    List<MoreMenuItem>,
+
+    dimens:
+    ResponsiveDimens,
+
+    modifier:
+    Modifier = Modifier,
+
+    onMenuClick:
+        (String) -> Unit
+
 ) {
 
     Column(
         modifier = modifier
             .fillMaxWidth()
+
             .clip(
-                RoundedCornerShape(20.dp)
+                RoundedCornerShape(
+                    dimens.cardRadius
+                )
             )
+
             .background(
                 CardBackground
             )
+
             .padding(
-                vertical = 10.dp
+                vertical =
+                    dimens.smallSpacing
             )
     ) {
 
         menuItems.forEach { item ->
 
             MoreMenuRow(
-                item = item,
+
+                item =
+                    item,
+
+                dimens =
+                    dimens,
+
                 onClick = {
 
                     onMenuClick(
@@ -337,43 +663,78 @@ private fun MenuGroupCard(
 
 @Composable
 private fun MoreMenuRow(
-    item: MoreMenuItem,
-    onClick: () -> Unit
+
+    item:
+    MoreMenuItem,
+
+    dimens:
+    ResponsiveDimens,
+
+    onClick:
+        () -> Unit
+
 ) {
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp)
+
+            .height(
+                dimens.largeIconSize + 34.dp
+            )
+
             .clickable {
+
                 onClick()
             }
+
             .padding(
-                horizontal = 20.dp
+                horizontal =
+                    dimens.cardPadding
             ),
-        verticalAlignment = Alignment.CenterVertically
+
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
 
+
         // ========================================
-        // 아이콘
+        // 메뉴 아이콘
         // ========================================
 
         Box(
-            modifier = Modifier.size(40.dp),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier.size(
+                    dimens.largeIconSize
+                ),
+
+            contentAlignment =
+                Alignment.Center
         ) {
 
             Icon(
-                imageVector = item.icon,
-                contentDescription = item.title,
-                tint = IconGray,
-                modifier = Modifier.size(28.dp)
+                imageVector =
+                    item.icon,
+
+                contentDescription =
+                    item.title,
+
+                tint =
+                    IconGray,
+
+                modifier =
+                    Modifier.size(
+                        dimens.mediumIconSize
+                    )
             )
         }
 
 
         Spacer(
-            modifier = Modifier.width(16.dp)
+            modifier =
+                Modifier.width(
+                    dimens.mediumSpacing
+                )
         )
 
 
@@ -382,11 +743,24 @@ private fun MoreMenuRow(
         // ========================================
 
         Text(
-            text = item.title,
-            fontSize = 19.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF222222),
-            modifier = Modifier.weight(1f)
+            text =
+                item.title,
+
+            fontSize =
+                dimens.bodySize,
+
+            fontWeight =
+                FontWeight.Medium,
+
+            color =
+                Color(
+                    0xFF222222
+                ),
+
+            modifier =
+                Modifier.weight(
+                    1f
+                )
         )
 
 
@@ -395,10 +769,21 @@ private fun MoreMenuRow(
         // ========================================
 
         Icon(
-            imageVector = Icons.Filled.ChevronRight,
-            contentDescription = null,
-            tint = Color(0xFFC4C4C4),
-            modifier = Modifier.size(23.dp)
+            imageVector =
+                Icons.Filled.ChevronRight,
+
+            contentDescription =
+                null,
+
+            tint =
+                Color(
+                    0xFFC4C4C4
+                ),
+
+            modifier =
+                Modifier.size(
+                    dimens.smallIconSize
+                )
         )
     }
 }
@@ -408,7 +793,7 @@ private fun MoreMenuRow(
 // Preview
 // ========================================
 
-@androidx.compose.ui.tooling.preview.Preview(
+@Preview(
     showBackground = true
 )
 @Composable
