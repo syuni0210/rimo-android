@@ -792,7 +792,7 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 보호자 등록
+        // 보호자 관리
         // ========================================
 
         composable(
@@ -801,19 +801,49 @@ fun AppNavigation() {
 
             GuardianRegisterScreen(
 
+                // ========================================
+                // 뒤로가기
+                // ========================================
+
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
 
-                onRegisterClick = {
-                        _,
-                        _,
-                        _,
-                        _ ->
+                // ========================================
+                // 보호자 등록
+                //
+                // 현재는 UI만 연결
+                //
+                // 다음 단계에서
+                // POST /api/guardians 연결
+                // ========================================
 
-                    navController.popBackStack()
+                onRegisterClick = {
+                        name,
+                        phone,
+                        relation ->
+
+
+                    // TODO:
+                    // POST /api/guardians
+                    //
+                    // 여기에서 API 호출 예정
+                },
+
+
+                // ========================================
+                // 보호자 삭제
+                //
+                // DELETE API 구현되면 연결
+                // ========================================
+
+                onDeleteClick = { guardianId ->
+
+
+                    // TODO:
+                    // DELETE /api/guardians/{guardianId}
                 }
             )
         }
