@@ -29,7 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
-
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 // ========================================
 // 색상
@@ -59,6 +61,7 @@ private val LightGray =
 // ========================================
 
 data class SafeFriend(
+    val memberId: Long = 0L,
     val name: String,
     val id: String = "",
     val locationSharing: Boolean
@@ -66,6 +69,8 @@ data class SafeFriend(
 
 
 data class FriendRequest(
+    val friendId: Long,
+    val requestMemberId: Long,
     val name: String
 )
 
@@ -78,10 +83,8 @@ data class FriendRequest(
 fun FriendScreen(
     onBackClick: () -> Unit = {},
 
-    // 기존 콜백
     onAddFriendClick: () -> Unit = {},
 
-    // 친구 추가 API 연결용
     onAddFriendSubmit: (String, String) -> Unit = { _, _ -> },
 
     onAcceptRequest: (String) -> Unit = {},
@@ -89,7 +92,9 @@ fun FriendScreen(
     onDeleteFriend: (String) -> Unit = {},
     onLocationClick: (String) -> Unit = {},
     onTabSelected: (String) -> Unit = {},
-    onEmergencyClick: () -> Unit = {}
+    onEmergencyClick: () -> Unit = {},
+
+    friendViewModel: FriendViewModel = viewModel()
 ) {
 
     // ========================================
@@ -102,34 +107,53 @@ fun FriendScreen(
 
 
     // ========================================
-    // 받은 요청 UI 확인용 상태
+    // 실제 받은 친구 요청
     // ========================================
 
-    var showFriendRequest by remember {
-        mutableStateOf(true)
-    }
+    val receivedRequests = friendViewModel.receivedRequests
+
+    val showFriendRequest = receivedRequests.isNotEmpty()
+
+    val sentRequests = friendViewModel.sentRequests
+
+    val showSentRequest = sentRequests.isNotEmpty()
 
 
     // ========================================
     // 친구 목록
     // ========================================
 
-    var friends by remember {
-        mutableStateOf(
-            listOf(
-                SafeFriend(
-                    name = "박민수",
-                    id = "minsu123",
-                    locationSharing = true
-                ),
+    val context = LocalContext.current
 
-                SafeFriend(
-                    name = "서윤지",
-                    id = "yoonji02",
-                    locationSharing = false
-                )
-            )
+    var locationSharingStates by remember {
+        mutableStateOf<Map<Long, Boolean>>(emptyMap())
+    }
+
+    val friends = friendViewModel.friends.map { user ->
+        SafeFriend(
+            memberId = user.mmbrId,
+            name = user.memberName,
+            id = user.loginId,
+            locationSharing =
+                locationSharingStates[user.mmbrId] ?: false
         )
+    }
+
+    LaunchedEffect(Unit) {
+        friendViewModel.loadAll()
+    }
+
+    LaunchedEffect(friendViewModel.message) {
+        friendViewModel.message?.let { message ->
+
+            Toast.makeText(
+                context,
+                message,
+                Toast.LENGTH_SHORT
+            ).show()
+
+            friendViewModel.clearMessage()
+        }
     }
 
 
@@ -359,7 +383,6 @@ fun FriendScreen(
                         )
                 )
 
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -385,14 +408,12 @@ fun FriendScreen(
                             Color(0xFF333333)
                     )
 
-
                     Spacer(
                         modifier =
                             Modifier.width(
                                 6.dp
                             )
                     )
-
 
                     Box(
                         modifier = Modifier
@@ -410,7 +431,7 @@ fun FriendScreen(
 
                         Text(
                             text =
-                                "1",
+                                receivedRequests.size.toString(),
 
                             fontSize =
                                 10.sp,
@@ -424,6 +445,132 @@ fun FriendScreen(
                     }
                 }
 
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            9.dp
+                        )
+                )
+
+                receivedRequests.forEach { request ->
+
+                    FriendRequestCard(
+                        request = FriendRequest(
+                            friendId = request.friendId,
+                            requestMemberId = request.requestMemberId,
+                            name = request.requesterName
+                                ?: "회원 ${request.requestMemberId}"
+                        ),
+
+                        onAccept = {
+
+                            friendViewModel.acceptRequest(
+                                request.friendId
+                            )
+
+                            onAcceptRequest(
+                                request.requesterName
+                                    ?: "회원 ${request.requestMemberId}"
+                            )
+                        },
+
+                        onReject = {
+
+                            friendViewModel.rejectRequest(
+                                request.friendId
+                            )
+
+                            onRejectRequest(
+                                request.requesterName
+                                    ?: "회원 ${request.requestMemberId}"
+                            )
+                        }
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                9.dp
+                            )
+                    )
+                }
+            }
+
+
+            // ========================================
+            // 보낸 요청
+            // ========================================
+
+            if (showSentRequest) {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            18.dp
+                        )
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 22.dp
+                        ),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Text(
+                        text =
+                            "보낸 요청",
+
+                        fontSize =
+                            14.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        color =
+                            Color(0xFF333333)
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                6.dp
+                            )
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .size(
+                                18.dp
+                            )
+                            .background(
+                                AnOnBlue,
+                                CircleShape
+                            ),
+
+                        contentAlignment =
+                            Alignment.Center
+                    ) {
+
+                        Text(
+                            text =
+                                sentRequests.size.toString(),
+
+                            fontSize =
+                                10.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            color =
+                                Color.White
+                        )
+                    }
+                }
 
                 Spacer(
                     modifier =
@@ -432,31 +579,28 @@ fun FriendScreen(
                         )
                 )
 
+                sentRequests.forEach { request ->
 
-                FriendRequestCard(
-                    request =
-                        FriendRequest(
-                            name = "이다은"
-                        ),
+                    SentFriendRequestCard(
+                        name =
+                            request.receiverName
+                                ?: "회원 ${request.receiveMemberId}",
 
-                    onAccept = {
+                        onCancel = {
 
-                        showFriendRequest = false
+                            friendViewModel.cancelSentRequest(
+                                request.friendId
+                            )
+                        }
+                    )
 
-                        onAcceptRequest(
-                            "이다은"
-                        )
-                    },
-
-                    onReject = {
-
-                        showFriendRequest = false
-
-                        onRejectRequest(
-                            "이다은"
-                        )
-                    }
-                )
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                9.dp
+                            )
+                    )
+                }
             }
 
 
@@ -523,7 +667,7 @@ fun FriendScreen(
             // 친구 카드
             // ========================================
 
-            friends.forEachIndexed { index, friend ->
+            friends.forEach { friend ->
 
                 FriendCard(
                     friend =
@@ -531,15 +675,14 @@ fun FriendScreen(
 
                     onLocationSharingChanged = { checked ->
 
-                        friends =
-                            friends.toMutableList().also {
+                        locationSharingStates =
+                            locationSharingStates
+                                .toMutableMap()
+                                .also { states ->
 
-                                it[index] =
-                                    friend.copy(
-                                        locationSharing =
-                                            checked
-                                    )
-                            }
+                                    states[friend.memberId] =
+                                        checked
+                                }
                     },
 
                     onLocationClick = {
@@ -551,12 +694,9 @@ fun FriendScreen(
 
                     onDeleteClick = {
 
-                        friends =
-                            friends.filterNot {
-
-                                it.name ==
-                                        friend.name
-                            }
+                        friendViewModel.deleteFriend(
+                            friend.memberId
+                        )
 
                         onDeleteFriend(
                             friend.name
@@ -619,34 +759,18 @@ fun FriendScreen(
 
                 onAddClick = { name, id ->
 
-                    // --------------------------------
-                    // UI 목록에 친구 추가
-                    // --------------------------------
-
-                    friends =
-                        friends + SafeFriend(
-                            name = name,
-                            id = id,
-                            locationSharing = false
-                        )
-
-
-                    // --------------------------------
-                    // 나중에 API 연결할 부분
-                    // name, id 전달
-                    // --------------------------------
+                    friendViewModel.sendFriendRequest(
+                        name = name,
+                        loginId = id
+                    )
 
                     onAddFriendSubmit(
                         name,
                         id
                     )
 
-
-                    // 기존 콜백도 유지
                     onAddFriendClick()
 
-
-                    // 팝업 닫기
                     showAddFriendDialog = false
                 }
             )
@@ -1291,6 +1415,103 @@ private fun FriendRequestCard(
     }
 }
 
+// ========================================
+// 보낸 친구 요청 카드
+// ========================================
+
+@Composable
+private fun SentFriendRequestCard(
+    name: String,
+    onCancel: () -> Unit
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 22.dp
+            )
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(13.dp)
+            )
+            .clip(
+                RoundedCornerShape(13.dp)
+            )
+            .background(
+                Color.White
+            )
+            .border(
+                width = 1.dp,
+                color = CardBorder,
+                shape = RoundedCornerShape(13.dp)
+            )
+            .padding(
+                horizontal = 14.dp,
+                vertical = 13.dp
+            ),
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+
+        ProfileCircle(
+            size = 44
+        )
+
+        Spacer(
+            modifier =
+                Modifier.width(12.dp)
+        )
+
+        Text(
+            text = name,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+
+        Text(
+            text = "대기 중",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = AnOnBlue
+        )
+
+        Spacer(
+            modifier =
+                Modifier.width(10.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .height(38.dp)
+                .clip(
+                    RoundedCornerShape(8.dp)
+                )
+                .background(
+                    LightGray
+                )
+                .clickable {
+                    onCancel()
+                }
+                .padding(
+                    horizontal = 12.dp
+                ),
+
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                text = "요청 취소",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF555555)
+            )
+        }
+    }
+}
 
 // ========================================
 // 안심친구 카드
