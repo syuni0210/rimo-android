@@ -9,11 +9,13 @@ object RetrofitClient {
     private const val AUTH_BASE_URL =
         "https://dec046b05962b6.lhr.life/"
 
-    // Ubuntu Spring Boot 서버
-    // 사용 리포트 + 프로필 + 기본 목적지 API 공용
+    // Ubuntu Spring Boot 서버 (리포트 + 기본 목적지)
     private const val RIMO_API_BASE_URL =
-      //  "http://127.0.0.1:8080/"
-        "http://15.165.159.41:8080/"
+        "http://127.0.0.1:8080/"
+
+    // Ubuntu Spring Boot 서버 (회원/프로필 + 보호자)
+    private const val MEMBER_API_BASE_URL =
+        "http://127.0.0.1:8081/"
 
 
     // ========================================
@@ -64,7 +66,7 @@ object RetrofitClient {
 
         Retrofit.Builder()
             .baseUrl(
-                RIMO_API_BASE_URL
+                MEMBER_API_BASE_URL
             )
             .addConverterFactory(
                 GsonConverterFactory.create()

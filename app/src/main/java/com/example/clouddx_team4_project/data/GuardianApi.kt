@@ -35,7 +35,7 @@ interface GuardianApi {
 object GuardianApiClient {
 
     // PuTTY 터널 + adb reverse 로 연결되는 주소
-    private const val BASE_URL = "http://localhost:8080/"
+    private const val BASE_URL = "http://localhost:8081/"
 
     val api: GuardianApi by lazy {
         Retrofit.Builder()
