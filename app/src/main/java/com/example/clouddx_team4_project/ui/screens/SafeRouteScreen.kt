@@ -1,8 +1,13 @@
 package com.example.clouddx_team4_project.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Geocoder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -13,19 +18,24 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.example.clouddx_team4_project.network.DestinationResponse
+import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Locale
 
 
 // ========================================
@@ -51,6 +61,8 @@ private val TextGray =
 
 @Composable
 fun SafeRouteScreen(
+
+    memberId: Long = 3L,
 
     // ========================================
     // 목적지 정보
@@ -90,6 +102,19 @@ fun SafeRouteScreen(
 
 
     // ========================================
+    // 기본 목적지 선택
+    // ========================================
+
+    onDefaultDestinationSelected:
+        (
+        placeName: String,
+        address: String,
+        latitude: Double,
+        longitude: Double
+    ) -> Unit = { _, _, _, _ -> },
+
+
+    // ========================================
     // 지도 직접 목적지 지정
     // ========================================
 
@@ -99,12 +124,194 @@ fun SafeRouteScreen(
 
 ) {
 
+    val context =
+        LocalContext.current
+
+    val coroutineScope =
+        rememberCoroutineScope()
+
+
     // ========================================
     // 현재 위치 복귀 요청값
     // ========================================
 
     var recenterRequestKey by remember {
         mutableIntStateOf(0)
+    }
+
+
+    // ========================================
+    // 기본 목적지 목록
+    // ========================================
+
+    var defaultDestinations by remember {
+
+        mutableStateOf(
+            emptyList<DestinationResponse>()
+        )
+    }
+
+
+    // ========================================
+    // 현재 위치 주소
+    // ========================================
+
+    var currentLocationAddress by remember {
+
+        mutableStateOf(
+            "위치 확인 중..."
+        )
+    }
+
+
+    // ========================================
+    // 기본 목적지 DB 조회
+    // ========================================
+
+    LaunchedEffect(
+        memberId
+    ) {
+
+        try {
+
+            defaultDestinations =
+                RetrofitClient
+                    .destinationApi
+                    .getDestinations(
+                        memberId
+                    )
+
+        } catch (
+            e: Exception
+        ) {
+
+            e.printStackTrace()
+
+            defaultDestinations =
+                emptyList()
+        }
+    }
+
+
+    // ========================================
+    // 실제 현재 위치 → 주소 변환
+    // ========================================
+
+    LaunchedEffect(
+        Unit
+    ) {
+
+        val finePermission =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+
+        val coarsePermission =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+
+
+        if (
+            finePermission !=
+            PackageManager.PERMISSION_GRANTED &&
+            coarsePermission !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+
+            currentLocationAddress =
+                "위치 권한이 필요합니다."
+
+            return@LaunchedEffect
+        }
+
+
+        try {
+
+            val fusedLocationClient =
+                LocationServices
+                    .getFusedLocationProviderClient(
+                        context
+                    )
+
+
+            fusedLocationClient
+                .lastLocation
+                .addOnSuccessListener { location ->
+
+                    if (
+                        location == null
+                    ) {
+
+                        currentLocationAddress =
+                            "현재 위치를 확인할 수 없습니다."
+
+                        return@addOnSuccessListener
+                    }
+
+
+                    coroutineScope.launch {
+
+                        try {
+
+                            val address =
+                                withContext(
+                                    Dispatchers.IO
+                                ) {
+
+                                    val geocoder =
+                                        Geocoder(
+                                            context,
+                                            Locale.KOREA
+                                        )
+
+
+                                    @Suppress("DEPRECATION")
+                                    val addresses =
+                                        geocoder.getFromLocation(
+                                            location.latitude,
+                                            location.longitude,
+                                            1
+                                        )
+
+
+                                    addresses
+                                        ?.firstOrNull()
+                                        ?.getAddressLine(0)
+                                }
+
+
+                            currentLocationAddress =
+                                address
+                                    ?.removePrefix(
+                                        "대한민국 "
+                                    )
+                                    ?: "현재 위치"
+
+
+                        } catch (
+                            e: Exception
+                        ) {
+
+                            e.printStackTrace()
+
+                            currentLocationAddress =
+                                "현재 위치"
+                        }
+                    }
+                }
+
+        } catch (
+            e: Exception
+        ) {
+
+            e.printStackTrace()
+
+            currentLocationAddress =
+                "현재 위치"
+        }
     }
 
 
@@ -221,7 +428,7 @@ fun SafeRouteScreen(
                         "출발지",
 
                     value =
-                        "현재 위치",
+                        currentLocationAddress,
 
                     onClick = {
 
@@ -305,7 +512,7 @@ fun SafeRouteScreen(
 
 
             // ========================================
-            // 즐겨찾는 장소
+            // 기본 목적지
             // ========================================
 
             Row(
@@ -321,7 +528,7 @@ fun SafeRouteScreen(
 
                 Text(
                     text =
-                        "즐겨찾는 장소",
+                        "기본 목적지",
 
                     fontSize =
                         15.sp,
@@ -336,30 +543,48 @@ fun SafeRouteScreen(
 
                 Spacer(
                     modifier =
-                        Modifier.weight(
+                        Modifier.width(
+                            12.dp
+                        )
+                )
+
+
+                // ========================================
+                // DB 기본 목적지 목록
+                // ========================================
+
+                Row(
+                    modifier = Modifier
+                        .weight(
                             1f
                         )
-                )
+                        .horizontalScroll(
+                            rememberScrollState()
+                        ),
 
-
-                FavoritePlaceChip(
-                    text =
-                        "집"
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.width(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
                             8.dp
                         )
-                )
+                ) {
 
+                    defaultDestinations.forEach { destination ->
 
-                FavoritePlaceChip(
-                    text =
-                        "학교"
-                )
+                        DefaultDestinationChip(
+                            text = destination.name,
+
+                            onClick = {
+
+                                onDefaultDestinationSelected(
+                                    destination.placeName,
+                                    destination.address,
+                                    destination.latitude,
+                                    destination.longitude
+                                )
+                            }
+                        )
+                    }
+                }
             }
 
 
@@ -411,8 +636,6 @@ fun SafeRouteScreen(
                             "BROAD_FIRST" ->
                                 "BROAD_FIRST"
 
-                            // 밝은길은 아직 미구현
-                            // 임시로 경로 표시 안 하도록
                             "BRIGHT" ->
                                 ""
 
@@ -420,11 +643,6 @@ fun SafeRouteScreen(
                                 "BROAD_FIRST"
                         },
 
-
-                    // ========================================
-                    // 추가된 부분:
-                    // 현재 위치로 다시 이동
-                    // ========================================
 
                     recenterRequestKey =
                         recenterRequestKey,
@@ -443,7 +661,6 @@ fun SafeRouteScreen(
 
 
                 // ========================================
-                // 추가된 부분:
                 // 현재 위치 버튼
                 // ========================================
 
@@ -530,6 +747,7 @@ private fun LocationInputRow(
     value: String,
 
     onClick: () -> Unit
+
 ) {
 
     Row(
@@ -649,7 +867,10 @@ private fun LocationInputRow(
                     FontWeight.Medium,
 
                 color =
-                    TextBlack
+                    TextBlack,
+
+                maxLines =
+                    1
             )
         }
     }
@@ -657,12 +878,16 @@ private fun LocationInputRow(
 
 
 // ========================================
-// 즐겨찾기
+// 기본 목적지 버튼
 // ========================================
 
 @Composable
-private fun FavoritePlaceChip(
-    text: String
+private fun DefaultDestinationChip(
+
+    text: String,
+
+    onClick: () -> Unit
+
 ) {
 
     Row(
@@ -675,6 +900,10 @@ private fun FavoritePlaceChip(
             .background(
                 Color.White
             )
+            .clickable {
+
+                onClick()
+            }
             .padding(
                 horizontal = 13.dp,
                 vertical = 8.dp

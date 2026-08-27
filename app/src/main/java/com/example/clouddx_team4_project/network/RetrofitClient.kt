@@ -10,9 +10,10 @@ object RetrofitClient {
         "https://dec046b05962b6.lhr.life/"
 
     // Ubuntu Spring Boot 서버
-    // 사용 리포트 + 프로필 API 공용
+    // 사용 리포트 + 프로필 + 기본 목적지 API 공용
     private const val RIMO_API_BASE_URL =
-        "http://127.0.0.1:8080/"
+      //  "http://127.0.0.1:8080/"
+        "http://15.165.159.41:8080/"
 
 
     // ========================================
@@ -71,6 +72,26 @@ object RetrofitClient {
             .build()
             .create(
                 MemberApi::class.java
+            )
+    }
+
+
+    // ========================================
+    // 기본 목적지 API
+    // ========================================
+
+    val destinationApi: DestinationApi by lazy {
+
+        Retrofit.Builder()
+            .baseUrl(
+                RIMO_API_BASE_URL
+            )
+            .addConverterFactory(
+                GsonConverterFactory.create()
+            )
+            .build()
+            .create(
+                DestinationApi::class.java
             )
     }
 }
