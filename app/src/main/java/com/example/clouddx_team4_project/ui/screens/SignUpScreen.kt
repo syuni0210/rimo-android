@@ -377,31 +377,29 @@ fun SignUpScreen(
 
 
                         // ========================================
-                        // 아이디 중복검사
-                        // 현재는 UI 테스트용
+                        // 아이디 중복검사 실제 API 연동
                         // ========================================
-
                         onIdCheckClick = {
-
                             if (userId.isBlank()) {
-
                                 isIdChecked = false
-
-                                idCheckMessage =
-                                    "아이디를 입력해주세요."
-
+                                idCheckMessage = "아이디를 입력해주세요."
                             } else {
-
-                                // ========================================
-                                // TODO
-                                // 나중에 Spring Boot
-                                // 아이디 중복검사 API 연결
-                                // ========================================
-
-                                isIdChecked = true
-
-                                idCheckMessage =
-                                    "사용 가능한 아이디입니다."
+                                coroutineScope.launch {
+                                    try {
+                                        val response = RetrofitClient.authApi.checkId(userId.trim())
+                                        if (response.isSuccessful && response.body() != null) {
+                                            isIdChecked = response.body()!!.available
+                                            idCheckMessage = response.body()!!.message
+                                        } else {
+                                            isIdChecked = false
+                                            idCheckMessage = "중복 검사에 실패했습니다."
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("SIGNUP_API", "중복 검사 통신 실패", e)
+                                        isIdChecked = false
+                                        idCheckMessage = "서버에 연결할 수 없습니다."
+                                    }
+                                }
                             }
                         },
 
@@ -466,17 +464,6 @@ fun SignUpScreen(
                                     // 백엔드 회원가입 요청
                                     //
                                     // POST /api/v1/auth/signup
-                                    //
-                                    // 현재 서버 DTO
-                                    //
-                                    // {
-                                    //   "email": "...",
-                                    //   "password": "...",
-                                    //   "name": "..."
-                                    // }
-                                    //
-                                    // TODO
-                                    // 추후 userId도 서버 DTO에 추가
                                     // ========================================
 
                                     val response =
@@ -485,6 +472,9 @@ fun SignUpScreen(
                                             .signup(
 
                                                 SignupRequest(
+                                                    userId =
+                                                        userId.trim(),
+
                                                     email =
                                                         email.trim(),
 

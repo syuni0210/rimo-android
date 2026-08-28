@@ -6,8 +6,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
 
     // 기존 로그인 / 회원가입 서버
-    private const val AUTH_BASE_URL =
-        "https://dec046b05962b6.lhr.life/"
+    private const val AUTH_BASE_URL = "http://127.0.0.1:8080/"
 
     // Ubuntu Spring Boot 서버 (회원/프로필 + 보호자 + 친구)
     private const val MEMBER_API_BASE_URL =

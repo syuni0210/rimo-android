@@ -33,7 +33,7 @@ import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 import com.example.clouddx_team4_project.ui.theme.ResponsiveDimens
 import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
-
+import androidx.compose.material.icons.filled.Logout
 
 // ========================================
 // 색상
@@ -213,6 +213,11 @@ fun MoreScreen(
             MoreMenuItem(
                 title = "개인정보처리방침",
                 icon = Icons.Filled.Description
+            ),
+
+            MoreMenuItem(
+                title = "로그아웃",
+                icon = Icons.Filled.Logout
             )
         )
 
