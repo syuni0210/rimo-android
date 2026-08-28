@@ -17,10 +17,9 @@ object RetrofitClient {
     private const val MEMBER_API_BASE_URL =
         "http://127.0.0.1:8081/"
 
-    // 친구 기능 개발용 로컬 Spring Boot 서버
-    // 실제 Android 기기에서는 adb reverse tcp:8083 tcp:8083 사용
+    // 친구 API — member-api로 통합됨
     private const val FRIEND_API_BASE_URL =
-        "http://127.0.0.1:8083/"
+        MEMBER_API_BASE_URL
 
 
     // ========================================
