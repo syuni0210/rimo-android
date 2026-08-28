@@ -1,0 +1,19 @@
+<component name="libraryTable">
+  <library name="vector_mesh_per_level_palette">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_edge_fp.frag.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_vp.vert.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_edge_vp.vert.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_fp.glsl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_edge_fp.glsl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_edge.metal.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette.metal.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_edge_vp.glsl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/effect.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_fp.frag.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/vector_mesh_per_level_palette/vector_mesh_per_level_palette_vp.glsl.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

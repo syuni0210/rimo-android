@@ -1,0 +1,454 @@
+package com.example.clouddx_team4_project.ui.screens
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.clouddx_team4_project.data.TokenManager
+import com.example.clouddx_team4_project.network.LoginRequest
+import com.example.clouddx_team4_project.network.RetrofitClient
+import kotlinx.coroutines.launch
+
+
+// ========================================
+// 안온 색상
+// ========================================
+
+private val AnOnBlue = Color(0xFF6A92FE)
+
+private val InputTextColor = Color(0xFF222222)
+
+private val PlaceholderColor = Color(0xFF8E8E8E)
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoginScreen(
+    onLoginClick: (id: String, password: String) -> Unit = { _, _ -> },
+
+    // 회원가입 버튼 클릭
+    onSignUpClick: () -> Unit = {}
+) {
+
+    var userId by remember {
+        mutableStateOf("")
+    }
+
+    var password by remember {
+        mutableStateOf("")
+    }
+
+    var passwordVisible by remember {
+        mutableStateOf(false)
+    }
+    var isLoading by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
+
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AnOnBlue)
+            .statusBarsPadding()
+            .padding(horizontal = 26.dp),
+
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Spacer(
+            modifier = Modifier.weight(0.9f)
+        )
+
+
+        // ========================================
+        // 로고
+        // ========================================
+
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .background(
+                    color = Color.White.copy(alpha = 0.18f),
+                    shape = CircleShape
+                ),
+
+            contentAlignment = Alignment.Center
+        ) {
+
+            Icon(
+                imageVector = Icons.Filled.Home,
+                contentDescription = "리모 로고",
+                tint = Color.White,
+                modifier = Modifier.size(52.dp)
+            )
+        }
+
+
+        Spacer(
+            modifier = Modifier.height(22.dp)
+        )
+
+
+        // ========================================
+        // 안 온
+        // ========================================
+
+        Text(
+            text = "Rimo",
+            color = Color.White,
+
+            // 기존보다 크게
+            fontSize = 38.sp,
+
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 5.sp
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(10.dp)
+        )
+
+
+        // ========================================
+        // 설명
+        // ========================================
+
+        Text(
+            text = "안전한 귀가, 안심하고 함께해요",
+            color = Color.White.copy(alpha = 0.9f),
+
+            // 기존 14 -> 16
+            fontSize = 16.sp,
+
+            fontWeight = FontWeight.Medium
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(42.dp)
+        )
+
+
+        // ========================================
+        // 아이디 입력
+        // ========================================
+
+        OutlinedTextField(
+            value = userId,
+
+            onValueChange = {
+                userId = it
+            },
+
+            placeholder = {
+
+                Text(
+                    text = "아이디를 입력하세요",
+
+                    // 기존보다 크게
+                    fontSize = 16.sp,
+
+                    color = PlaceholderColor
+                )
+            },
+
+            leadingIcon = {
+
+                Icon(
+                    imageVector = Icons.Filled.Person,
+                    contentDescription = null,
+                    tint = AnOnBlue,
+                    modifier = Modifier.size(25.dp)
+                )
+            },
+
+            singleLine = true,
+
+            textStyle = LocalTextStyle.current.copy(
+                fontSize = 16.sp,
+                color = InputTextColor
+            ),
+
+            shape = RoundedCornerShape(14.dp),
+
+            colors = OutlinedTextFieldDefaults.colors(
+
+                focusedContainerColor = Color.White,
+
+                unfocusedContainerColor = Color.White,
+
+                focusedBorderColor = Color.White,
+
+                unfocusedBorderColor = Color.White,
+
+                cursorColor = AnOnBlue,
+
+                focusedTextColor = InputTextColor,
+
+                unfocusedTextColor = InputTextColor
+            ),
+
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(62.dp)
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(14.dp)
+        )
+
+
+        // ========================================
+        // 비밀번호 입력
+        // ========================================
+
+        OutlinedTextField(
+            value = password,
+
+            onValueChange = {
+                password = it
+            },
+
+            placeholder = {
+
+                Text(
+                    text = "비밀번호를 입력하세요",
+
+                    fontSize = 16.sp,
+
+                    color = PlaceholderColor
+                )
+            },
+
+            leadingIcon = {
+
+                Icon(
+                    imageVector = Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = AnOnBlue,
+                    modifier = Modifier.size(25.dp)
+                )
+            },
+
+            trailingIcon = {
+
+                IconButton(
+                    onClick = {
+                        passwordVisible = !passwordVisible
+                    }
+                ) {
+
+                    Icon(
+                        imageVector =
+                            if (passwordVisible) {
+                                Icons.Filled.Visibility
+                            } else {
+                                Icons.Filled.VisibilityOff
+                            },
+
+                        contentDescription =
+                            if (passwordVisible) {
+                                "비밀번호 숨기기"
+                            } else {
+                                "비밀번호 보기"
+                            },
+
+                        tint = Color(0xFF999999),
+
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+
+            singleLine = true,
+
+            textStyle = LocalTextStyle.current.copy(
+                fontSize = 16.sp,
+                color = InputTextColor
+            ),
+
+            visualTransformation =
+                if (passwordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password
+            ),
+
+            shape = RoundedCornerShape(14.dp),
+
+            colors = OutlinedTextFieldDefaults.colors(
+
+                focusedContainerColor = Color.White,
+
+                unfocusedContainerColor = Color.White,
+
+                focusedBorderColor = Color.White,
+
+                unfocusedBorderColor = Color.White,
+
+                cursorColor = AnOnBlue,
+
+                focusedTextColor = InputTextColor,
+
+                unfocusedTextColor = InputTextColor
+            ),
+
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(62.dp)
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(26.dp)
+        )
+
+
+        // ========================================
+        // 로그인 버튼 (API 연동 및 토큰 저장 추가)
+        // ========================================
+
+        Button(
+            onClick = {
+                if (userId.isBlank() || password.isBlank()) {
+                    Toast.makeText(context, "아이디와 비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
+                coroutineScope.launch {
+                    isLoading = true
+                    try {
+                        val response = RetrofitClient.authApi.login(
+                            LoginRequest(userId.trim(), password)
+                        )
+
+                        if (response.isSuccessful && response.body() != null) {
+                            val loginResponse = response.body()!!
+
+                            // 💡 토큰 저장
+                            tokenManager.saveToken(loginResponse.token)
+
+                            Toast.makeText(context, "로그인 성공", Toast.LENGTH_SHORT).show()
+                            onLoginClick(userId, password) // 성공 후 메인 화면 이동을 위한 콜백
+                        } else {
+                            val errorMsg = response.errorBody()?.string() ?: "로그인 실패"
+                            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "서버 통신 오류", Toast.LENGTH_SHORT).show()
+                    } finally {
+                        isLoading = false
+                    }
+                }
+            },
+
+            shape = RoundedCornerShape(14.dp),
+            enabled = !isLoading, // 로딩 중 버튼 비활성화
+
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.White,
+                contentColor = AnOnBlue,
+                disabledContainerColor = Color.White.copy(alpha = 0.5f),
+                disabledContentColor = AnOnBlue.copy(alpha = 0.5f)
+            ),
+
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(58.dp)
+        ) {
+            Text(
+                text = if (isLoading) "로그인 중..." else "로그인",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+
+        Spacer(
+            modifier = Modifier.height(14.dp)
+        )
+
+
+        // ========================================
+        // 회원가입 버튼
+        // ========================================
+
+        OutlinedButton(
+            onClick = {
+
+                // AppNavigation에서 signup으로 연결
+                onSignUpClick()
+            },
+
+            shape = RoundedCornerShape(14.dp),
+
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color.White
+            ),
+
+            border = BorderStroke(
+                width = 1.5.dp,
+                color = Color.White
+            ),
+
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(58.dp)
+        ) {
+
+            Text(
+                text = "회원가입",
+
+                // 기존보다 크게
+                fontSize = 18.sp,
+
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+
+        Spacer(
+            modifier = Modifier.weight(1.2f)
+        )
+    }
+}
+
+
+@Preview(
+    showBackground = true
+)
+@Composable
+fun LoginScreenPreview() {
+
+    LoginScreen()
+}
