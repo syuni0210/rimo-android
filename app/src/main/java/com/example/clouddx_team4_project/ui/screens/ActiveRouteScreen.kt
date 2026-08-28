@@ -58,6 +58,13 @@ private val QuackOrange =
 
 
 // ========================================
+// 목적지 도착 판정 거리
+// ========================================
+
+private const val ARRIVAL_DISTANCE_METER = 50.0
+
+
+// ========================================
 // 귀가 진행 중 화면
 // ========================================
 
@@ -79,6 +86,7 @@ fun ActiveRouteScreen(
     onQuackClick: () -> Unit = {},
 
     onFinishClick: () -> Unit = {}
+
 ) {
 
     val context =
@@ -87,6 +95,7 @@ fun ActiveRouteScreen(
 
     val fusedLocationClient =
         remember {
+
             LocationServices
                 .getFusedLocationProviderClient(
                     context
@@ -157,6 +166,24 @@ fun ActiveRouteScreen(
     }
 
     var hasArrived by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // ★ 목적지 도착 알림 팝업
+    // ========================================
+
+    var showArrivalDialog by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // ★ 도착 팝업 중복 방지
+    // ========================================
+
+    var arrivalHandled by remember {
         mutableStateOf(false)
     }
 
@@ -345,6 +372,11 @@ fun ActiveRouteScreen(
                 ?: return@LaunchedEffect
 
 
+        // ========================================
+        // 밝은길은 별도 경로 처리
+        // 도착 감지는 아래 GPS Effect에서 따로 수행
+        // ========================================
+
         if (routeMode == "BRIGHT") {
 
             isLoading =
@@ -501,7 +533,7 @@ fun ActiveRouteScreen(
 
     // ========================================
     // GPS 변경 시
-    // 남은 거리 / 시간 / 도착 감지
+    // 남은 거리 / 시간 / 목적지 도착 감지
     // ========================================
 
     LaunchedEffect(
@@ -532,14 +564,8 @@ fun ActiveRouteScreen(
                 ?: return@LaunchedEffect
 
 
-        if (routePoints.isEmpty()) {
-
-            return@LaunchedEffect
-        }
-
-
         // ========================================
-        // 목적지 직선 거리
+        // ★ 목적지까지 현재 직선 거리 계산
         // ========================================
 
         val destinationDistance =
@@ -551,11 +577,26 @@ fun ActiveRouteScreen(
             )
 
 
+        Log.d(
+            "ACTIVE_ROUTE",
+            "목적지까지 직선 거리 = ${destinationDistance.roundToInt()}m"
+        )
+
+
         // ========================================
-        // 목적지 20m 이내
+        // ★ 목적지 50m 이내 진입 시 도착 처리
+        //
+        // routePoints 존재 여부와 관계없이 실행
+        // 따라서 밝은길(BRIGHT)도 도착 감지 가능
         // ========================================
 
-        if (destinationDistance <= 20.0) {
+        if (
+            destinationDistance <= ARRIVAL_DISTANCE_METER &&
+            !arrivalHandled
+        ) {
+
+            arrivalHandled =
+                true
 
             hasArrived =
                 true
@@ -566,12 +607,43 @@ fun ActiveRouteScreen(
             remainingTime =
                 0
 
+
+            // GPS 추적 종료
+            stopLocationUpdates()
+
+
+            // 목적지 도착 알림 표시
+            showArrivalDialog =
+                true
+
+
+            Log.d(
+                "ACTIVE_ROUTE",
+                "목적지 부근 도착 감지"
+            )
+
+
             return@LaunchedEffect
         }
 
 
-        hasArrived =
-            false
+        // 이미 도착 처리했다면
+        // 더 이상 경로 계산 안 함
+        if (arrivalHandled) {
+
+            return@LaunchedEffect
+        }
+
+
+        // ========================================
+        // 경로 좌표가 없는 경우
+        // 도착 감지만 수행하고 종료
+        // ========================================
+
+        if (routePoints.isEmpty()) {
+
+            return@LaunchedEffect
+        }
 
 
         // ========================================
@@ -581,6 +653,7 @@ fun ActiveRouteScreen(
 
         var nearestIndex =
             0
+
 
         var nearestDistance =
             Double.MAX_VALUE
@@ -685,7 +758,11 @@ fun ActiveRouteScreen(
 
     val progress =
 
-        if (initialDistance > 0) {
+        if (hasArrived) {
+
+            1f
+
+        } else if (initialDistance > 0) {
 
             (
                     1f -
@@ -1179,11 +1256,6 @@ fun ActiveRouteScreen(
                     showRoute =
                         routeMode != "BRIGHT",
 
-
-                    // ========================================
-                    // ★ 실시간 현재 위치 전달
-                    // ========================================
-
                     currentLatitude =
                         currentLatitude,
 
@@ -1532,6 +1604,64 @@ fun ActiveRouteScreen(
                 }
             }
         }
+
+
+        // ========================================
+        // ★ 목적지 부근 도착 알림
+        // ========================================
+
+        if (showArrivalDialog) {
+
+            AlertDialog(
+
+                onDismissRequest = {
+                    // 자동 도착 안내이므로 바깥 터치로 닫히지 않게 함
+                },
+
+                title = {
+
+                    Text(
+                        text = "목적지 도착",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+
+                text = {
+
+                    Text(
+                        text =
+                            "목적지 부근에 도착했습니다.\n안전경로 안내를 종료합니다."
+                    )
+                },
+
+                confirmButton = {
+
+                    Button(
+                        onClick = {
+
+                            showArrivalDialog =
+                                false
+
+                            stopLocationUpdates()
+
+                            onFinishClick()
+                        },
+
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor =
+                                    ActiveBlue
+                            )
+                    ) {
+
+                        Text(
+                            text = "확인",
+                            color = Color.White
+                        )
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -1599,6 +1729,7 @@ private fun calculateDistanceMeter(
 
     lat2: Double,
     lng2: Double
+
 ): Double {
 
     val earthRadius =
