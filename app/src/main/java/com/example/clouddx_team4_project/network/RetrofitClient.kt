@@ -6,21 +6,17 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
 
     // 기존 로그인 / 회원가입 서버
-    private const val AUTH_BASE_URL =
-        "https://dec046b05962b6.lhr.life/"
+    private const val AUTH_BASE_URL = "http://127.0.0.1:8080/"
 
     // Ubuntu Spring Boot 서버 (리포트 + 기본 목적지)
-    private const val RIMO_API_BASE_URL =
-        "http://127.0.0.1:8080/"
+    private const val RIMO_API_BASE_URL = "http://127.0.0.1:8084/"
 
     // Ubuntu Spring Boot 서버 (회원/프로필 + 보호자)
-    private const val MEMBER_API_BASE_URL =
-        "http://127.0.0.1:8081/"
+    private const val MEMBER_API_BASE_URL = "http://127.0.0.1:8081/"
 
     // 친구 기능 개발용 로컬 Spring Boot 서버
     // 실제 Android 기기에서는 adb reverse tcp:8083 tcp:8083 사용
-    private const val FRIEND_API_BASE_URL =
-        "http://127.0.0.1:8083/"
+    private const val FRIEND_API_BASE_URL = "http://127.0.0.1:8083/"
 
 
     // ========================================

@@ -26,10 +26,24 @@ import com.example.clouddx_team4_project.ui.screens.more.InquiryScreen
 import com.example.clouddx_team4_project.ui.screens.more.NoticeScreen
 import com.example.clouddx_team4_project.ui.screens.more.PrivacyPolicyScreen
 import com.example.clouddx_team4_project.ui.screens.more.ServiceIntroScreen
-
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import com.example.clouddx_team4_project.data.TokenManager
 
 @Composable
 fun AppNavigation() {
+
+    val context = LocalContext.current
+
+    // 💡 토큰 매니저 초기화 및 유효성 검사
+    val tokenManager = remember { TokenManager(context) }
+    val startDest = if (tokenManager.hasValidToken()) "home" else "login"
+
+    // 💡 로그아웃 팝업 상태 변수 추가
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     val navController =
         rememberNavController()
@@ -77,7 +91,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = "login"
+        startDestination = startDest
     ) {
 
 
@@ -891,6 +905,10 @@ fun AppNavigation() {
                 onMenuClick = { menu ->
 
                     when (menu) {
+                        // 💡 로그아웃 메뉴 클릭 시 팝업 띄우기
+                        "로그아웃" -> {
+                            showLogoutDialog = true
+                        }
 
 
                         "프로필 설정" -> {
@@ -1132,6 +1150,38 @@ fun AppNavigation() {
         }
 
 
+    }
+    // ========================================
+    // 로그아웃 확인 팝업
+    // ========================================
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text(text = "로그아웃", fontWeight = FontWeight.Bold) },
+            text = { Text(text = "정말 로그아웃 하시겠습니까?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        // 💡 토큰 삭제
+                        tokenManager.clearToken()
+
+                        // 💡 백스택(이전 화면 기록)을 모두 날리고 로그인 화면으로 이동
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                ) {
+                    Text("로그아웃", color = androidx.compose.ui.graphics.Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("취소", color = androidx.compose.ui.graphics.Color.Black)
+                }
+            }
+        )
     }
 
 

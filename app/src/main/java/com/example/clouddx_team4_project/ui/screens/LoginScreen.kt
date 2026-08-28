@@ -24,6 +24,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.clouddx_team4_project.data.TokenManager
+import com.example.clouddx_team4_project.network.LoginRequest
+import com.example.clouddx_team4_project.network.RetrofitClient
+import kotlinx.coroutines.launch
 
 
 // ========================================
@@ -57,6 +63,10 @@ fun LoginScreen(
     var passwordVisible by remember {
         mutableStateOf(false)
     }
+    var isLoading by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
 
 
     Column(
@@ -325,36 +335,60 @@ fun LoginScreen(
 
 
         // ========================================
-        // 로그인 버튼
+        // 로그인 버튼 (API 연동 및 토큰 저장 추가)
         // ========================================
 
         Button(
             onClick = {
+                if (userId.isBlank() || password.isBlank()) {
+                    Toast.makeText(context, "아이디와 비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
 
-                onLoginClick(
-                    userId,
-                    password
-                )
+                coroutineScope.launch {
+                    isLoading = true
+                    try {
+                        val response = RetrofitClient.authApi.login(
+                            LoginRequest(userId.trim(), password)
+                        )
+
+                        if (response.isSuccessful && response.body() != null) {
+                            val loginResponse = response.body()!!
+
+                            // 💡 토큰 저장
+                            tokenManager.saveToken(loginResponse.token)
+
+                            Toast.makeText(context, "로그인 성공", Toast.LENGTH_SHORT).show()
+                            onLoginClick(userId, password) // 성공 후 메인 화면 이동을 위한 콜백
+                        } else {
+                            val errorMsg = response.errorBody()?.string() ?: "로그인 실패"
+                            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "서버 통신 오류", Toast.LENGTH_SHORT).show()
+                    } finally {
+                        isLoading = false
+                    }
+                }
             },
 
             shape = RoundedCornerShape(14.dp),
+            enabled = !isLoading, // 로딩 중 버튼 비활성화
 
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.White,
-                contentColor = AnOnBlue
+                contentColor = AnOnBlue,
+                disabledContainerColor = Color.White.copy(alpha = 0.5f),
+                disabledContentColor = AnOnBlue.copy(alpha = 0.5f)
             ),
 
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
         ) {
-
             Text(
-                text = "로그인",
-
-                // 기존보다 크게
+                text = if (isLoading) "로그인 중..." else "로그인",
                 fontSize = 18.sp,
-
                 fontWeight = FontWeight.Bold
             )
         }
