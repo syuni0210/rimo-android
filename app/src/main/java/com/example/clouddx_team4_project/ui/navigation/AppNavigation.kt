@@ -1138,10 +1138,6 @@ fun AppNavigation() {
 
             ProfileSettingScreen(
 
-                // 로그인 기능 완성 전
-                // DB 테스트 사용자
-                memberId = 3L,
-
                 onBackClick = {
 
                     navController.popBackStack()

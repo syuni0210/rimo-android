@@ -1,120 +1,72 @@
 package com.example.clouddx_team4_project.network
 
+import com.example.clouddx_team4_project.data.GuardianApi
+import com.example.clouddx_team4_project.data.TokenManager
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    // 기존 로그인 / 회원가입 서버
-    private const val AUTH_BASE_URL = "http://127.0.0.1:8080/"
+    // 💡 Nginx가 열려있는 우분투 서버의 IP와 8080 포트로 완전히 통일합니다.
+    private const val BASE_URL = "http://127.0.0.1:8080/"
 
-    // Ubuntu Spring Boot 서버 (리포트 + 기본 목적지)
-    private const val RIMO_API_BASE_URL = "http://127.0.0.1:8084/"
+    var tokenManager: TokenManager? = null
 
-    // Ubuntu Spring Boot 서버 (회원/프로필 + 보호자)
-    private const val MEMBER_API_BASE_URL = "http://127.0.0.1:8081/"
+    // 모든 API 요청에 JWT 토큰을 자동으로 주입하는 인터셉터
+    private val authInterceptor = Interceptor { chain ->
+        val originalRequest = chain.request()
+        val token = tokenManager?.getToken() // TokenManager의 실제 함수명에 맞게 수정
 
-    // 친구 기능 개발용 로컬 Spring Boot 서버
-    // 실제 Android 기기에서는 adb reverse tcp:8083 tcp:8083 사용
-    private const val FRIEND_API_BASE_URL = "http://127.0.0.1:8083/"
+        if (!token.isNullOrEmpty()) {
+            val newRequest = originalRequest.newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+            chain.proceed(newRequest)
+        } else {
+            chain.proceed(originalRequest)
+        }
+    }
 
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(authInterceptor)
+        .build()
+
+    // 통합된 BASE_URL과 인터셉터가 적용된 단일 Retrofit 객체
+    private val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
 
     // ========================================
-    // 로그인 / 회원가입 API
+    // API 객체 생성 (기존 변수명 유지)
     // ========================================
 
     val authApi: AuthApi by lazy {
-
-        Retrofit.Builder()
-            .baseUrl(
-                AUTH_BASE_URL
-            )
-            .addConverterFactory(
-                GsonConverterFactory.create()
-            )
-            .build()
-            .create(
-                AuthApi::class.java
-            )
+        retrofit.create(AuthApi::class.java)
     }
-
-
-    // ========================================
-    // 사용 리포트 API
-    // ========================================
 
     val reportApi: ReportApi by lazy {
-
-        Retrofit.Builder()
-            .baseUrl(
-                RIMO_API_BASE_URL
-            )
-            .addConverterFactory(
-                GsonConverterFactory.create()
-            )
-            .build()
-            .create(
-                ReportApi::class.java
-            )
+        retrofit.create(ReportApi::class.java)
     }
-
-
-    // ========================================
-    // 회원 / 프로필 API
-    // ========================================
 
     val memberApi: MemberApi by lazy {
-
-        Retrofit.Builder()
-            .baseUrl(
-                MEMBER_API_BASE_URL
-            )
-            .addConverterFactory(
-                GsonConverterFactory.create()
-            )
-            .build()
-            .create(
-                MemberApi::class.java
-            )
+        retrofit.create(MemberApi::class.java)
     }
-
-
-    // ========================================
-    // 기본 목적지 API
-    // ========================================
 
     val destinationApi: DestinationApi by lazy {
-
-        Retrofit.Builder()
-            .baseUrl(
-                RIMO_API_BASE_URL
-            )
-            .addConverterFactory(
-                GsonConverterFactory.create()
-            )
-            .build()
-            .create(
-                DestinationApi::class.java
-            )
+        retrofit.create(DestinationApi::class.java)
     }
 
-
-    // ========================================
-    // 친구 API
-    // ========================================
-
     val friendApi: FriendApi by lazy {
+        retrofit.create(FriendApi::class.java)
+    }
 
-        Retrofit.Builder()
-            .baseUrl(
-                FRIEND_API_BASE_URL
-            )
-            .addConverterFactory(
-                GsonConverterFactory.create()
-            )
-            .build()
-            .create(
-                FriendApi::class.java
-            )
+    val guardianApi: GuardianApi by lazy {
+        retrofit.create(GuardianApi::class.java)
     }
 }

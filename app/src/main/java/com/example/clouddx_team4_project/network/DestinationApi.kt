@@ -9,18 +9,18 @@ import retrofit2.http.Path
 
 interface DestinationApi {
 
-    @GET("api/member/{memberId}/destinations")
+    @GET("api/route/{memberId}/destinations")
     suspend fun getDestinations(
         @Path("memberId") memberId: Long
     ): List<DestinationResponse>
 
-    @POST("api/member/{memberId}/destinations")
+    @POST("api/route/{memberId}/destinations")
     suspend fun createDestination(
         @Path("memberId") memberId: Long,
         @Body request: DestinationCreateRequest
     ): Response<Unit>
 
-    @DELETE("api/member/{memberId}/destinations/{destinationId}")
+    @DELETE("api/route/{memberId}/destinations/{destinationId}")
     suspend fun deleteDestination(
         @Path("memberId") memberId: Long,
         @Path("destinationId") destinationId: Long

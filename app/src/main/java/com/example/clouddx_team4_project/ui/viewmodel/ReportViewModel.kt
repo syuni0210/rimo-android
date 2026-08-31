@@ -110,24 +110,29 @@ class ReportViewModel : ViewModel() {
                 // 기존 대시보드 테스트 사용자
                 // ========================================
 
-                val reportMemberId = 1L
+                val currentMemberId = RetrofitClient.tokenManager?.getMemberId()
+
+                if (currentMemberId == null) {
+                    _errorMessage.value = "사용자 식별 정보를 찾을 수 없습니다."
+                    return@launch
+                }
 
 
                 _summary.value =
                     api.getSummary(
-                        reportMemberId
+                        currentMemberId
                     )
 
 
                 _routePreferences.value =
                     api.getRoutePreference(
-                        reportMemberId
+                        currentMemberId
                     )
 
 
                 _records.value =
                     api.getRecords(
-                        reportMemberId
+                        currentMemberId
                     )
 
 
@@ -140,8 +145,7 @@ class ReportViewModel : ViewModel() {
                 // ========================================
 
                 _topFriend.value =
-                    api.getTopFriend(
-                        3L
+                    api.getTopFriend(currentMemberId
                     )
 
 
