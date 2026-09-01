@@ -32,6 +32,12 @@ import androidx.compose.ui.unit.dp
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
 import androidx.compose.ui.unit.sp
+import android.util.Log
+import com.example.clouddx_team4_project.network.RetrofitClient
+import com.example.clouddx_team4_project.network.FacilityMapDto
+import com.example.clouddx_team4_project.BuildConfig
+import com.example.clouddx_team4_project.data.KakaoReverseGeocodeClient
+import androidx.compose.ui.zIndex
 
 // ========================================
 // 색상
@@ -81,6 +87,189 @@ fun SafeMapScreen(
     val dimens =
         rememberResponsiveDimens()
 
+    // ============================================================
+// 실제 현재 위치
+//
+// KakaoMapView에서 GPS 좌표를 받아 저장합니다.
+// 좌표가 들어오면 아래 LaunchedEffect에서
+// Kakao Local API를 이용하여 주소로 변환합니다.
+// ============================================================
+
+    var currentLatitude by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    var currentLongitude by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    // ========================================
+    // 현재 카카오맵 화면에 보이는 좌표 범위
+    //
+    // KakaoMapView에서 화면이 이동/확대/축소될 때
+    // 새로운 값이 전달됩니다.
+    // ========================================
+
+    var visibleSwLat by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    var visibleSwLng by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    var visibleNeLat by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    var visibleNeLng by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+// ============================================================
+// 화면에 표시할 현재 위치 이름
+//
+// 처음에는 기존 문구:
+// "현재 위치 확인 중"
+//
+// GPS + Kakao API 응답을 받으면
+// 실제 주소/건물명으로 변경됩니다.
+// ============================================================
+
+    var currentLocationDisplay by remember(
+        currentLocationText
+    ) {
+        mutableStateOf(
+            currentLocationText
+        )
+    }
+
+    // ============================================================
+// 현재 좌표 → 주소 변환
+//
+// currentLatitude / currentLongitude가 변경되면 실행됩니다.
+//
+// Kakao Local API:
+// /v2/local/geo/coord2address.json
+//
+// 표시 우선순위:
+// 1. 건물명
+// 2. 도로명 주소
+// 3. 지번 주소
+// ============================================================
+
+    LaunchedEffect(
+        currentLatitude,
+        currentLongitude
+    ) {
+
+        val latitude =
+            currentLatitude
+                ?: return@LaunchedEffect
+
+        val longitude =
+            currentLongitude
+                ?: return@LaunchedEffect
+
+
+        try {
+
+            val response =
+                KakaoReverseGeocodeClient
+                    .api
+                    .getAddressFromCoordinate(
+
+                        // REST API Key
+                        authorization =
+                            "KakaoAK ${BuildConfig.KAKAO_REST_API_KEY}",
+
+                        // Kakao API:
+                        // x = 경도
+                        longitude =
+                            longitude,
+
+                        // Kakao API:
+                        // y = 위도
+                        latitude =
+                            latitude
+                    )
+
+
+            val document =
+                response
+                    .documents
+                    .firstOrNull()
+
+
+            // ----------------------------------------
+            // 가능한 경우 건물명을 우선 표시
+            // ----------------------------------------
+
+            val buildingName =
+                document
+                    ?.roadAddress
+                    ?.buildingName
+                    ?.takeIf {
+                        it.isNotBlank()
+                    }
+
+
+            // ----------------------------------------
+            // 그 다음 도로명 주소
+            // ----------------------------------------
+
+            val roadAddress =
+                document
+                    ?.roadAddress
+                    ?.addressName
+                    ?.takeIf {
+                        it.isNotBlank()
+                    }
+
+
+            // ----------------------------------------
+            // 도로명 주소가 없으면 지번 주소
+            // ----------------------------------------
+
+            val jibunAddress =
+                document
+                    ?.address
+                    ?.addressName
+                    ?.takeIf {
+                        it.isNotBlank()
+                    }
+
+
+            // ----------------------------------------
+            // 최종적으로 화면에 표시
+            // ----------------------------------------
+
+            currentLocationDisplay =
+                buildingName
+                    ?: roadAddress
+                            ?: jibunAddress
+                            ?: "현재 위치"
+
+
+            Log.d(
+                "SAFE_MAP_LOCATION",
+                "현재 위치: $currentLocationDisplay"
+            )
+
+        } catch (
+            e: Exception
+        ) {
+
+            Log.e(
+                "SAFE_MAP_LOCATION",
+                "현재 위치 주소 변환 실패",
+                e
+            )
+
+            currentLocationDisplay =
+                "현재 위치 확인 실패"
+        }
+    }
 
     // ========================================
     // 선택된 시설
@@ -90,6 +279,177 @@ fun SafeMapScreen(
         mutableStateOf<String?>(null)
     }
 
+    var mapFacilities by remember {
+        mutableStateOf(
+            emptyList<FacilityMapDto>()
+        )
+    }
+
+    LaunchedEffect(
+        selectedFacility,
+        visibleSwLat,
+        visibleSwLng,
+        visibleNeLat,
+        visibleNeLng
+    ) {
+
+        if (selectedFacility == null) {
+
+            mapFacilities =
+                emptyList()
+
+            return@LaunchedEffect
+        }
+
+
+        try {
+
+// ============================================================
+// 현재 카카오맵 화면에 보이는 범위를 사용
+//
+// 기존:
+// 현재 위치 기준 반경 50m
+//
+// 변경:
+// 사용자가 현재 보고 있는 지도 화면 전체
+//
+// KakaoMapView에서 받은 화면의
+// 남서쪽(SW) / 북동쪽(NE) 좌표를 사용합니다.
+// ============================================================
+
+            val swLat =
+                visibleSwLat
+                    ?: return@LaunchedEffect
+
+            val swLng =
+                visibleSwLng
+                    ?: return@LaunchedEffect
+
+            val neLat =
+                visibleNeLat
+                    ?: return@LaunchedEffect
+
+            val neLng =
+                visibleNeLng
+                    ?: return@LaunchedEffect
+
+
+            val result =
+                when (selectedFacility) {
+
+                    "CCTV" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getCctv(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "가로등" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getSmartLight(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "지킴이집" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getSafeHouse(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "지구대" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getPolice(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "비상벨" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getEmergencyBell(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "보안등" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getSecurityLight(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    else ->
+                        emptyList()
+                }
+
+
+            mapFacilities =
+                result
+
+
+            Log.d(
+                "SAFE_MAP",
+                "${selectedFacility} 조회 성공: ${result.size}개"
+            )
+
+
+            result
+                .take(3)
+                .forEach {
+
+                    Log.d(
+                        "SAFE_MAP",
+                        "${it.type}: ${it.id}, ${it.name}, ${it.address}, ${it.lat}, ${it.lng}"
+                    )
+                }
+
+
+        } catch (
+            e: Exception
+        ) {
+
+            mapFacilities =
+                emptyList()
+
+
+            Log.e(
+                "SAFE_MAP",
+                "${selectedFacility} 조회 실패",
+                e
+            )
+        }
+    }
 
     // ========================================
     // 현재 위치 재이동 요청값
@@ -324,7 +684,7 @@ fun SafeMapScreen(
 
                     Text(
                         text =
-                            currentLocationText,
+                            currentLocationDisplay,
 
                         fontSize =
                             dimens.captionSize,
@@ -373,51 +733,129 @@ fun SafeMapScreen(
                     modifier =
                         Modifier.fillMaxSize(),
 
+                    selectedFacility =
+                        selectedFacility,
+
+                    facilities =
+                        mapFacilities,
+
                     showRoute =
                         false,
 
                     recenterRequestKey =
-                        recenterRequestKey
+                        recenterRequestKey,
+
+
+                    // ====================================================
+                    // 현재 GPS 위치
+                    //
+                    // 주소 표시와 "내 위치로 돌아가기" 기능에서 사용
+                    // ====================================================
+
+                    onCurrentLocationChanged = {
+                            latitude,
+                            longitude ->
+
+                        currentLatitude =
+                            latitude
+
+                        currentLongitude =
+                            longitude
+                    },
+
+
+                    // ====================================================
+                    // 현재 지도 화면 범위
+                    //
+                    // 사용자가 보고 있는 지도 화면의
+                    // 남서쪽 / 북동쪽 좌표를 받아옵니다.
+                    //
+                    // 시설 조회는 이제 이 좌표를 기준으로 합니다.
+                    // ====================================================
+
+                    onVisibleBoundsChanged = {
+                            swLat,
+                            swLng,
+                            neLat,
+                            neLng ->
+
+                        visibleSwLat =
+                            swLat
+
+                        visibleSwLng =
+                            swLng
+
+                        visibleNeLat =
+                            neLat
+
+                        visibleNeLng =
+                            neLng
+                    }
                 )
 
-
                 // ========================================
-                // 현재 위치로 돌아가기 버튼
-                // ========================================
+// 현재 위치로 돌아가기 버튼
+//
+// 시설 선택 패널보다 위쪽에 표시합니다.
+// zIndex를 주어 지도나 시설 패널 뒤로
+// 버튼이 가려지지 않도록 합니다.
+// ========================================
 
                 Box(
                     modifier = Modifier
+
+                        // 지도 화면 오른쪽 아래에 배치
                         .align(
                             Alignment.BottomEnd
                         )
+
+                        // 시설 선택 패널 위로 올림
                         .padding(
                             end =
                                 dimens.screenHorizontalPadding,
 
+                            // 기존 175.dp에서는 시설 패널에
+                            // 가려질 수 있어서 더 위로 배치
                             bottom =
-                                175.dp
+                                240.dp
                         )
+
+                        // 다른 요소보다 위에 표시
+                        .zIndex(
+                            10f
+                        )
+
+                        // 버튼 크기
                         .size(
-                            44.dp
+                            48.dp
                         )
+
+                        // 원형 버튼
                         .clip(
                             CircleShape
                         )
+
+                        // 흰색 배경
                         .background(
                             Color.White
                         )
+
+                        // 버튼 테두리
                         .border(
                             width =
                                 1.dp,
 
                             color =
                                 Color(
-                                    0xFFE8E8E8
+                                    0xFFE0E0E0
                                 ),
 
                             shape =
                                 CircleShape
                         )
+
+                        // 버튼 클릭 시
+                        // 현재 위치로 카메라 이동 요청
                         .clickable {
 
                             recenterRequestKey++
@@ -435,11 +873,11 @@ fun SafeMapScreen(
                             "현재 위치로 이동",
 
                         tint =
-                            Color(0xFF333333),
+                            RimoBlue,
 
                         modifier =
                             Modifier.size(
-                                22.dp
+                                24.dp
                             )
                     )
                 }
