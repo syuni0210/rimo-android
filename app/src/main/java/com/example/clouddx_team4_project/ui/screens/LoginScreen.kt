@@ -357,7 +357,11 @@ fun LoginScreen(
 
                             // 💡 토큰 저장
                             tokenManager.saveToken(loginResponse.token)
+<<<<<<< HEAD
 
+=======
+                            tokenManager.saveMemberId(loginResponse.memberId)
+>>>>>>> ldk
                             Toast.makeText(context, "로그인 성공", Toast.LENGTH_SHORT).show()
                             onLoginClick(userId, password) // 성공 후 메인 화면 이동을 위한 콜백
                         } else {

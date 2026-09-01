@@ -34,6 +34,11 @@ import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 import com.example.clouddx_team4_project.ui.theme.ResponsiveDimens
 import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
 import androidx.compose.material.icons.filled.Logout
+<<<<<<< HEAD
+=======
+import androidx.compose.ui.platform.LocalContext
+import com.example.clouddx_team4_project.data.TokenManager
+>>>>>>> ldk
 
 // ========================================
 // 색상
@@ -73,7 +78,10 @@ data class MoreMenuItem(
 fun MoreScreen(
 
     // 로그인 완성 전 테스트 회원 ID
+<<<<<<< HEAD
     memberId: Long = 3L,
+=======
+>>>>>>> ldk
 
     onMenuClick: (String) -> Unit = {},
 
@@ -87,7 +95,12 @@ fun MoreScreen(
 
     val dimens =
         rememberResponsiveDimens()
+<<<<<<< HEAD
 
+=======
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
+>>>>>>> ldk
 
     // ========================================
     // 사용자 프로필 정보
@@ -113,16 +126,35 @@ fun MoreScreen(
     // ========================================
 
     LaunchedEffect(
+<<<<<<< HEAD
         memberId
     ) {
 
         try {
+=======
+        Unit
+    ) {
+
+        try {
+            val currentMemberId = tokenManager.getMemberId()
+            android.util.Log.d("DEBUG_ID", "저장된 내 memberId: $currentMemberId")
+            if (currentMemberId == null) {
+                userName = "로그인 필요"
+                loginId = "정보 없음"
+                profileLoadFailed = true
+                return@LaunchedEffect
+            }
+>>>>>>> ldk
 
             val profile =
                 RetrofitClient
                     .memberApi
                     .getProfile(
+<<<<<<< HEAD
                         memberId
+=======
+                        currentMemberId
+>>>>>>> ldk
                     )
 
 
@@ -141,7 +173,11 @@ fun MoreScreen(
         } catch (
             e: Exception
         ) {
+<<<<<<< HEAD
 
+=======
+            android.util.Log.e("DEBUG_ID", "프로필 조회 중 에러 발생", e)
+>>>>>>> ldk
             e.printStackTrace()
 
 

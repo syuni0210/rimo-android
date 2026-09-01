@@ -1,5 +1,6 @@
 package com.example.clouddx_team4_project.ui.screens
 
+<<<<<<< HEAD
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Geocoder
@@ -8,6 +9,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+=======
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+>>>>>>> ldk
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,11 +24,20 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+<<<<<<< HEAD
 import androidx.compose.runtime.*
+=======
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+>>>>>>> ldk
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+<<<<<<< HEAD
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,6 +51,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+=======
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
+>>>>>>> ldk
 
 
 // ========================================
@@ -62,8 +83,11 @@ private val TextGray =
 @Composable
 fun SafeRouteScreen(
 
+<<<<<<< HEAD
     memberId: Long = 3L,
 
+=======
+>>>>>>> ldk
     // ========================================
     // 목적지 정보
     // ========================================
@@ -102,6 +126,7 @@ fun SafeRouteScreen(
 
 
     // ========================================
+<<<<<<< HEAD
     // 기본 목적지 선택
     // ========================================
 
@@ -115,6 +140,8 @@ fun SafeRouteScreen(
 
 
     // ========================================
+=======
+>>>>>>> ldk
     // 지도 직접 목적지 지정
     // ========================================
 
@@ -124,6 +151,7 @@ fun SafeRouteScreen(
 
 ) {
 
+<<<<<<< HEAD
     val context =
         LocalContext.current
 
@@ -131,6 +159,8 @@ fun SafeRouteScreen(
         rememberCoroutineScope()
 
 
+=======
+>>>>>>> ldk
     // ========================================
     // 현재 위치 복귀 요청값
     // ========================================
@@ -140,6 +170,7 @@ fun SafeRouteScreen(
     }
 
 
+<<<<<<< HEAD
     // ========================================
     // 기본 목적지 목록
     // ========================================
@@ -315,6 +346,8 @@ fun SafeRouteScreen(
     }
 
 
+=======
+>>>>>>> ldk
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -428,7 +461,11 @@ fun SafeRouteScreen(
                         "출발지",
 
                     value =
+<<<<<<< HEAD
                         currentLocationAddress,
+=======
+                        "현재 위치",
+>>>>>>> ldk
 
                     onClick = {
 
@@ -512,7 +549,11 @@ fun SafeRouteScreen(
 
 
             // ========================================
+<<<<<<< HEAD
             // 기본 목적지
+=======
+            // 즐겨찾는 장소
+>>>>>>> ldk
             // ========================================
 
             Row(
@@ -528,7 +569,11 @@ fun SafeRouteScreen(
 
                 Text(
                     text =
+<<<<<<< HEAD
                         "기본 목적지",
+=======
+                        "즐겨찾는 장소",
+>>>>>>> ldk
 
                     fontSize =
                         15.sp,
@@ -543,12 +588,18 @@ fun SafeRouteScreen(
 
                 Spacer(
                     modifier =
+<<<<<<< HEAD
                         Modifier.width(
                             12.dp
+=======
+                        Modifier.weight(
+                            1f
+>>>>>>> ldk
                         )
                 )
 
 
+<<<<<<< HEAD
                 // ========================================
                 // DB 기본 목적지 목록
                 // ========================================
@@ -585,6 +636,26 @@ fun SafeRouteScreen(
                         )
                     }
                 }
+=======
+                FavoritePlaceChip(
+                    text =
+                        "집"
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            8.dp
+                        )
+                )
+
+
+                FavoritePlaceChip(
+                    text =
+                        "학교"
+                )
+>>>>>>> ldk
             }
 
 
@@ -636,6 +707,11 @@ fun SafeRouteScreen(
                             "BROAD_FIRST" ->
                                 "BROAD_FIRST"
 
+<<<<<<< HEAD
+=======
+                            // 밝은길은 아직 미구현
+                            // 임시로 경로 표시 안 하도록
+>>>>>>> ldk
                             "BRIGHT" ->
                                 ""
 
@@ -644,6 +720,14 @@ fun SafeRouteScreen(
                         },
 
 
+<<<<<<< HEAD
+=======
+                    // ========================================
+                    // 추가된 부분:
+                    // 현재 위치로 다시 이동
+                    // ========================================
+
+>>>>>>> ldk
                     recenterRequestKey =
                         recenterRequestKey,
 
@@ -661,6 +745,10 @@ fun SafeRouteScreen(
 
 
                 // ========================================
+<<<<<<< HEAD
+=======
+                // 추가된 부분:
+>>>>>>> ldk
                 // 현재 위치 버튼
                 // ========================================
 
@@ -747,7 +835,10 @@ private fun LocationInputRow(
     value: String,
 
     onClick: () -> Unit
+<<<<<<< HEAD
 
+=======
+>>>>>>> ldk
 ) {
 
     Row(
@@ -867,10 +958,14 @@ private fun LocationInputRow(
                     FontWeight.Medium,
 
                 color =
+<<<<<<< HEAD
                     TextBlack,
 
                 maxLines =
                     1
+=======
+                    TextBlack
+>>>>>>> ldk
             )
         }
     }
@@ -878,6 +973,7 @@ private fun LocationInputRow(
 
 
 // ========================================
+<<<<<<< HEAD
 // 기본 목적지 버튼
 // ========================================
 
@@ -888,6 +984,14 @@ private fun DefaultDestinationChip(
 
     onClick: () -> Unit
 
+=======
+// 즐겨찾기
+// ========================================
+
+@Composable
+private fun FavoritePlaceChip(
+    text: String
+>>>>>>> ldk
 ) {
 
     Row(
@@ -900,10 +1004,13 @@ private fun DefaultDestinationChip(
             .background(
                 Color.White
             )
+<<<<<<< HEAD
             .clickable {
 
                 onClick()
             }
+=======
+>>>>>>> ldk
             .padding(
                 horizontal = 13.dp,
                 vertical = 8.dp

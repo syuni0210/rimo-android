@@ -11,17 +11,29 @@ import retrofit2.http.*
 
 interface GuardianApi {
 
+<<<<<<< HEAD
     @POST("/api/guardians")
+=======
+    @POST("api/guardians")
+>>>>>>> ldk
     suspend fun registerGuardian(
         @Body request: GuardianRequest
     ): GuardianResponse
 
+<<<<<<< HEAD
     @GET("/api/guardians")
+=======
+    @GET("api/guardians")
+>>>>>>> ldk
     suspend fun getGuardians(
         @Query("memberId") memberId: Long
     ): List<GuardianResponse>
 
+<<<<<<< HEAD
     @DELETE("/api/guardians/{guardianId}")
+=======
+    @DELETE("api/guardians/{guardianId}")
+>>>>>>> ldk
     suspend fun deleteGuardian(
         @Path("guardianId") guardianId: Long
     )
@@ -29,6 +41,7 @@ interface GuardianApi {
 
 
 // ========================================
+<<<<<<< HEAD
 // Retrofit Client
 // ========================================
 
@@ -48,6 +61,8 @@ object GuardianApiClient {
 
 
 // ========================================
+=======
+>>>>>>> ldk
 // 요청 / 응답 모델
 //
 // 백엔드 JSON 키(guardianId, guardianName 등)와
