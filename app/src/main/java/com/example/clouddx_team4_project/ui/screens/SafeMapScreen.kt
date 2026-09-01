@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
 import androidx.compose.ui.unit.sp
+import android.util.Log
+import com.example.clouddx_team4_project.network.RetrofitClient
+import com.example.clouddx_team4_project.network.FacilityMapDto
 
 // ========================================
 // 색상
@@ -90,6 +93,150 @@ fun SafeMapScreen(
         mutableStateOf<String?>(null)
     }
 
+    var mapFacilities by remember {
+        mutableStateOf(
+            emptyList<FacilityMapDto>()
+        )
+    }
+
+    LaunchedEffect(
+        selectedFacility
+    ) {
+
+        if (selectedFacility == null) {
+
+            mapFacilities =
+                emptyList()
+
+            return@LaunchedEffect
+        }
+
+
+        try {
+
+            val swLat = 37.5600
+            val swLng = 126.9700
+
+            val neLat = 37.6000
+            val neLng = 127.0300
+
+
+            val result =
+                when (selectedFacility) {
+
+                    "CCTV" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getCctv(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "가로등" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getSmartLight(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "지킴이집" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getSafeHouse(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "지구대" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getPolice(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "비상벨" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getEmergencyBell(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    "보안등" ->
+
+                        RetrofitClient
+                            .reportApi
+                            .getSecurityLight(
+                                swLat = swLat,
+                                swLng = swLng,
+                                neLat = neLat,
+                                neLng = neLng
+                            )
+
+
+                    else ->
+                        emptyList()
+                }
+
+
+            mapFacilities =
+                result
+
+
+            Log.d(
+                "SAFE_MAP",
+                "${selectedFacility} 조회 성공: ${result.size}개"
+            )
+
+
+            result
+                .take(3)
+                .forEach {
+
+                    Log.d(
+                        "SAFE_MAP",
+                        "${it.type}: ${it.id}, ${it.name}, ${it.address}, ${it.lat}, ${it.lng}"
+                    )
+                }
+
+
+        } catch (
+            e: Exception
+        ) {
+
+            mapFacilities =
+                emptyList()
+
+
+            Log.e(
+                "SAFE_MAP",
+                "${selectedFacility} 조회 실패",
+                e
+            )
+        }
+    }
 
     // ========================================
     // 현재 위치 재이동 요청값
@@ -372,6 +519,12 @@ fun SafeMapScreen(
 
                     modifier =
                         Modifier.fillMaxSize(),
+
+                    selectedFacility =
+                        selectedFacility,
+
+                    facilities =
+                        mapFacilities,
 
                     showRoute =
                         false,

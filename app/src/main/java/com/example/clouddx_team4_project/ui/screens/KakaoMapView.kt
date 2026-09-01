@@ -25,7 +25,83 @@ import com.kakao.vectormap.route.RouteLineOptions
 import com.kakao.vectormap.route.RouteLineSegment
 import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
+import com.example.clouddx_team4_project.network.FacilityMapDto
+import android.graphics.Bitmap
+import android.graphics.Canvas
 
+private fun drawableToBitmap(
+    context: android.content.Context,
+    drawableRes: Int
+): Bitmap {
+
+    // ========================================
+    // XML drawable 불러오기
+    // ========================================
+
+    val drawable =
+        ContextCompat.getDrawable(
+            context,
+            drawableRes
+        ) ?: return Bitmap.createBitmap(
+            44,
+            44,
+            Bitmap.Config.ARGB_8888
+        )
+
+    // ========================================
+    // XML에 지정된 마커 크기 사용
+    //
+    // intrinsic 크기를 얻을 수 없는 경우
+    // 44 x 44를 기본값으로 사용
+    // ========================================
+
+    val width =
+        if (drawable.intrinsicWidth > 0) {
+            drawable.intrinsicWidth
+        } else {
+            44
+        }
+
+    val height =
+        if (drawable.intrinsicHeight > 0) {
+            drawable.intrinsicHeight
+        } else {
+            44
+        }
+
+    // ========================================
+    // 투명 배경 Bitmap 생성
+    // ========================================
+
+    val bitmap =
+        Bitmap.createBitmap(
+            width,
+            height,
+            Bitmap.Config.ARGB_8888
+        )
+
+    val canvas =
+        Canvas(bitmap)
+
+    // ========================================
+    // Drawable 크기를 Bitmap 크기에 맞춤
+    // ========================================
+
+    drawable.setBounds(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    )
+
+    // ========================================
+    // XML drawable을 Bitmap에 그림
+    // ========================================
+
+    drawable.draw(canvas)
+
+    return bitmap
+}
 
 // ========================================
 // 카카오맵
@@ -35,6 +111,8 @@ import com.kakao.vectormap.route.RouteLineStyles
 fun KakaoMapView(
 
     modifier: Modifier = Modifier,
+
+    selectedFacility: String? = null,
 
     destinationName: String = "",
 
@@ -46,6 +124,7 @@ fun KakaoMapView(
 
     showRoute: Boolean = false,
 
+    facilities: List<FacilityMapDto> = emptyList(),
 
     // ========================================
     // 외부 GPS 좌표
@@ -143,6 +222,14 @@ fun KakaoMapView(
         )
     }
 
+    // ========================================
+    // 지도에 표시된 시설 마커 ID
+    // ========================================
+
+    val facilityLabelIds =
+        remember {
+            mutableListOf<String>()
+        }
 
     // ========================================
     // 경로선 Layer
@@ -499,6 +586,184 @@ fun KakaoMapView(
         )
     }
 
+    // ========================================
+    // 안심지도 시설 마커
+    // ========================================
+
+    LaunchedEffect(
+        kakaoMap,
+        facilities,
+        selectedFacility
+    ) {
+
+        val map =
+            kakaoMap
+                ?: return@LaunchedEffect
+
+
+        val layer =
+            map
+                .labelManager
+                ?.layer
+                ?: return@LaunchedEffect
+
+
+        // ========================================
+        // 이전 시설 마커만 제거
+        //
+        // current_location / destination은
+        // 건드리지 않음
+        // ========================================
+
+        facilityLabelIds
+            .forEach { labelId ->
+
+                layer
+                    .getLabel(
+                        labelId
+                    )
+                    ?.remove()
+            }
+
+
+        facilityLabelIds.clear()
+
+
+        // ========================================
+        // 시설 선택이 해제된 경우 종료
+        // ========================================
+
+        if (
+            selectedFacility == null ||
+            facilities.isEmpty()
+        ) {
+
+            Log.d(
+                "KAKAO_MAP",
+                "시설 마커 제거 완료"
+            )
+
+            return@LaunchedEffect
+        }
+
+
+        // ========================================
+        // 시설 좌표에 마커 생성
+        // ========================================
+
+        facilities
+            .forEach { facility ->
+
+                // ========================================
+                // Kakao Map에서 각 시설 마커를
+                // 서로 구분하기 위한 고유 ID
+                // ========================================
+
+                val labelId =
+                    "facility_${facility.type}_${facility.id}"
+
+
+                // ========================================
+                // DB에서 받아온 시설 위도 / 경도
+                // ========================================
+
+                val position =
+                    LatLng.from(
+                        facility.lat,
+                        facility.lng
+                    )
+
+
+                // ========================================
+                // 시설 종류에 따라 사용할 XML 마커 선택
+                //
+                // 1차 테스트:
+                // CCTV만 marker_cctv.xml 사용
+                //
+                // 나머지 시설은 기존 마커를 그대로 사용해서
+                // 현재 정상 동작하는 기능에 미치는 영향을 최소화
+                // ========================================
+
+                val markerRes =
+                    when (facility.type) {
+
+                        // CCTV
+                        "CCTV" ->
+                            R.drawable.marker_cctv
+
+                        // 스마트 가로등
+                        "SMART_LIGHT" ->
+                            R.drawable.marker_smart_light
+
+                        // 안심 지킴이집
+                        "SAFE_HOUSE" ->
+                            R.drawable.marker_safe_house
+
+                        // 지구대 / 파출소
+                        "POLICE" ->
+                            R.drawable.marker_police
+
+                        // 비상벨
+                        "EMERGENCY_BELL" ->
+                            R.drawable.marker_emergency_bell
+
+                        // 보안등
+                        "SECURITY_LIGHT" ->
+                            R.drawable.marker_security_light
+
+                        // 예상하지 못한 타입
+                        else ->
+                            R.drawable.marker_current_location
+                    }
+
+
+                // ========================================
+                // XML drawable -> Bitmap 변환
+                //
+                // Kakao LabelStyle에는 변환된 Bitmap을 전달
+                // ========================================
+
+                val markerBitmap =
+                    drawableToBitmap(
+                        context,
+                        markerRes
+                    )
+
+
+                // ========================================
+                // 시설 마커 생성
+                // ========================================
+
+                val options =
+                    LabelOptions
+                        .from(
+                            labelId,
+                            position
+                        )
+                        .setStyles(
+                            LabelStyle.from(
+                                markerBitmap
+                            )
+                        )
+
+
+                // ========================================
+                // 지도에 시설 마커 추가
+                // ========================================
+
+                layer.addLabel(options)
+
+                // 나중에 시설 종류 변경 시
+                // 기존 시설 마커만 제거하기 위해 ID 저장
+                facilityLabelIds.add(labelId)
+            }
+
+
+        Log.d(
+            "KAKAO_MAP",
+            "${selectedFacility} 시설 마커 ${facilities.size}개 표시 완료"
+        )
+    }
 
     // ========================================
     // 현재 위치 버튼 클릭
