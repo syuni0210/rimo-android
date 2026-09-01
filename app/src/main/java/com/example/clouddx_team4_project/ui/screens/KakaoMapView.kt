@@ -146,9 +146,40 @@ fun KakaoMapView(
     recenterRequestKey: Int = 0,
 
 
-    // ========================================
-    // 지도 클릭 목적지 선택
-    // ========================================
+// ========================================
+// 현재 GPS 위치 전달
+//
+// KakaoMapView 내부에서 얻은 현재 위치를
+// SafeMapScreen 등 부모 화면으로 전달합니다.
+//
+// 첫 번째 Double  = 위도(latitude)
+// 두 번째 Double = 경도(longitude)
+// ========================================
+
+    onCurrentLocationChanged:
+        (Double, Double) -> Unit =
+        { _, _ -> },
+
+// ========================================
+// 현재 지도 화면의 좌표 범위 전달
+//
+// swLat = 남서쪽 위도
+// swLng = 남서쪽 경도
+// neLat = 북동쪽 위도
+// neLng = 북동쪽 경도
+//
+// 사용자가 지도를 이동하거나 확대/축소하면
+// 현재 화면에 맞는 새로운 BBOX를
+// SafeMapScreen으로 전달합니다.
+// ========================================
+
+    onVisibleBoundsChanged:
+        (Double, Double, Double, Double) -> Unit =
+        { _, _, _, _ -> },
+
+// ========================================
+// 지도 클릭 목적지 선택
+// ========================================
 
     onDestinationSelected:
         (Double, Double) -> Unit =
@@ -159,6 +190,130 @@ fun KakaoMapView(
     val context =
         LocalContext.current
 
+    // ========================================
+// 현재 카카오맵 화면에 실제로 보이는 영역을
+// 위도/경도 BBOX로 계산
+//
+// Viewport의 네 모서리(pixel)를
+// Kakao Map의 위도/경도로 변환합니다.
+//
+// 지도 회전 등의 경우도 고려해서
+// 네 좌표 중 최소/최대값으로
+// 남서/북동 BBOX를 만듭니다.
+// ========================================
+
+    fun sendVisibleBounds(
+        map: KakaoMap
+    ) {
+
+        // 현재 지도 화면(Viewport)의 픽셀 영역
+        val viewport =
+            map.getViewport()
+
+
+        // 화면 영역이 아직 준비되지 않은 경우
+        if (
+            viewport.width() <= 0 ||
+            viewport.height() <= 0
+        ) {
+            return
+        }
+
+
+        // Rect의 right/bottom은 끝 경계이므로
+        // 실제 화면 안쪽 픽셀을 사용하기 위해 -1
+        val right =
+            viewport.right - 1
+
+        val bottom =
+            viewport.bottom - 1
+
+
+        // ========================================
+        // 화면 네 모서리를 실제 위경도로 변환
+        // ========================================
+
+        val topLeft =
+            map.fromScreenPoint(
+                viewport.left,
+                viewport.top
+            )
+
+        val topRight =
+            map.fromScreenPoint(
+                right,
+                viewport.top
+            )
+
+        val bottomLeft =
+            map.fromScreenPoint(
+                viewport.left,
+                bottom
+            )
+
+        val bottomRight =
+            map.fromScreenPoint(
+                right,
+                bottom
+            )
+
+
+        // 변환 실패한 좌표가 있으면 제거
+        val corners =
+            listOfNotNull(
+                topLeft,
+                topRight,
+                bottomLeft,
+                bottomRight
+            )
+
+
+        // 4개 좌표를 모두 얻지 못했다면
+        // 이번 갱신은 하지 않음
+        if (corners.size < 4) {
+            return
+        }
+
+
+        // ========================================
+        // 네 모서리 중 최소/최대 좌표 계산
+        // ========================================
+
+        val swLat =
+            corners.minOf {
+                it.latitude
+            }
+
+        val swLng =
+            corners.minOf {
+                it.longitude
+            }
+
+        val neLat =
+            corners.maxOf {
+                it.latitude
+            }
+
+        val neLng =
+            corners.maxOf {
+                it.longitude
+            }
+
+
+        // SafeMapScreen으로 화면 범위 전달
+        onVisibleBoundsChanged(
+            swLat,
+            swLng,
+            neLat,
+            neLng
+        )
+
+
+        Log.d(
+            "KAKAO_MAP_BOUNDS",
+            "화면 BBOX: $swLat, $swLng ~ $neLat, $neLng"
+        )
+    }
 
     // ========================================
     // 내부 현재 위치
@@ -181,11 +336,11 @@ fun KakaoMapView(
 
 
     // ========================================
-    // 실제 사용할 현재 위치
-    //
-    // 외부 좌표가 있으면 외부 좌표
-    // 없으면 내부 GPS 좌표 사용
-    // ========================================
+// 실제 사용할 현재 위치
+//
+// 외부 좌표가 있으면 외부 좌표
+// 없으면 내부 GPS 좌표 사용
+// ========================================
 
     val realCurrentLatitude =
         currentLatitude
@@ -197,9 +352,41 @@ fun KakaoMapView(
             ?: internalLongitude
 
 
-    // ========================================
-    // 위치 서비스
-    // ========================================
+// ========================================
+// 현재 GPS 위치를 부모 화면으로 전달
+//
+// 위도/경도가 준비되면
+// SafeMapScreen의 onCurrentLocationChanged로
+// 현재 위치를 전달합니다.
+//
+// 이 좌표는 SafeMapScreen에서
+// Kakao Local API를 이용해 주소로 변환합니다.
+// ========================================
+
+    LaunchedEffect(
+        realCurrentLatitude,
+        realCurrentLongitude
+    ) {
+
+        val latitude =
+            realCurrentLatitude
+                ?: return@LaunchedEffect
+
+        val longitude =
+            realCurrentLongitude
+                ?: return@LaunchedEffect
+
+
+        onCurrentLocationChanged(
+            latitude,
+            longitude
+        )
+    }
+
+
+// ========================================
+// 위치 서비스
+// ========================================
 
     val fusedLocationClient =
         remember {
@@ -465,6 +652,28 @@ fun KakaoMapView(
                                     .routeLineManager
                                     ?.layer
 
+// ========================================
+// 지도 이동 / 확대 / 축소가 끝날 때마다
+// 현재 화면의 BBOX를 다시 계산
+//
+// 이동 중에는 API를 호출하지 않고
+// 손을 떼어 카메라 이동이 끝난 뒤에만
+// 조회하므로 불필요한 API 호출을 줄입니다.
+// ========================================
+
+                            map.setOnCameraMoveEndListener {
+                                    movedMap,
+                                    _,
+                                    _ ->
+
+                                sendVisibleBounds(
+                                    movedMap
+                                )
+                            }
+
+                            sendVisibleBounds(
+                                map
+                            )
 
                             // ========================================
                             // 지도 최초 실행 시
@@ -474,7 +683,6 @@ fun KakaoMapView(
                             loadInternalLocation(
                                 map
                             )
-
 
                             // ========================================
                             // 지도 클릭 시 좌표 전달
