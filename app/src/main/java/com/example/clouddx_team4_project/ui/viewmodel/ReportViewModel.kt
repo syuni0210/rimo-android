@@ -71,7 +71,7 @@ class ReportViewModel : ViewModel() {
 
 
     // ========================================
-    // 로딩
+    // 로딩 상태
     // ========================================
 
     private val _isLoading =
@@ -82,7 +82,7 @@ class ReportViewModel : ViewModel() {
 
 
     // ========================================
-    // 에러
+    // 에러 메시지
     // ========================================
 
     private val _errorMessage =
@@ -92,58 +92,93 @@ class ReportViewModel : ViewModel() {
         _errorMessage.asStateFlow()
 
 
-    init {
-        loadReport()
-    }
-
+    // ========================================
+    // 리포트 조회
+    // ========================================
 
     fun loadReport() {
 
         viewModelScope.launch {
 
-            _isLoading.value = true
-            _errorMessage.value = null
+            _isLoading.value =
+                true
+
+            _errorMessage.value =
+                null
 
             try {
 
                 // ========================================
-                // 기존 대시보드 테스트 사용자
+                // 현재 로그인 사용자 ID
                 // ========================================
 
-                val reportMemberId = 1L
+                val currentMemberId =
+                    RetrofitClient
+                        .tokenManager
+                        ?.getMemberId()
 
+                if (currentMemberId == null) {
+
+                    _errorMessage.value =
+                        "사용자 식별 정보를 찾을 수 없습니다."
+
+                    Log.e(
+                        "REPORT_API",
+                        "memberId가 없습니다."
+                    )
+
+                    return@launch
+                }
+
+
+                // ========================================
+                // 사용 리포트 요약
+                // ========================================
 
                 _summary.value =
                     api.getSummary(
-                        reportMemberId
-                    )
-
-
-                _routePreferences.value =
-                    api.getRoutePreference(
-                        reportMemberId
-                    )
-
-
-                _records.value =
-                    api.getRecords(
-                        reportMemberId
+                        currentMemberId
                     )
 
 
                 // ========================================
-                // 친구 기능 테스트 사용자
-                //
-                // 3번의 친구:
-                // 4번 박민수 = 이번 주 8회
-                // 5번 이서준 = 이번 주 3회
+                // 경로 선호도
+                // ========================================
+
+                _routePreferences.value =
+                    api.getRoutePreference(
+                        currentMemberId
+                    )
+
+
+                // ========================================
+                // 귀가 기록
+                // ========================================
+
+                _records.value =
+                    api.getRecords(
+                        currentMemberId
+                    )
+
+
+                // ========================================
+                // 가장 많이 사용한 친구
                 // ========================================
 
                 _topFriend.value =
                     api.getTopFriend(
-                        3L
+                        currentMemberId
                     )
 
+
+                // ========================================
+                // 디버깅 로그
+                // ========================================
+
+                Log.d(
+                    "REPORT_API",
+                    "memberId = $currentMemberId"
+                )
 
                 Log.d(
                     "REPORT_API",
@@ -152,7 +187,7 @@ class ReportViewModel : ViewModel() {
 
                 Log.d(
                     "REPORT_API",
-                    "route = ${_routePreferences.value}"
+                    "routePreferences = ${_routePreferences.value}"
                 )
 
                 Log.d(
@@ -175,11 +210,13 @@ class ReportViewModel : ViewModel() {
                 )
 
                 _errorMessage.value =
-                    e.message ?: "데이터 조회 실패"
+                    e.message
+                        ?: "데이터 조회 실패"
 
             } finally {
 
-                _isLoading.value = false
+                _isLoading.value =
+                    false
             }
         }
     }
