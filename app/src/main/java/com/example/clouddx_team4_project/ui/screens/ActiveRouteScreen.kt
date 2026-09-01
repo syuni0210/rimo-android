@@ -2,6 +2,7 @@ package com.example.clouddx_team4_project.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
 import android.os.Looper
 import android.util.Log
 import androidx.compose.foundation.background
@@ -32,6 +33,17 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.*
+import com.example.clouddx_team4_project.ui.components.SafetyCheckDialogHost
+import com.example.clouddx_team4_project.ui.components.SafetyPopupState
+import com.example.clouddx_team4_project.network.RetrofitClient
+import com.example.clouddx_team4_project.network.EmergencyTriggerRequest
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import android.media.MediaPlayer
+import android.os.VibrationEffect
+import android.os.Vibrator
+import com.example.clouddx_team4_project.R
 
 
 // ========================================
@@ -92,6 +104,40 @@ fun ActiveRouteScreen(
                     context
                 )
         }
+
+    // ========================================
+    // 안전 확인 팝업 상태
+    // ========================================
+
+    var safetyPopupState by remember {
+        mutableStateOf(SafetyPopupState.NONE)
+    }
+    val coroutineScope = rememberCoroutineScope()
+
+
+    // ========================================
+    // 무움직임 / 경로이탈 감지용
+    // ========================================
+
+    var currentAccuracy by remember {
+        mutableStateOf<Float?>(null)
+    }
+
+    var lastMovementTime by remember {
+        mutableStateOf(System.currentTimeMillis())
+    }
+
+    var lastMovementLat by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    var lastMovementLng by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    var deviationStartTime by remember {
+        mutableStateOf<Long?>(null)
+    }
 
 
     // ========================================
@@ -228,14 +274,18 @@ fun ActiveRouteScreen(
                     currentLongitude =
                         location.longitude
 
+                    currentAccuracy =
+                        location.accuracy
+
 
                     Log.d(
                         "ACTIVE_ROUTE",
                         """
-                        GPS 갱신
-                        lat = ${location.latitude}
-                        lng = ${location.longitude}
-                        """.trimIndent()
+        GPS 갱신
+        lat = ${location.latitude}
+        lng = ${location.longitude}
+        accuracy = ${location.accuracy}
+        """.trimIndent()
                     )
                 }
             }
@@ -495,6 +545,134 @@ fun ActiveRouteScreen(
 
             isLoading =
                 false
+        }
+    }
+
+    // ========================================
+    // 움직임 감지 (5m 이상 이동 시 타이머 리셋)
+    // GPS 정확도가 나쁘면(20m 초과) 판정에서 제외
+    // ========================================
+
+    LaunchedEffect(currentLatitude, currentLongitude, currentAccuracy) {
+
+        val lat = currentLatitude ?: return@LaunchedEffect
+        val lng = currentLongitude ?: return@LaunchedEffect
+        val accuracy = currentAccuracy ?: return@LaunchedEffect
+
+        if (accuracy > 20f) {
+            return@LaunchedEffect
+        }
+
+        val prevLat = lastMovementLat
+        val prevLng = lastMovementLng
+
+        if (prevLat == null || prevLng == null) {
+            lastMovementLat = lat
+            lastMovementLng = lng
+            lastMovementTime = System.currentTimeMillis()
+            return@LaunchedEffect
+        }
+
+        val moved = calculateDistanceMeter(prevLat, prevLng, lat, lng)
+
+        if (moved >= 5.0) {
+            lastMovementLat = lat
+            lastMovementLng = lng
+            lastMovementTime = System.currentTimeMillis()
+        }
+    }
+
+
+// ========================================
+// 경로 이탈 감지 (경로에서 30m 이상)
+// GPS 정확도가 나쁘면 판정 제외
+// ========================================
+
+    LaunchedEffect(currentLatitude, currentLongitude, currentAccuracy, routePoints) {
+
+        val lat = currentLatitude ?: return@LaunchedEffect
+        val lng = currentLongitude ?: return@LaunchedEffect
+        val accuracy = currentAccuracy ?: return@LaunchedEffect
+
+        if (accuracy > 20f) {
+            return@LaunchedEffect
+        }
+
+        if (routePoints.isEmpty()) return@LaunchedEffect
+
+        val nearestDistance = routePoints.minOf { point ->
+            calculateDistanceMeter(lat, lng, point.latitude, point.longitude)
+        }
+
+        if (nearestDistance > 30.0) {
+
+            if (deviationStartTime == null) {
+                deviationStartTime = System.currentTimeMillis()
+            }
+
+        } else {
+
+            deviationStartTime = null
+        }
+    }
+
+
+// ========================================
+// 30분 감시 루프
+// ========================================
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            //delay(30_000L)
+            delay(5_000L)
+
+            if (safetyPopupState == SafetyPopupState.NONE) {
+
+                val now = System.currentTimeMillis()
+
+                when {
+
+                    //now - lastMovementTime >= 30 * 60 * 1000L -> {
+                    now - lastMovementTime >= 20_000L -> {
+                        safetyPopupState = SafetyPopupState.INACTIVITY_CHECK
+                    }
+
+                    deviationStartTime != null &&
+                            //now - deviationStartTime!! >= 30 * 60 * 1000L -> {
+                            now - deviationStartTime!! >= 20_000L -> {
+                        safetyPopupState = SafetyPopupState.ROUTE_DEVIATION_CHECK
+                    }
+                }
+            }
+        }
+    }
+
+
+// ========================================
+// 팝업 상태에 따라 알림 사운드/진동 제어
+// ========================================
+
+    LaunchedEffect(safetyPopupState) {
+
+        when (safetyPopupState) {
+
+            SafetyPopupState.INACTIVITY_CHECK,
+            SafetyPopupState.ROUTE_DEVIATION_CHECK,
+            SafetyPopupState.FINAL_CHECK -> {
+                SafetyAlertPlayer.start(context)
+            }
+
+            else -> {
+                SafetyAlertPlayer.stop()
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            SafetyAlertPlayer.stop()
         }
     }
 
@@ -1533,6 +1711,62 @@ fun ActiveRouteScreen(
             }
         }
     }
+
+    // ========================================
+    // 안전 확인 팝업
+    // ========================================
+
+    SafetyCheckDialogHost(
+
+        state = safetyPopupState,
+
+        onSafeClick = {
+            safetyPopupState = SafetyPopupState.NONE
+            lastMovementTime = System.currentTimeMillis()
+            deviationStartTime = null
+        },
+
+        onNeedHelpClick = {
+            safetyPopupState = SafetyPopupState.FINAL_CHECK
+        },
+
+        onEmergencyClick = {
+            safetyPopupState = SafetyPopupState.NONE
+            onEmergencyClick()
+        },
+
+        onFinalTimeout = {
+
+            coroutineScope.launch {
+
+                try {
+
+                    RetrofitClient.trackingApi.triggerEmergency(
+                        EmergencyTriggerRequest(
+                            memberId = 1L,
+                            lat = currentLatitude ?: 0.0,
+                            lng = currentLongitude ?: 0.0
+                        )
+                    )
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            safetyPopupState = SafetyPopupState.GUARDIAN_ALERT_SENT
+        },
+
+        onQuackClick = {
+            safetyPopupState = SafetyPopupState.NONE
+            onQuackClick()
+        },
+
+        onConfirmClick = {
+            safetyPopupState = SafetyPopupState.NONE
+        }
+
+    )
 }
 
 
@@ -1652,6 +1886,92 @@ private fun calculateDistanceMeter(
 
 
     return earthRadius * c
+}
+
+
+// ========================================
+// 긴급 알림 사운드 + 진동
+// 폰 설정(무음/진동/소리)과 무관하게 강제 재생
+// ========================================
+
+private object SafetyAlertPlayer {
+
+    private var mediaPlayer: MediaPlayer? = null
+    private var vibrator: Vibrator? = null
+
+    fun start(context: android.content.Context) {
+
+        stop()
+
+        try {
+            mediaPlayer = MediaPlayer.create(context, R.raw.siren).apply {
+                isLooping = true
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                start()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        try {
+            vibrator = getVibrator(context)
+
+            val pattern = longArrayOf(0, 500, 300, 500, 300)
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+
+                vibrator?.vibrate(
+                    VibrationEffect.createWaveform(pattern, 0)
+                )
+
+            } else {
+
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(pattern, 0)
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun stop() {
+
+        mediaPlayer?.let {
+            try {
+                if (it.isPlaying) it.stop()
+                it.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        mediaPlayer = null
+
+        vibrator?.cancel()
+        vibrator = null
+    }
+
+    private fun getVibrator(context: android.content.Context): Vibrator {
+
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+
+            val vibratorManager = context.getSystemService(
+                android.content.Context.VIBRATOR_MANAGER_SERVICE
+            ) as android.os.VibratorManager
+
+            vibratorManager.defaultVibrator
+
+        } else {
+
+            @Suppress("DEPRECATION")
+            context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as Vibrator
+        }
+    }
 }
 
 

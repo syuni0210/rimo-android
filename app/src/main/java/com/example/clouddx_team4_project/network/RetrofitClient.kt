@@ -12,6 +12,10 @@ object RetrofitClient {
     private const val MEMBER_API_BASE_URL =
         "http://127.0.0.1:8081/"
 
+    // Ubuntu Spring Boot 서버 (GPS/위치공유/긴급구조)
+    private const val TRACKING_API_BASE_URL =
+        "http://127.0.0.1:8082/"
+
     // Ubuntu Spring Boot 서버 (기본 목적지 / 경로)
     private const val ROUTE_API_BASE_URL =
         "http://127.0.0.1:8083/"
@@ -42,6 +46,14 @@ object RetrofitClient {
             .create(
                 AuthApi::class.java
             )
+    }
+
+    val trackingApi: TrackingApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(TRACKING_API_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(TrackingApi::class.java)
     }
 
 

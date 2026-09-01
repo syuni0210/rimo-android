@@ -34,6 +34,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import com.example.clouddx_team4_project.data.TokenManager
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.example.clouddx_team4_project.network.EmergencyTriggerRequest
+import com.example.clouddx_team4_project.network.RetrofitClient
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.launch
+
+
 @Composable
 fun AppNavigation() {
 
@@ -41,13 +50,16 @@ fun AppNavigation() {
 
     // 💡 토큰 매니저 초기화 및 유효성 검사
     val tokenManager = remember { TokenManager(context) }
-    val startDest = if (tokenManager.hasValidToken()) "home" else "login"
+    val startDest = "home"
+    // val startDest = if (tokenManager.hasValidToken()) "home" else "login"
 
     // 💡 로그아웃 팝업 상태 변수 추가
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     val navController =
         rememberNavController()
+
+    val coroutineScope = rememberCoroutineScope()
 
 
     // ========================================
@@ -1501,7 +1513,59 @@ fun AppNavigation() {
 
             onEmergencyConfirmed = {
 
-                // 나중에 실제 긴급신고 API 연결
+                val finePermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+
+                val coarsePermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+
+                if (
+                    finePermission == PackageManager.PERMISSION_GRANTED ||
+                    coarsePermission == PackageManager.PERMISSION_GRANTED
+                ) {
+
+                    val fusedLocationClient =
+                        LocationServices.getFusedLocationProviderClient(context)
+
+                    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+
+                        if (location != null) {
+
+                            coroutineScope.launch {
+
+                                try {
+
+                                    val response = RetrofitClient.trackingApi.triggerEmergency(
+                                        EmergencyTriggerRequest(
+                                            memberId = 1L,
+                                            lat = location.latitude,
+                                            lng = location.longitude
+                                        )
+                                    )
+
+                                    android.util.Log.d(
+                                        "EMERGENCY_API",
+                                        "긴급구조 전송 완료, 보호자 ${response.notifiedGuardianCount}명"
+                                    )
+
+                                } catch (e: Exception) {
+
+                                    e.printStackTrace()
+
+                                    android.util.Log.e(
+                                        "EMERGENCY_API",
+                                        "긴급구조 전송 실패",
+                                        e
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             },
 
 
