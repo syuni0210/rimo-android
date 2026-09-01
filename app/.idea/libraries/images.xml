@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="images">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/images/building.png.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/images/ci.png.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/images/grid_32x32.png.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

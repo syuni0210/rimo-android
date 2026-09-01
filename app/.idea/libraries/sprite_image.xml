@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="sprite_image">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/sprite_image/sprite_image_vp.vert.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/sprite_image/sprite_image_vp.glsl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/sprite_image/sprite_image.metal.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/sprite_image/sprite_image_fp.frag.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/sprite_image/effect.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/sprite_image/sprite_image_fp.glsl.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

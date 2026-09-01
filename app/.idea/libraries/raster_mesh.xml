@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="raster_mesh">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/raster_mesh/raster_mesh_vp.glsl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/raster_mesh/effect.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/raster_mesh/raster_mesh.metal.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/raster_mesh/raster_mesh_fp.frag.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/raster_mesh/raster_mesh_fp.glsl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/raster_mesh/raster_mesh_vp.vert.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

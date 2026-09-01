@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="clear_color_buffer">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/clear_color_buffer/effect.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/config/effects/clear_color_buffer/clear_color_buffer.metal.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

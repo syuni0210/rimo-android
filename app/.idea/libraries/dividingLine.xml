@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="dividingLine">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/images/gui/dividingLine/vertical_black_1.png.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/intermediates/compressed_assets/debug/compressDebugAssets/out/assets/svc/images/gui/dividingLine/horizontal_black_1.png.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
