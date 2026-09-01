@@ -16,6 +16,20 @@ class TokenManager(context: Context) {
         prefs.edit().putString(KEY_USER_TOKEN, token).apply()
     }
 
+<<<<<<< HEAD
+=======
+    // 사용자 ID 저장 (로그인 성공 직후 호출)
+    fun saveMemberId(memberId: Long) {
+        prefs.edit().putLong("MEMBER_ID", memberId).apply()
+    }
+
+    // 사용자 ID 불러오기 (리포트 화면 등에서 호출)
+    fun getMemberId(): Long? {
+        val id = prefs.getLong("MEMBER_ID", -1L)
+        return if (id != -1L) id else null
+    }
+
+>>>>>>> ldk
     // 토큰 불러오기 (API 요청 시 Header에 넣기 위해 사용)
     fun getToken(): String? {
         return prefs.getString(KEY_USER_TOKEN, null)

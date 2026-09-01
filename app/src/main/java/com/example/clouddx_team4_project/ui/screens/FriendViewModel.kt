@@ -1,5 +1,9 @@
 package com.example.clouddx_team4_project.ui.screens
 
+<<<<<<< HEAD
+=======
+import android.adservices.adid.AdId
+>>>>>>> ldk
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,10 +18,13 @@ class FriendViewModel : ViewModel() {
 
     private val api = RetrofitClient.friendApi
 
+<<<<<<< HEAD
     // ★ 현재는 테스트용
     // user01 = MMBR_ID 1 기준
     private val currentMemberId = 1L
 
+=======
+>>>>>>> ldk
     var friends by mutableStateOf<List<UserResponse>>(emptyList())
         private set
 
@@ -30,7 +37,11 @@ class FriendViewModel : ViewModel() {
     var message by mutableStateOf<String?>(null)
         private set
 
+<<<<<<< HEAD
     fun loadAll() {
+=======
+    fun loadAll(currentMemberId: Long) {
+>>>>>>> ldk
 
         viewModelScope.launch {
 
@@ -76,6 +87,10 @@ class FriendViewModel : ViewModel() {
 
 
     fun sendFriendRequest(
+<<<<<<< HEAD
+=======
+        currentMemberId: Long,
+>>>>>>> ldk
         name: String,
         loginId: String
     ) {
@@ -127,9 +142,17 @@ class FriendViewModel : ViewModel() {
                     message =
                         "친구 요청을 보냈습니다."
 
+<<<<<<< HEAD
                     loadAll()
 
                 } else {
+=======
+                    loadAll(currentMemberId)
+
+                } else {
+                    val errorBody = requestResponse.errorBody()?.string()
+                    android.util.Log.e("FriendRequest", "실패 사유 : $errorBody")
+>>>>>>> ldk
 
                     message =
                         "친구 요청에 실패했습니다."
@@ -144,7 +167,11 @@ class FriendViewModel : ViewModel() {
     }
 
 
+<<<<<<< HEAD
     fun acceptRequest(friendId: Long) {
+=======
+    fun acceptRequest(currentMemberId: Long, friendId: Long) {
+>>>>>>> ldk
 
         viewModelScope.launch {
 
@@ -165,7 +192,11 @@ class FriendViewModel : ViewModel() {
                     message =
                         "친구 요청을 수락했습니다."
 
+<<<<<<< HEAD
                     loadAll()
+=======
+                    loadAll(currentMemberId)
+>>>>>>> ldk
 
                 } else {
 
@@ -182,7 +213,11 @@ class FriendViewModel : ViewModel() {
     }
 
 
+<<<<<<< HEAD
     fun rejectRequest(friendId: Long) {
+=======
+    fun rejectRequest(friendId: Long, currentMemberId: Long) {
+>>>>>>> ldk
 
         viewModelScope.launch {
 
@@ -203,7 +238,11 @@ class FriendViewModel : ViewModel() {
                     message =
                         "친구 요청을 거절했습니다."
 
+<<<<<<< HEAD
                     loadAll()
+=======
+                    loadAll(currentMemberId)
+>>>>>>> ldk
 
                 } else {
 
@@ -222,7 +261,11 @@ class FriendViewModel : ViewModel() {
     // =========================
     // 내가 보낸 친구 요청 취소
     // =========================
+<<<<<<< HEAD
     fun cancelSentRequest(friendId: Long) {
+=======
+    fun cancelSentRequest(friendId: Long, currentMemberId: Long) {
+>>>>>>> ldk
 
         viewModelScope.launch {
 
@@ -239,7 +282,11 @@ class FriendViewModel : ViewModel() {
                     message =
                         "친구 요청을 취소했습니다."
 
+<<<<<<< HEAD
                     loadAll()
+=======
+                    loadAll(currentMemberId)
+>>>>>>> ldk
 
                 } else {
 
@@ -255,7 +302,11 @@ class FriendViewModel : ViewModel() {
         }
     }
 
+<<<<<<< HEAD
     fun deleteFriend(friendMemberId: Long) {
+=======
+    fun deleteFriend(friendMemberId: Long, currentMemberId: Long) {
+>>>>>>> ldk
 
         viewModelScope.launch {
 
@@ -276,7 +327,11 @@ class FriendViewModel : ViewModel() {
                     message =
                         "친구를 삭제했습니다."
 
+<<<<<<< HEAD
                     loadAll()
+=======
+                    loadAll(currentMemberId)
+>>>>>>> ldk
 
                 } else {
 

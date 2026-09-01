@@ -1,5 +1,8 @@
 package com.example.clouddx_team4_project.ui.screens
+<<<<<<< HEAD
 import com.example.clouddx_team4_project.data.GuardianApiClient
+=======
+>>>>>>> ldk
 import com.example.clouddx_team4_project.data.GuardianRequest
 import kotlinx.coroutines.launch
 
@@ -29,6 +32,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+<<<<<<< HEAD
+=======
+import com.example.clouddx_team4_project.network.RetrofitClient
+>>>>>>> ldk
 
 
 // ========================================
@@ -162,6 +169,7 @@ fun GuardianRegisterScreen(
     // ========================================
 
     val coroutineScope = rememberCoroutineScope()
+<<<<<<< HEAD
 
     // 테스트용 고정값 (!!!로그인 연동 전까지!!!!)
     val currentMemberId = 1L
@@ -181,6 +189,31 @@ fun GuardianRegisterScreen(
             e.printStackTrace()
         }
     }
+=======
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val tokenManager = remember { com.example.clouddx_team4_project.data.TokenManager(context) }
+
+
+    LaunchedEffect(Unit) {
+        try {
+            val currentMemberId = tokenManager.getMemberId()
+            if (currentMemberId != null) {
+                val response = RetrofitClient.guardianApi.getGuardians(currentMemberId)
+                guardians = response.map {
+                    GuardianUiModel(
+                        guardianId = it.guardianId,
+                        name = it.guardianName,
+                        phone = it.phoneNumber,
+                        relation = it.relationName
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+>>>>>>> ldk
 
 
     // ========================================
@@ -547,6 +580,7 @@ fun GuardianRegisterScreen(
 
                     coroutineScope.launch {
                         try {
+<<<<<<< HEAD
                             GuardianApiClient.api.registerGuardian(
                                 GuardianRequest(
                                     memberId = currentMemberId,
@@ -566,6 +600,41 @@ fun GuardianRegisterScreen(
                                 )
                             }
                         } catch (e: Exception) {
+=======
+                            val currentMemberId = tokenManager.getMemberId()
+
+                            if (currentMemberId != null) {
+                                android.util.Log.d("API_CHECK", "보호자 등록 통신 시작 !")
+
+                                RetrofitClient.guardianApi.registerGuardian(
+                                    GuardianRequest(
+                                        memberId = currentMemberId,
+                                        guardianName = name,
+                                        phoneNumber = phone,
+                                        relationName = relation
+                                    )
+                                )
+
+                                val response =
+                                    RetrofitClient.guardianApi.getGuardians(currentMemberId)
+                                guardians = response.map {
+                                    GuardianUiModel(
+                                        guardianId = it.guardianId,
+                                        name = it.guardianName,
+                                        phone = it.phoneNumber,
+                                        relation = it.relationName
+                                    )
+                                }
+                                android.util.Log.d("API_CHECK", "보호자 등록 성공 ! 새로고침 완료")
+                            } else {
+                                android.util.Log.e(
+                                    "API_ERROR",
+                                    "에러 : TokenManager에서 MemberId를 가져오지 못했습니다. (null"
+                                )
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("API_ERROR", "보호자 등록 중 통신 에러 발생 !", e)
+>>>>>>> ldk
                             e.printStackTrace()
                         }
                     }
@@ -607,6 +676,7 @@ fun GuardianRegisterScreen(
 
                         coroutineScope.launch {
                             try {
+<<<<<<< HEAD
                                 GuardianApiClient.api.deleteGuardian(guardian.guardianId)
 
                                 val response = GuardianApiClient.api.getGuardians(currentMemberId)
@@ -617,6 +687,22 @@ fun GuardianRegisterScreen(
                                         phone = it.phoneNumber,
                                         relation = it.relationName
                                     )
+=======
+                                val currentMemberId = tokenManager.getMemberId()
+                                RetrofitClient.guardianApi.deleteGuardian(guardian.guardianId)
+
+                                if (currentMemberId != null) {
+                                    val response =
+                                        RetrofitClient.guardianApi.getGuardians(currentMemberId)
+                                    guardians = response.map {
+                                        GuardianUiModel(
+                                            guardianId = it.guardianId,
+                                            name = it.guardianName,
+                                            phone = it.phoneNumber,
+                                            relation = it.relationName
+                                        )
+                                    }
+>>>>>>> ldk
                                 }
                             } catch (e: Exception) {
                                 e.printStackTrace()

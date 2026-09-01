@@ -7,7 +7,10 @@ import androidx.navigation.compose.rememberNavController
 import com.example.clouddx_team4_project.data.KakaoPlace
 import com.example.clouddx_team4_project.ui.components.EmergencyDialog
 import com.example.clouddx_team4_project.ui.screens.ActiveRouteScreen
+<<<<<<< HEAD
 import com.example.clouddx_team4_project.ui.screens.DefaultDestinationScreen
+=======
+>>>>>>> ldk
 import com.example.clouddx_team4_project.ui.screens.DestinationSearchScreen
 import com.example.clouddx_team4_project.ui.screens.FriendScreen
 import com.example.clouddx_team4_project.ui.screens.GuardianRegisterScreen
@@ -51,7 +54,11 @@ fun AppNavigation() {
 
 
     // ========================================
+<<<<<<< HEAD
     // 안심경로에서 선택한 목적지
+=======
+    // 목적지
+>>>>>>> ldk
     // ========================================
 
     var selectedDestination by remember {
@@ -87,6 +94,7 @@ fun AppNavigation() {
 
 
     // ========================================
+<<<<<<< HEAD
     // 기본 목적지 등록 시
     // 검색 화면에서 선택한 장소 임시 보관
     // ========================================
@@ -112,6 +120,8 @@ fun AppNavigation() {
 
 
     // ========================================
+=======
+>>>>>>> ldk
     // 전체 Navigation
     // ========================================
 
@@ -131,7 +141,13 @@ fun AppNavigation() {
 
             LoginScreen(
 
+<<<<<<< HEAD
                 onLoginClick = { _, _ ->
+=======
+                onLoginClick = {
+                        _,
+                        _ ->
+>>>>>>> ldk
 
                     navController.navigate(
                         "home"
@@ -296,12 +312,15 @@ fun AppNavigation() {
 
             SafeRouteScreen(
 
+<<<<<<< HEAD
                 // 로그인 기능 완성 전
                 // DB 테스트 사용자
                 memberId =
                     3L,
 
 
+=======
+>>>>>>> ldk
                 destinationName =
                     selectedDestination
                         ?.placeName
@@ -336,6 +355,7 @@ fun AppNavigation() {
 
                 onStartSearchClick = {
 
+<<<<<<< HEAD
                     // 현재 위치는 SafeRouteScreen에서
                     // GPS → 주소 변환 후 표시
                 },
@@ -345,24 +365,36 @@ fun AppNavigation() {
                 // 일반 목적지 검색
                 // ========================================
 
+=======
+                    // 현재 위치 고정
+                },
+
+
+>>>>>>> ldk
                 onDestinationSearchClick = {
 
                     showSelectedRoute =
                         false
 
+<<<<<<< HEAD
                     destinationSearchMode =
                         "ROUTE"
 
+=======
+>>>>>>> ldk
                     navController.navigate(
                         "destination_search"
                     )
                 },
 
 
+<<<<<<< HEAD
                 // ========================================
                 // 경로 선택 화면 이동
                 // ========================================
 
+=======
+>>>>>>> ldk
                 onRouteSearchClick = {
 
                     if (
@@ -376,6 +408,7 @@ fun AppNavigation() {
                 },
 
 
+<<<<<<< HEAD
                 // ========================================
                 // 기본 목적지 선택
                 //
@@ -445,6 +478,8 @@ fun AppNavigation() {
                 // 지도에서 직접 목적지 지정
                 // ========================================
 
+=======
+>>>>>>> ldk
                 onMapDestinationSelected = {
                         latitude,
                         longitude ->
@@ -470,6 +505,7 @@ fun AppNavigation() {
                             latitude =
                                 latitude.toString()
                         )
+<<<<<<< HEAD
 
 
                     showSelectedRoute =
@@ -481,6 +517,11 @@ fun AppNavigation() {
                 // 하단 메뉴
                 // ========================================
 
+=======
+                },
+
+
+>>>>>>> ldk
                 onTabSelected = { tab ->
 
                     when (tab) {
@@ -547,6 +588,7 @@ fun AppNavigation() {
 
                 onPlaceSelected = { place ->
 
+<<<<<<< HEAD
 
                     // ========================================
                     // 일반 안심경로 검색
@@ -605,6 +647,28 @@ fun AppNavigation() {
 
 
                         navController.popBackStack()
+=======
+                    selectedDestination =
+                        place
+
+                    showSelectedRoute =
+                        false
+
+                    navController.navigate(
+                        "route_select"
+                    ) {
+
+                        popUpTo(
+                            "destination_search"
+                        ) {
+
+                            inclusive =
+                                true
+                        }
+
+                        launchSingleTop =
+                            true
+>>>>>>> ldk
                     }
                 }
             )
@@ -625,6 +689,7 @@ fun AppNavigation() {
                     "현재 위치",
 
 
+<<<<<<< HEAD
                 // ========================================
                 // 기본 목적지든 일반 검색이든
                 // 실제 장소명 표시
@@ -635,6 +700,8 @@ fun AppNavigation() {
                 // 강남역
                 // ========================================
 
+=======
+>>>>>>> ldk
                 destinationName =
                     selectedDestination
                         ?.placeName
@@ -659,10 +726,13 @@ fun AppNavigation() {
                 },
 
 
+<<<<<<< HEAD
                 // ========================================
                 // 빠른길
                 // ========================================
 
+=======
+>>>>>>> ldk
                 onFastRouteClick = {
 
                     selectedRouteMode =
@@ -678,6 +748,7 @@ fun AppNavigation() {
                 },
 
 
+<<<<<<< HEAD
                 // ========================================
                 // 밝은길 / AI 추천경로
                 // ========================================
@@ -693,6 +764,14 @@ fun AppNavigation() {
                 // 대로변 우선
                 // ========================================
 
+=======
+                onBrightRouteClick = {
+
+                    // 현재 비활성화
+                },
+
+
+>>>>>>> ldk
                 onBroadRouteClick = {
 
                     selectedRouteMode =
@@ -775,7 +854,10 @@ fun AppNavigation() {
                     selectedDestination =
                         null
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ldk
                     navController.navigate(
                         "home"
                     ) {
@@ -815,9 +897,15 @@ fun AppNavigation() {
                 onAddFriendClick = {},
 
 
+<<<<<<< HEAD
                 onAddFriendSubmit = { _, _ ->
 
                 },
+=======
+                onAddFriendSubmit = {
+                        _,
+                        _ -> },
+>>>>>>> ldk
 
 
                 onAcceptRequest = {},
@@ -1100,6 +1188,7 @@ fun AppNavigation() {
                         }
 
 
+<<<<<<< HEAD
                         "기본 목적지 설정" -> {
 
                             navController.navigate(
@@ -1108,6 +1197,8 @@ fun AppNavigation() {
                         }
 
 
+=======
+>>>>>>> ldk
                         "보호자 등록" -> {
 
                             navController.navigate(
@@ -1207,6 +1298,7 @@ fun AppNavigation() {
 
 
         // ========================================
+<<<<<<< HEAD
         // 기본 목적지 설정
         // ========================================
 
@@ -1308,6 +1400,8 @@ fun AppNavigation() {
 
 
         // ========================================
+=======
+>>>>>>> ldk
         // 공지사항
         // ========================================
 
@@ -1401,13 +1495,18 @@ fun AppNavigation() {
         // 보호자 등록
         // ========================================
 
+<<<<<<< HEAD
         composable(
             "guardian_register"
         ) {
+=======
+        composable("guardian_register") {
+>>>>>>> ldk
 
             GuardianRegisterScreen(
 
                 onBackClick = {
+<<<<<<< HEAD
 
                     navController.popBackStack()
                 },
@@ -1421,15 +1520,31 @@ fun AppNavigation() {
 
                 onDeleteClick = { _ ->
 
+=======
+                    navController.popBackStack()
+                },
+
+                onRegisterClick = { _, _, _ ->
+                    // GuardianRegisterScreen 내부에서 API 처리
+                },
+
+                onDeleteClick = { _ ->
+>>>>>>> ldk
                     // GuardianRegisterScreen 내부에서 API 처리
                 }
             )
         }
+<<<<<<< HEAD
 
 
         // ========================================
         // 프로필 설정
         // ========================================
+=======
+        // ========================================
+// 프로필 설정
+// ========================================
+>>>>>>> ldk
 
         composable(
             "profile_setting"
@@ -1437,16 +1552,24 @@ fun AppNavigation() {
 
             ProfileSettingScreen(
 
+<<<<<<< HEAD
                 memberId =
                     3L,
 
 
+=======
+>>>>>>> ldk
                 onBackClick = {
 
                     navController.popBackStack()
                 }
             )
         }
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> ldk
     }
     // ========================================
     // 로그아웃 확인 팝업
@@ -1510,7 +1633,10 @@ fun AppNavigation() {
                 showEmergencyDialog =
                     false
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ldk
                 navController.navigate(
                     "quack"
                 ) {
