@@ -102,6 +102,10 @@ fun ReportScreen(
     val apiRecords by viewModel.records.collectAsState()
     val topFriend by viewModel.topFriend.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.loadReport()
+    }
+
     // 서버의 경로 선호도 DTO -> 화면용 모델
     val routePreferences = apiRoutePreferences.mapIndexed { index, item ->
 

@@ -1,12 +1,20 @@
 package com.example.clouddx_team4_project.ui.navigation
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.clouddx_team4_project.data.KakaoPlace
+import com.example.clouddx_team4_project.data.TokenManager
+import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.ui.components.EmergencyDialog
 import com.example.clouddx_team4_project.ui.screens.ActiveRouteScreen
+import com.example.clouddx_team4_project.ui.screens.DefaultDestinationScreen
 import com.example.clouddx_team4_project.ui.screens.DestinationSearchScreen
 import com.example.clouddx_team4_project.ui.screens.FriendScreen
 import com.example.clouddx_team4_project.ui.screens.GuardianRegisterScreen
@@ -20,37 +28,64 @@ import com.example.clouddx_team4_project.ui.screens.RouteSelectScreen
 import com.example.clouddx_team4_project.ui.screens.SafeMapScreen
 import com.example.clouddx_team4_project.ui.screens.SafeRouteScreen
 import com.example.clouddx_team4_project.ui.screens.SignUpScreen
-
 import com.example.clouddx_team4_project.ui.screens.more.HelpScreen
 import com.example.clouddx_team4_project.ui.screens.more.InquiryScreen
 import com.example.clouddx_team4_project.ui.screens.more.NoticeScreen
 import com.example.clouddx_team4_project.ui.screens.more.PrivacyPolicyScreen
 import com.example.clouddx_team4_project.ui.screens.more.ServiceIntroScreen
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import com.example.clouddx_team4_project.data.TokenManager
+
 
 @Composable
 fun AppNavigation() {
 
     val context = LocalContext.current
 
-    // 💡 토큰 매니저 초기화 및 유효성 검사
-    val tokenManager = remember { TokenManager(context) }
-    val startDest = if (tokenManager.hasValidToken()) "home" else "login"
+    // ========================================
+    // 로그인 사용자 정보
+    // ========================================
 
-    // 💡 로그아웃 팝업 상태 변수 추가
-    var showLogoutDialog by remember { mutableStateOf(false) }
+    val tokenManager = remember {
+        TokenManager(context)
+    }
+
+    val startDest =
+        if (tokenManager.hasValidToken()) {
+            "home"
+        } else {
+            "login"
+        }
+
+    // 로그인한 사용자 memberId L
+    var currentMemberId by remember {
+        mutableStateOf(tokenManager.getMemberId())
+    }
+
+    // 앱을 다시 실행해서 이미 로그인된 상태여도
+    // Retrofit의 JWT 인터셉터가 TokenManager를 사용할 수 있도록 연결
+    SideEffect {
+        RetrofitClient.tokenManager = tokenManager
+    }
+
+
+    // ========================================
+    // Navigation
+    // ========================================
 
     val navController =
         rememberNavController()
 
 
     // ========================================
-    // 목적지
+    // 로그아웃 팝업
+    // ========================================
+
+    var showLogoutDialog by remember {
+        mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // 안심경로에서 선택한 목적지
     // ========================================
 
     var selectedDestination by remember {
@@ -59,7 +94,7 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 선택 경로
+    // 선택한 경로 모드
     // ========================================
 
     var selectedRouteMode by remember {
@@ -68,7 +103,7 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 안심경로에서 경로 표시 여부
+    // 안심경로 화면에서 선택 경로 표시 여부
     // ========================================
 
     var showSelectedRoute by remember {
@@ -77,11 +112,36 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 긴급구조 팝업
+    // 긴급 구조 팝업
     // ========================================
 
     var showEmergencyDialog by remember {
         mutableStateOf(false)
+    }
+
+
+    // ========================================
+    // 기본 목적지 등록 중
+    // 검색 화면에서 선택한 장소 임시 저장
+    // ========================================
+
+    var pendingDefaultPlace by remember {
+        mutableStateOf<KakaoPlace?>(null)
+    }
+
+
+    // ========================================
+    // 목적지 검색 용도
+    //
+    // ROUTE
+    // -> 일반 안심경로 목적지 검색
+    //
+    // DEFAULT_DESTINATION
+    // -> 기본 목적지 등록용 검색
+    // ========================================
+
+    var destinationSearchMode by remember {
+        mutableStateOf("ROUTE")
     }
 
 
@@ -99,39 +159,38 @@ fun AppNavigation() {
         // 로그인
         // ========================================
 
-        composable(
-            "login"
-        ) {
+        composable("login") {
 
             LoginScreen(
 
-                onLoginClick = {
-                        _,
-                        _ ->
+                onLoginClick = { _, _ ->
 
-                    navController.navigate(
-                        "home"
-                    ) {
+                    // LoginScreen에서 로그인 성공 후 저장한 실제 memberId
+                    val loggedInMemberId =
+                        tokenManager.getMemberId()
 
-                        popUpTo(
-                            "login"
-                        ) {
+                    if (loggedInMemberId != null) {
 
-                            inclusive =
-                                true
+                        currentMemberId =
+                            loggedInMemberId
+
+                        RetrofitClient.tokenManager =
+                            tokenManager
+
+                        navController.navigate("home") {
+
+                            popUpTo("login") {
+                                inclusive = true
+                            }
+
+                            launchSingleTop = true
                         }
-
-                        launchSingleTop =
-                            true
                     }
                 },
 
-
                 onSignUpClick = {
 
-                    navController.navigate(
-                        "signup"
-                    )
+                    navController.navigate("signup")
                 }
             )
         }
@@ -141,9 +200,7 @@ fun AppNavigation() {
         // 회원가입
         // ========================================
 
-        composable(
-            "signup"
-        ) {
+        composable("signup") {
 
             SignUpScreen(
 
@@ -151,7 +208,6 @@ fun AppNavigation() {
 
                     navController.popBackStack()
                 },
-
 
                 onSignUpComplete = {
 
@@ -165,9 +221,7 @@ fun AppNavigation() {
         // 홈
         // ========================================
 
-        composable(
-            "home"
-        ) {
+        composable("home") {
 
             HomeScreen(
 
@@ -175,88 +229,60 @@ fun AppNavigation() {
 
                     when (menu) {
 
-
                         "안심경로" -> {
 
-                            showSelectedRoute =
-                                false
+                            showSelectedRoute = false
 
-                            navController.navigate(
-                                "safe_route"
-                            ) {
-
-                                launchSingleTop =
-                                    true
+                            navController.navigate("safe_route") {
+                                launchSingleTop = true
                             }
                         }
 
 
                         "안심친구" -> {
 
-                            navController.navigate(
-                                "friend"
-                            ) {
-
-                                launchSingleTop =
-                                    true
+                            navController.navigate("friend") {
+                                launchSingleTop = true
                             }
                         }
 
 
                         "꽥꽥이" -> {
 
-                            navController.navigate(
-                                "quack"
-                            ) {
-
-                                launchSingleTop =
-                                    true
+                            navController.navigate("quack") {
+                                launchSingleTop = true
                             }
                         }
 
 
                         "안심지도" -> {
 
-                            navController.navigate(
-                                "safe_map"
-                            ) {
-
-                                launchSingleTop =
-                                    true
+                            navController.navigate("safe_map") {
+                                launchSingleTop = true
                             }
                         }
 
 
                         "사용 리포트" -> {
 
-                            navController.navigate(
-                                "report"
-                            ) {
-
-                                launchSingleTop =
-                                    true
+                            navController.navigate("report") {
+                                launchSingleTop = true
                             }
                         }
 
 
                         "더보기" -> {
 
-                            navController.navigate(
-                                "more"
-                            ) {
-
-                                launchSingleTop =
-                                    true
+                            navController.navigate("more") {
+                                launchSingleTop = true
                             }
                         }
                     }
                 },
 
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog =
-                        true
+                    showEmergencyDialog = true
                 }
             )
         }
@@ -266,67 +292,136 @@ fun AppNavigation() {
         // 안심경로
         // ========================================
 
-        composable(
-            "safe_route"
-        ) {
+        composable("safe_route") {
+
+            val memberId =
+                currentMemberId ?: return@composable
 
             SafeRouteScreen(
+
+                memberId = memberId,
+
                 destinationName =
                     selectedDestination
                         ?.placeName
                         ?: "",
-
 
                 destinationLatitude =
                     selectedDestination
                         ?.latitude
                         ?.toDoubleOrNull(),
 
-
                 destinationLongitude =
                     selectedDestination
                         ?.longitude
                         ?.toDoubleOrNull(),
 
-
                 showSelectedRoute =
                     showSelectedRoute,
-
 
                 selectedRouteMode =
                     selectedRouteMode,
 
 
+                // 뒤로가기
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
 
+                // 현재 위치
                 onStartSearchClick = {
-                    // 현재 위치 고정
+
+                    // SafeRouteScreen 내부에서
+                    // GPS 현재 위치 처리
                 },
+
+
+                // ========================================
+                // 일반 목적지 검색
+                // ========================================
 
                 onDestinationSearchClick = {
 
-                    showSelectedRoute =
-                        false
+                    showSelectedRoute = false
+
+                    destinationSearchMode =
+                        "ROUTE"
+
                     navController.navigate(
                         "destination_search"
                     )
                 },
 
+
+                // ========================================
+                // 경로 검색
+                // ========================================
+
                 onRouteSearchClick = {
 
-                    if (
-                        selectedDestination != null
-                    ) {
+                    if (selectedDestination != null) {
 
                         navController.navigate(
                             "route_select"
                         )
                     }
                 },
+
+
+                // ========================================
+                // 기본 목적지 선택
+                //
+                // 예:
+                // 집 버튼 -> 방배역
+                // 방배역을 실제 목적지로 설정
+                // ========================================
+
+                onDefaultDestinationSelected = {
+                        placeName,
+                        address,
+                        latitude,
+                        longitude ->
+
+                    selectedDestination =
+                        KakaoPlace(
+
+                            id =
+                                "default_destination",
+
+                            placeName =
+                                placeName,
+
+                            addressName =
+                                address,
+
+                            roadAddressName =
+                                address,
+
+                            longitude =
+                                longitude.toString(),
+
+                            latitude =
+                                latitude.toString()
+                        )
+
+                    showSelectedRoute = false
+
+                    // 기본 목적지를 선택하면
+                    // 일반 검색과 동일하게 경로 선택 화면으로 이동
+                    navController.navigate(
+                        "route_select"
+                    ) {
+
+                        launchSingleTop = true
+                    }
+                },
+
+
+                // ========================================
+                // 지도에서 직접 목적지 선택
+                // ========================================
 
                 onMapDestinationSelected = {
                         latitude,
@@ -353,41 +448,36 @@ fun AppNavigation() {
                             latitude =
                                 latitude.toString()
                         )
+
+                    showSelectedRoute = false
                 },
+
+
+                // ========================================
+                // 하단 메뉴
+                // ========================================
 
                 onTabSelected = { tab ->
 
                     when (tab) {
 
-
                         "홈" -> {
 
-                            navController.navigate(
-                                "home"
-                            ) {
+                            navController.navigate("home") {
 
-                                popUpTo(
-                                    "home"
-                                ) {
-
-                                    inclusive =
-                                        false
+                                popUpTo("home") {
+                                    inclusive = false
                                 }
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
 
 
                         "더보기" -> {
 
-                            navController.navigate(
-                                "more"
-                            ) {
-
-                                launchSingleTop =
-                                    true
+                            navController.navigate("more") {
+                                launchSingleTop = true
                             }
                         }
                     }
@@ -396,8 +486,7 @@ fun AppNavigation() {
 
                 onEmergencyClick = {
 
-                    showEmergencyDialog =
-                        true
+                    showEmergencyDialog = true
                 }
             )
         }
@@ -407,9 +496,7 @@ fun AppNavigation() {
         // 목적지 검색
         // ========================================
 
-        composable(
-            "destination_search"
-        ) {
+        composable("destination_search") {
 
             DestinationSearchScreen(
 
@@ -421,26 +508,50 @@ fun AppNavigation() {
 
                 onPlaceSelected = { place ->
 
-                    selectedDestination =
-                        place
 
-                    showSelectedRoute =
-                        false
+                    // ========================================
+                    // 일반 안심경로 목적지 검색
+                    // ========================================
 
-                    navController.navigate(
-                        "route_select"
+                    if (
+                        destinationSearchMode ==
+                        "ROUTE"
                     ) {
 
-                        popUpTo(
-                            "destination_search"
+                        selectedDestination =
+                            place
+
+                        showSelectedRoute =
+                            false
+
+                        navController.navigate(
+                            "route_select"
                         ) {
 
-                            inclusive =
-                                true
+                            popUpTo(
+                                "destination_search"
+                            ) {
+                                inclusive = true
+                            }
+
+                            launchSingleTop = true
                         }
 
-                        launchSingleTop =
-                            true
+
+                    } else {
+
+
+                        // ========================================
+                        // 기본 목적지 등록용 검색
+                        //
+                        // 장소 선택
+                        // -> 기본 목적지 화면으로 돌아감
+                        // ========================================
+
+                        pendingDefaultPlace =
+                            place
+
+                        navController.popBackStack()
                     }
                 }
             )
@@ -451,9 +562,7 @@ fun AppNavigation() {
         // 경로 선택
         // ========================================
 
-        composable(
-            "route_select"
-        ) {
+        composable("route_select") {
 
             RouteSelectScreen(
 
@@ -465,18 +574,15 @@ fun AppNavigation() {
                         ?.placeName
                         ?: "목적지",
 
-
                 destinationLatitude =
                     selectedDestination
                         ?.latitude
                         ?.toDoubleOrNull(),
 
-
                 destinationLongitude =
                     selectedDestination
                         ?.longitude
                         ?.toDoubleOrNull(),
-
 
                 onBackClick = {
 
@@ -484,6 +590,9 @@ fun AppNavigation() {
                 },
 
 
+                // ========================================
+                // 빠른길
+                // ========================================
 
                 onFastRouteClick = {
 
@@ -494,15 +603,32 @@ fun AppNavigation() {
                         "active_route"
                     ) {
 
-                        launchSingleTop =
-                            true
+                        launchSingleTop = true
                     }
                 },
 
-                onBrightRouteClick = {
 
-                    // 현재 비활성화
+                // ========================================
+                // AI 안전경로
+                // ========================================
+
+                onAiSafeRouteClick = {
+
+                    selectedRouteMode =
+                        "AI_SAFE"
+
+                    navController.navigate(
+                        "active_route"
+                    ) {
+
+                        launchSingleTop = true
+                    }
                 },
+
+
+                // ========================================
+                // 대로변 우선
+                // ========================================
 
                 onBroadRouteClick = {
 
@@ -513,8 +639,7 @@ fun AppNavigation() {
                         "active_route"
                     ) {
 
-                        launchSingleTop =
-                            true
+                        launchSingleTop = true
                     }
                 }
             )
@@ -525,9 +650,7 @@ fun AppNavigation() {
         // 귀가 진행 중
         // ========================================
 
-        composable(
-            "active_route"
-        ) {
+        composable("active_route") {
 
             ActiveRouteScreen(
 
@@ -536,35 +659,28 @@ fun AppNavigation() {
                         ?.placeName
                         ?: "목적지",
 
-
                 destinationLatitude =
                     selectedDestination
                         ?.latitude
                         ?.toDoubleOrNull(),
-
 
                 destinationLongitude =
                     selectedDestination
                         ?.longitude
                         ?.toDoubleOrNull(),
 
-
                 routeMode =
                     selectedRouteMode,
-
 
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog =
-                        true
+                    showEmergencyDialog = true
                 },
-
 
                 onQuackClick = {
 
@@ -572,11 +688,9 @@ fun AppNavigation() {
                         "quack"
                     ) {
 
-                        launchSingleTop =
-                            true
+                        launchSingleTop = true
                     }
                 },
-
 
                 onFinishClick = {
 
@@ -590,16 +704,11 @@ fun AppNavigation() {
                         "home"
                     ) {
 
-                        popUpTo(
-                            "home"
-                        ) {
-
-                            inclusive =
-                                false
+                        popUpTo("home") {
+                            inclusive = false
                         }
 
-                        launchSingleTop =
-                            true
+                        launchSingleTop = true
                     }
                 }
             )
@@ -610,9 +719,7 @@ fun AppNavigation() {
         // 안심친구
         // ========================================
 
-        composable(
-            "friend"
-        ) {
+        composable("friend") {
 
             FriendScreen(
 
@@ -621,13 +728,11 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
 
-
                 onAddFriendClick = {},
 
+                onAddFriendSubmit = { _, _ ->
 
-                onAddFriendSubmit = {
-                        _,
-                        _ -> },
+                },
 
                 onAcceptRequest = {},
 
@@ -637,11 +742,9 @@ fun AppNavigation() {
 
                 onLocationClick = {},
 
-
                 onTabSelected = { tab ->
 
                     when (tab) {
-
 
                         "홈" -> {
 
@@ -649,16 +752,11 @@ fun AppNavigation() {
                                 "home"
                             ) {
 
-                                popUpTo(
-                                    "home"
-                                ) {
-
-                                    inclusive =
-                                        false
+                                popUpTo("home") {
+                                    inclusive = false
                                 }
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
 
@@ -669,18 +767,15 @@ fun AppNavigation() {
                                 "more"
                             ) {
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
                     }
                 },
 
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog =
-                        true
+                    showEmergencyDialog = true
                 }
             )
         }
@@ -690,9 +785,7 @@ fun AppNavigation() {
         // 꽥꽥이
         // ========================================
 
-        composable(
-            "quack"
-        ) {
+        composable("quack") {
 
             QuackScreen(
 
@@ -701,17 +794,14 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
 
-
                 onStopClick = {
 
                     navController.popBackStack()
                 },
 
-
                 onTabSelected = { tab ->
 
                     when (tab) {
-
 
                         "홈" -> {
 
@@ -719,16 +809,11 @@ fun AppNavigation() {
                                 "home"
                             ) {
 
-                                popUpTo(
-                                    "home"
-                                ) {
-
-                                    inclusive =
-                                        false
+                                popUpTo("home") {
+                                    inclusive = false
                                 }
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
 
@@ -739,18 +824,15 @@ fun AppNavigation() {
                                 "more"
                             ) {
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
                     }
                 },
 
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog =
-                        true
+                    showEmergencyDialog = true
                 }
             )
         }
@@ -760,9 +842,7 @@ fun AppNavigation() {
         // 사용 리포트
         // ========================================
 
-        composable(
-            "report"
-        ) {
+        composable("report") {
 
             ReportScreen(
 
@@ -770,23 +850,17 @@ fun AppNavigation() {
 
                     when (tab) {
 
-
                         "홈" -> {
 
                             navController.navigate(
                                 "home"
                             ) {
 
-                                popUpTo(
-                                    "home"
-                                ) {
-
-                                    inclusive =
-                                        false
+                                popUpTo("home") {
+                                    inclusive = false
                                 }
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
 
@@ -797,18 +871,15 @@ fun AppNavigation() {
                                 "more"
                             ) {
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
                     }
                 },
 
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog =
-                        true
+                    showEmergencyDialog = true
                 }
             )
         }
@@ -818,26 +889,21 @@ fun AppNavigation() {
         // 안심지도
         // ========================================
 
-        composable(
-            "safe_map"
-        ) {
+        composable("safe_map") {
 
             SafeMapScreen(
 
                 currentLocationText =
                     "현재 위치 확인 중",
 
-
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
-
                 onTabSelected = { tab ->
 
                     when (tab) {
-
 
                         "홈" -> {
 
@@ -845,16 +911,11 @@ fun AppNavigation() {
                                 "home"
                             ) {
 
-                                popUpTo(
-                                    "home"
-                                ) {
-
-                                    inclusive =
-                                        false
+                                popUpTo("home") {
+                                    inclusive = false
                                 }
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
 
@@ -865,18 +926,15 @@ fun AppNavigation() {
                                 "more"
                             ) {
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
                     }
                 },
 
-
                 onEmergencyClick = {
 
-                    showEmergencyDialog =
-                        true
+                    showEmergencyDialog = true
                 }
             )
         }
@@ -886,20 +944,29 @@ fun AppNavigation() {
         // 더보기
         // ========================================
 
-        composable(
-            "more"
-        ) {
+        composable("more") {
 
             MoreScreen(
 
                 onMenuClick = { menu ->
 
                     when (menu) {
-                        // 💡 로그아웃 메뉴 클릭 시 팝업 띄우기
+
+
+                        // ========================================
+                        // 로그아웃
+                        // ========================================
+
                         "로그아웃" -> {
-                            showLogoutDialog = true
+
+                            showLogoutDialog =
+                                true
                         }
 
+
+                        // ========================================
+                        // 프로필
+                        // ========================================
 
                         "프로필 설정" -> {
 
@@ -908,6 +975,22 @@ fun AppNavigation() {
                             )
                         }
 
+
+                        // ========================================
+                        // 기본 목적지 설정
+                        // ========================================
+
+                        "기본 목적지 설정" -> {
+
+                            navController.navigate(
+                                "default_destination"
+                            )
+                        }
+
+
+                        // ========================================
+                        // 보호자 등록
+                        // ========================================
 
                         "보호자 등록" -> {
 
@@ -958,17 +1041,14 @@ fun AppNavigation() {
                     }
                 },
 
-
                 onSettingsClick = {
 
                     // 설정 화면 추후 연결
                 },
 
-
                 onTabSelected = { tab ->
 
                     when (tab) {
-
 
                         "홈" -> {
 
@@ -976,16 +1056,11 @@ fun AppNavigation() {
                                 "home"
                             ) {
 
-                                popUpTo(
-                                    "home"
-                                ) {
-
-                                    inclusive =
-                                        false
+                                popUpTo("home") {
+                                    inclusive = false
                                 }
 
-                                launchSingleTop =
-                                    true
+                                launchSingleTop = true
                             }
                         }
 
@@ -997,7 +1072,6 @@ fun AppNavigation() {
                     }
                 },
 
-
                 onEmergencyClick = {
 
                     showEmergencyDialog =
@@ -1008,12 +1082,112 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 공지사항
+        // 기본 목적지 설정
         // ========================================
 
         composable(
-            "notice"
+            "default_destination"
         ) {
+
+            val memberId =
+                currentMemberId ?: return@composable
+
+            DefaultDestinationScreen(
+
+                memberId =
+                    memberId,
+
+                onBackClick = {
+
+                    pendingDefaultPlace =
+                        null
+
+                    navController.popBackStack()
+                },
+
+
+                // ========================================
+                // 새 기본 목적지 등록
+                // 장소 검색 화면 이동
+                // ========================================
+
+                onSearchPlaceClick = {
+
+                    pendingDefaultPlace =
+                        null
+
+                    destinationSearchMode =
+                        "DEFAULT_DESTINATION"
+
+                    navController.navigate(
+                        "destination_search"
+                    )
+                },
+
+
+                // ========================================
+                // 검색한 장소명
+                // ========================================
+
+                selectedPlaceName =
+                    pendingDefaultPlace
+                        ?.placeName,
+
+
+                // ========================================
+                // 도로명 주소 우선
+                // ========================================
+
+                selectedAddress =
+
+                    pendingDefaultPlace
+                        ?.roadAddressName
+                        ?.takeIf {
+                            it.isNotBlank()
+                        }
+
+                        ?: pendingDefaultPlace
+                            ?.addressName,
+
+
+                // ========================================
+                // 위도
+                // ========================================
+
+                selectedLatitude =
+                    pendingDefaultPlace
+                        ?.latitude
+                        ?.toDoubleOrNull(),
+
+
+                // ========================================
+                // 경도
+                // ========================================
+
+                selectedLongitude =
+                    pendingDefaultPlace
+                        ?.longitude
+                        ?.toDoubleOrNull(),
+
+
+                // ========================================
+                // 기본 목적지 저장 후 초기화
+                // ========================================
+
+                onDestinationSaved = {
+
+                    pendingDefaultPlace =
+                        null
+                }
+            )
+        }
+
+
+        // ========================================
+        // 공지사항
+        // ========================================
+
+        composable("notice") {
 
             NoticeScreen(
 
@@ -1029,9 +1203,7 @@ fun AppNavigation() {
         // 문의하기
         // ========================================
 
-        composable(
-            "inquiry"
-        ) {
+        composable("inquiry") {
 
             InquiryScreen(
 
@@ -1047,9 +1219,7 @@ fun AppNavigation() {
         // 도움말
         // ========================================
 
-        composable(
-            "help"
-        ) {
+        composable("help") {
 
             HelpScreen(
 
@@ -1065,9 +1235,7 @@ fun AppNavigation() {
         // 서비스 소개
         // ========================================
 
-        composable(
-            "service_intro"
-        ) {
+        composable("service_intro") {
 
             ServiceIntroScreen(
 
@@ -1083,9 +1251,7 @@ fun AppNavigation() {
         // 개인정보처리방침
         // ========================================
 
-        composable(
-            "privacy_policy"
-        ) {
+        composable("privacy_policy") {
 
             PrivacyPolicyScreen(
 
@@ -1100,32 +1266,42 @@ fun AppNavigation() {
         // ========================================
         // 보호자 등록
         // ========================================
+
         composable("guardian_register") {
+
             GuardianRegisterScreen(
 
                 onBackClick = {
+
                     navController.popBackStack()
                 },
 
                 onRegisterClick = { _, _, _ ->
+
                     // GuardianRegisterScreen 내부에서 API 처리
                 },
 
                 onDeleteClick = { _ ->
+
                     // GuardianRegisterScreen 내부에서 API 처리
                 }
             )
         }
+
+
         // ========================================
         // 프로필 설정
         // ========================================
 
+        composable("profile_setting") {
 
-        composable(
-            "profile_setting"
-        ) {
+            val memberId =
+                currentMemberId ?: return@composable
 
             ProfileSettingScreen(
+
+                memberId =
+                    memberId,
 
                 onBackClick = {
 
@@ -1134,34 +1310,89 @@ fun AppNavigation() {
             )
         }
     }
+
+
     // ========================================
     // 로그아웃 확인 팝업
     // ========================================
+
     if (showLogoutDialog) {
+
         AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text(text = "로그아웃", fontWeight = FontWeight.Bold) },
-            text = { Text(text = "정말 로그아웃 하시겠습니까?") },
+
+            onDismissRequest = {
+
+                showLogoutDialog =
+                    false
+            },
+
+            title = {
+
+                Text(
+                    text = "로그아웃",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+
+            text = {
+
+                Text(
+                    text = "정말 로그아웃 하시겠습니까?"
+                )
+            },
+
             confirmButton = {
+
                 TextButton(
+
                     onClick = {
-                        showLogoutDialog = false
-                        // 💡 토큰 삭제
+
+                        showLogoutDialog =
+                            false
+
+                        // JWT 삭제
                         tokenManager.clearToken()
 
-                        // 💡 백스택(이전 화면 기록)을 모두 날리고 로그인 화면으로 이동
-                        navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
-                            launchSingleTop = true
+                        currentMemberId = null
+
+                        navController.navigate(
+                            "login"
+                        ) {
+
+                            popUpTo(0) {
+                                inclusive = true
+                            }
+
+                            launchSingleTop =
+                                true
                         }
                     }
                 ) {
-                    Text("로그아웃", color = androidx.compose.ui.graphics.Color.Red)
+
+                    Text(
+                        text = "로그아웃",
+                        color =
+                            androidx.compose.ui.graphics.Color.Red
+                    )
                 }
             },
+
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("취소", color = androidx.compose.ui.graphics.Color.Black)
+
+                TextButton(
+
+                    onClick = {
+
+                        showLogoutDialog =
+                            false
+                    }
+                ) {
+
+                    Text(
+                        text = "취소",
+                        color =
+                            androidx.compose.ui.graphics.Color.Black
+                    )
                 }
             }
         )
@@ -1172,9 +1403,7 @@ fun AppNavigation() {
     // 공용 긴급구조 팝업
     // ========================================
 
-    if (
-        showEmergencyDialog
-    ) {
+    if (showEmergencyDialog) {
 
         EmergencyDialog(
 
@@ -1184,17 +1413,16 @@ fun AppNavigation() {
                     false
             },
 
-
             onEmergencyConfirmed = {
 
-                // 나중에 실제 긴급신고 API 연결
+                // 추후 긴급신고 API 연결
             },
-
 
             onQuackClick = {
 
                 showEmergencyDialog =
                     false
+
                 navController.navigate(
                     "quack"
                 ) {
