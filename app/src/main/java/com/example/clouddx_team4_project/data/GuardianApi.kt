@@ -11,58 +11,23 @@ import retrofit2.http.*
 
 interface GuardianApi {
 
-<<<<<<< HEAD
-    @POST("/api/guardians")
-=======
+
     @POST("api/guardians")
->>>>>>> ldk
     suspend fun registerGuardian(
         @Body request: GuardianRequest
     ): GuardianResponse
 
-<<<<<<< HEAD
-    @GET("/api/guardians")
-=======
     @GET("api/guardians")
->>>>>>> ldk
     suspend fun getGuardians(
         @Query("memberId") memberId: Long
     ): List<GuardianResponse>
 
-<<<<<<< HEAD
-    @DELETE("/api/guardians/{guardianId}")
-=======
     @DELETE("api/guardians/{guardianId}")
->>>>>>> ldk
     suspend fun deleteGuardian(
         @Path("guardianId") guardianId: Long
     )
 }
 
-
-// ========================================
-<<<<<<< HEAD
-// Retrofit Client
-// ========================================
-
-object GuardianApiClient {
-
-    // PuTTY 터널 + adb reverse 로 연결되는 주소
-    private const val BASE_URL = "http://localhost:8081/"
-
-    val api: GuardianApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(GuardianApi::class.java)
-    }
-}
-
-
-// ========================================
-=======
->>>>>>> ldk
 // 요청 / 응답 모델
 //
 // 백엔드 JSON 키(guardianId, guardianName 등)와

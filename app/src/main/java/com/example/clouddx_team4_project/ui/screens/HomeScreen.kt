@@ -30,19 +30,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-<<<<<<< HEAD
-=======
 import androidx.compose.ui.platform.LocalContext
->>>>>>> ldk
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.clouddx_team4_project.R
-<<<<<<< HEAD
-=======
 import com.example.clouddx_team4_project.data.TokenManager
->>>>>>> ldk
 import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
@@ -79,10 +73,6 @@ data class HomeServiceItem(
 fun HomeScreen(
 
     // 로그인 기능 완성 전 테스트 회원
-<<<<<<< HEAD
-    memberId: Long = 3L,
-=======
->>>>>>> ldk
 
     onMenuClick: (String) -> Unit = {},
 
@@ -92,11 +82,9 @@ fun HomeScreen(
 
     val dimens =
         rememberResponsiveDimens()
-<<<<<<< HEAD
-=======
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
->>>>>>> ldk
+
 
 
     // ========================================
@@ -118,17 +106,14 @@ fun HomeScreen(
     // ========================================
 
     LaunchedEffect(
-<<<<<<< HEAD
-        memberId
-=======
+
         Unit
->>>>>>> ldk
+
     ) {
 
         try {
 
-<<<<<<< HEAD
-=======
+
             val currentMemberId = tokenManager.getMemberId()
             android.util.Log.d("DEBUG_ID", "저장된 내 memberId: $currentMemberId")
             if (currentMemberId == null) {
@@ -137,16 +122,12 @@ fun HomeScreen(
                 return@LaunchedEffect
             }
 
->>>>>>> ldk
+
             val profile =
                 RetrofitClient
                     .memberApi
                     .getProfile(
-<<<<<<< HEAD
-                        memberId
-=======
                         currentMemberId
->>>>>>> ldk
                     )
 
 
@@ -161,13 +142,9 @@ fun HomeScreen(
         } catch (
             e: Exception
         ) {
-<<<<<<< HEAD
 
-            e.printStackTrace()
-
-=======
             android.util.Log.e("PROFILE_ERROR", "프로필 통신 실패 원인 : ${e.message}", e)
->>>>>>> ldk
+
 
             userName =
                 "사용자"
