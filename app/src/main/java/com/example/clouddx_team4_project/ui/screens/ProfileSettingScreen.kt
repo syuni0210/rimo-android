@@ -1,5 +1,6 @@
 package com.example.clouddx_team4_project.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -41,12 +42,13 @@ private val ProfileTextGray =
 @Composable
 fun ProfileSettingScreen(
 
-    // 로그인 완성 전 테스트 회원
-    memberId: Long = 3L,
+    memberId: Long,
 
     onBackClick: () -> Unit = {}
 
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val tokenManager = remember { com.example.clouddx_team4_project.data.TokenManager(context) }
 
     var memberName by remember {
         mutableStateOf("")
@@ -85,9 +87,7 @@ fun ProfileSettingScreen(
     // 프로필 조회
     // ========================================
 
-    LaunchedEffect(
-        memberId
-    ) {
+    LaunchedEffect(Unit) {
 
         isLoading =
             true
@@ -97,23 +97,16 @@ fun ProfileSettingScreen(
 
 
         try {
+            val currentMemberId = tokenManager.getMemberId()
 
-            val profile =
-                RetrofitClient
-                    .memberApi
-                    .getProfile(
-                        memberId
-                    )
-
-
-            memberName =
-                profile.memberName
-
-            loginId =
-                profile.loginId
-
-            email =
-                profile.email
+            if(currentMemberId != null) {
+                val profile = RetrofitClient.memberApi.getProfile(currentMemberId)
+                memberName = profile.memberName
+                loginId = profile.loginId
+                email = profile.email
+            } else {
+                errorMessage = "로그인 정보가 없습니다."
+            }
 
 
         } catch (
@@ -526,55 +519,36 @@ fun ProfileSettingScreen(
 
                             try {
 
-                                val response =
-                                    RetrofitClient
-                                        .memberApi
-                                        .updateProfile(
+                                val currentMemberId = tokenManager.getMemberId()
 
-                                            memberId =
-                                                memberId,
+                                if (currentMemberId != null) {
 
-                                            request =
-                                                ProfileUpdateRequest(
-                                                    memberName =
-                                                        memberName.trim(),
-
-                                                    email =
-                                                        email.trim()
-                                                )
+                                    val response =
+                                        RetrofitClient.memberApi.updateProfile(
+                                            memberId = currentMemberId,
+                                            request = ProfileUpdateRequest(
+                                                memberName = memberName.trim(),
+                                                email = email.trim()
+                                            )
                                         )
-
-
-                                if (
-                                    response.isSuccessful
-                                ) {
-
-                                    showSuccessDialog =
-                                        true
-
+                                if (response.isSuccessful) {
+                                showSuccessDialog = true
                                 } else {
-
-                                    errorMessage =
-                                        "프로필 수정에 실패했습니다."
+                                    errorMessage = "프로필 수정에 실패했습니다."
                                 }
-
-
+                                } else {
+                                    errorMessage = "로그인 정보가 없습니다."
+                                }
                             } catch (
                                 e: Exception
                             ) {
-
-                                errorMessage =
-                                    "서버와 통신할 수 없습니다."
-
+                                errorMessage = "서버와 통신할 수 없습니다."
                                 e.printStackTrace()
-
                             } finally {
-
-                                isSaving =
-                                    false
+                                isSaving = false
                             }
-                        }
-                    },
+                                }
+                            },
 
                     enabled =
                         !isSaving,

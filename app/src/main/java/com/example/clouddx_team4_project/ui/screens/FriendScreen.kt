@@ -32,6 +32,7 @@ import com.example.clouddx_team4_project.ui.components.AnOnBottomBar
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.clouddx_team4_project.data.TokenManager
 
 // ========================================
 // 색상
@@ -124,7 +125,8 @@ fun FriendScreen(
     // ========================================
 
     val context = LocalContext.current
-
+    val tokenManager = remember { TokenManager(context) }
+    val currentMemberId = tokenManager.getMemberId() ?: 0L
     var locationSharingStates by remember {
         mutableStateOf<Map<Long, Boolean>>(emptyMap())
     }
@@ -140,7 +142,7 @@ fun FriendScreen(
     }
 
     LaunchedEffect(Unit) {
-        friendViewModel.loadAll()
+        friendViewModel.loadAll(currentMemberId)
     }
 
     LaunchedEffect(friendViewModel.message) {
@@ -465,7 +467,8 @@ fun FriendScreen(
                         onAccept = {
 
                             friendViewModel.acceptRequest(
-                                request.friendId
+                                currentMemberId = currentMemberId,
+                                friendId = request.friendId
                             )
 
                             onAcceptRequest(
@@ -477,7 +480,8 @@ fun FriendScreen(
                         onReject = {
 
                             friendViewModel.rejectRequest(
-                                request.friendId
+                                currentMemberId = currentMemberId,
+                                friendId = request.friendId
                             )
 
                             onRejectRequest(
@@ -589,7 +593,8 @@ fun FriendScreen(
                         onCancel = {
 
                             friendViewModel.cancelSentRequest(
-                                request.friendId
+                                currentMemberId = currentMemberId,
+                                friendId = request.friendId
                             )
                         }
                     )
@@ -695,7 +700,8 @@ fun FriendScreen(
                     onDeleteClick = {
 
                         friendViewModel.deleteFriend(
-                            friend.memberId
+                            currentMemberId = currentMemberId,
+                            friendMemberId = friend.memberId
                         )
 
                         onDeleteFriend(
@@ -760,6 +766,7 @@ fun FriendScreen(
                 onAddClick = { name, id ->
 
                     friendViewModel.sendFriendRequest(
+                        currentMemberId = currentMemberId,
                         name = name,
                         loginId = id
                     )

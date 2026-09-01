@@ -16,10 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.clouddx_team4_project.data.TokenManager
 import com.example.clouddx_team4_project.network.DestinationCreateRequest
 import com.example.clouddx_team4_project.network.DestinationResponse
 import com.example.clouddx_team4_project.network.RetrofitClient
@@ -49,13 +51,20 @@ private val DestinationBorder =
 @Composable
 fun DefaultDestinationScreen(
 
-    memberId: Long = 3L,
+    // ========================================
+    // 로그인 사용자
+    // ========================================
+
+    memberId: Long,
+
 
     onBackClick: () -> Unit = {},
+
 
     // 목적지 등록 버튼 클릭
     // → 장소 검색 화면 이동
     onSearchPlaceClick: () -> Unit = {},
+
 
     // 검색 후 선택한 장소 정보
     selectedPlaceName: String? = null,
@@ -66,6 +75,7 @@ fun DefaultDestinationScreen(
 
     selectedLongitude: Double? = null,
 
+
     // 저장/취소 후 Navigation에 있는
     // 임시 선택 장소 초기화
     onDestinationSaved: () -> Unit = {}
@@ -74,7 +84,9 @@ fun DefaultDestinationScreen(
 
     val coroutineScope =
         rememberCoroutineScope()
-
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
+    val memberId = tokenManager.getMemberId() ?: -1L
 
     // ========================================
     // DB에서 불러온 목적지 목록

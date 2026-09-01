@@ -24,4 +24,135 @@ interface ReportApi {
     suspend fun getTopFriend(
         @Query("memberId") memberId: Long
     ): TopFriendDto
+
+    // ========================================
+// 안심지도 - CCTV 조회
+// ========================================
+
+    @GET("api/report/cctv")
+    suspend fun getCctv(
+
+        @Query("swLat")
+        swLat: Double,
+
+        @Query("swLng")
+        swLng: Double,
+
+        @Query("neLat")
+        neLat: Double,
+
+        @Query("neLng")
+        neLng: Double
+
+    ): List<FacilityMapDto>
+
+
+// ========================================
+// 안심지도 - 스마트 가로등 조회
+// ========================================
+
+    @GET("api/report/smart-light")
+    suspend fun getSmartLight(
+
+        @Query("swLat")
+        swLat: Double,
+
+        @Query("swLng")
+        swLng: Double,
+
+        @Query("neLat")
+        neLat: Double,
+
+        @Query("neLng")
+        neLng: Double
+
+    ): List<FacilityMapDto>
+
+
+// ========================================
+// 안심지도 - 지킴이집 조회
+// ========================================
+
+    @GET("api/report/safe-house")
+    suspend fun getSafeHouse(
+
+        @Query("swLat")
+        swLat: Double,
+
+        @Query("swLng")
+        swLng: Double,
+
+        @Query("neLat")
+        neLat: Double,
+
+        @Query("neLng")
+        neLng: Double
+
+    ): List<FacilityMapDto>
+
+
+// ========================================
+// 안심지도 - 지구대 / 파출소 조회
+// ========================================
+
+    @GET("api/report/police")
+    suspend fun getPolice(
+
+        @Query("swLat")
+        swLat: Double,
+
+        @Query("swLng")
+        swLng: Double,
+
+        @Query("neLat")
+        neLat: Double,
+
+        @Query("neLng")
+        neLng: Double
+
+    ): List<FacilityMapDto>
+
+
+// ========================================
+// 안심지도 - 비상벨 조회
+// ========================================
+
+    @GET("api/report/emergency-bell")
+    suspend fun getEmergencyBell(
+
+        @Query("swLat")
+        swLat: Double,
+
+        @Query("swLng")
+        swLng: Double,
+
+        @Query("neLat")
+        neLat: Double,
+
+        @Query("neLng")
+        neLng: Double
+
+    ): List<FacilityMapDto>
+
+
+// ========================================
+// 안심지도 - 보안등 조회
+// ========================================
+
+    @GET("api/report/security-light")
+    suspend fun getSecurityLight(
+
+        @Query("swLat")
+        swLat: Double,
+
+        @Query("swLng")
+        swLng: Double,
+
+        @Query("neLat")
+        neLat: Double,
+
+        @Query("neLng")
+        neLng: Double
+
+    ): List<FacilityMapDto>
 }
