@@ -7,7 +7,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -25,6 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.clouddx_team4_project.data.KakaoDirectionsClient
+import com.example.clouddx_team4_project.network.AiSafeRouteRequest
+import com.example.clouddx_team4_project.network.AiSafeRouteResponse
+import com.example.clouddx_team4_project.network.RetrofitClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -49,7 +51,7 @@ private val RouteBorderGray =
 
 
 // ========================================
-// API 경로 정보
+// 일반 경로 정보
 // ========================================
 
 private data class RouteInfo(
@@ -73,14 +75,14 @@ fun RouteSelectScreen(
 
     destinationLongitude: Double? = null,
 
-
     onBackClick: () -> Unit = {},
 
     onFastRouteClick: () -> Unit = {},
 
-    onBrightRouteClick: () -> Unit = {},
+    onAiSafeRouteClick: () -> Unit = {},
 
     onBroadRouteClick: () -> Unit = {}
+
 ) {
 
     val context =
@@ -111,7 +113,7 @@ fun RouteSelectScreen(
 
 
     // ========================================
-    // 실제 경로 결과
+    // 빠른길 / 대로변
     // ========================================
 
     var fastRouteInfo by remember {
@@ -120,6 +122,15 @@ fun RouteSelectScreen(
 
     var broadRouteInfo by remember {
         mutableStateOf<RouteInfo?>(null)
+    }
+
+
+    // ========================================
+    // 실제 AI 안전경로 응답
+    // ========================================
+
+    var aiSafeRouteInfo by remember {
+        mutableStateOf<AiSafeRouteResponse?>(null)
     }
 
 
@@ -135,9 +146,13 @@ fun RouteSelectScreen(
         mutableStateOf<String?>(null)
     }
 
+    var showAiReasonDialog by remember {
+        mutableStateOf(false)
+    }
+
 
     // ========================================
-    // 권한
+    // 위치 권한
     // ========================================
 
     val hasLocationPermission =
@@ -154,7 +169,7 @@ fun RouteSelectScreen(
 
 
     // ========================================
-    // 현재 GPS
+    // 현재 GPS 한 번 조회
     // ========================================
 
     @SuppressLint("MissingPermission")
@@ -226,7 +241,7 @@ fun RouteSelectScreen(
 
 
     // ========================================
-    // 실제 경로 두 개 요청
+    // 빠른길 + 대로변 + AI 안전경로 조회
     // ========================================
 
     LaunchedEffect(
@@ -248,7 +263,6 @@ fun RouteSelectScreen(
 
         val endLat =
             destinationLatitude
-
 
         val endLng =
             destinationLongitude
@@ -356,28 +370,65 @@ fun RouteSelectScreen(
                 }
 
 
+            // ========================================
+            // AI 안전경로
+            //
+            // Android → route-api
+            // → Kakao 후보 경로
+            // → data-api 안전시설
+            // → 안전점수
+            // → Gemini 추천 이유
+            // ========================================
+
+            val aiDeferred =
+                async {
+
+                    RetrofitClient
+                        .aiSafeRouteApi
+                        .getAiSafeRoute(
+
+                            AiSafeRouteRequest(
+
+                                startLatitude =
+                                    startLat,
+
+                                startLongitude =
+                                    startLng,
+
+                                destinationLatitude =
+                                    endLat,
+
+                                destinationLongitude =
+                                    endLng
+                            )
+                        )
+                }
+
+
             val fastResponse =
                 fastDeferred.await()
-
 
             val broadResponse =
                 broadDeferred.await()
 
+            val aiResponse =
+                aiDeferred.await()
+
 
             // ========================================
-            // 빠른길 데이터
+            // 빠른길
             // ========================================
 
             fastResponse
                 .route
                 ?.properties
-                ?.let {
+                ?.let { properties ->
 
                     val distance =
-                        it.totalDistance
+                        properties.totalDistance
 
                     val time =
-                        it.totalTime
+                        properties.totalTime
 
 
                     if (
@@ -387,27 +438,31 @@ fun RouteSelectScreen(
 
                         fastRouteInfo =
                             RouteInfo(
-                                distanceMeter = distance,
-                                timeSecond = time
+
+                                distanceMeter =
+                                    distance,
+
+                                timeSecond =
+                                    time
                             )
                     }
                 }
 
 
             // ========================================
-            // 대로변 데이터
+            // 대로변
             // ========================================
 
             broadResponse
                 .route
                 ?.properties
-                ?.let {
+                ?.let { properties ->
 
                     val distance =
-                        it.totalDistance
+                        properties.totalDistance
 
                     val time =
-                        it.totalTime
+                        properties.totalTime
 
 
                     if (
@@ -417,21 +472,36 @@ fun RouteSelectScreen(
 
                         broadRouteInfo =
                             RouteInfo(
-                                distanceMeter = distance,
-                                timeSecond = time
+
+                                distanceMeter =
+                                    distance,
+
+                                timeSecond =
+                                    time
                             )
                     }
                 }
 
 
-            if (
-                fastRouteInfo == null &&
-                broadRouteInfo == null
-            ) {
+            // ========================================
+            // 실제 AI 경로
+            // ========================================
 
-                routeError =
-                    "도보 경로를 찾지 못했습니다."
-            }
+            aiSafeRouteInfo =
+                aiResponse
+
+
+            Log.d(
+                "ROUTE_SELECT",
+                """
+                AI 안전경로 조회 성공
+                distance = ${aiResponse.distanceMeter}
+                time = ${aiResponse.timeSecond}
+                score = ${aiResponse.safetyScore}
+                CCTV = ${aiResponse.cctvCount}
+                보안등 = ${aiResponse.securityLightCount}
+                """.trimIndent()
+            )
 
 
         } catch (
@@ -458,6 +528,183 @@ fun RouteSelectScreen(
 
 
     // ========================================
+    // AI 추천 이유 Dialog
+    // ========================================
+
+    if (
+        showAiReasonDialog &&
+        aiSafeRouteInfo != null
+    ) {
+
+        val aiInfo =
+            aiSafeRouteInfo!!
+
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                showAiReasonDialog =
+                    false
+            },
+
+            title = {
+
+                Text(
+                    text =
+                        "AI 추천 이유",
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            },
+
+            text = {
+
+                Column {
+
+                    Text(
+                        text =
+                            aiInfo.recommendationReason,
+
+                        fontSize =
+                            14.sp,
+
+                        color =
+                            RouteTextBlack
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                16.dp
+                            )
+                    )
+
+
+                    Text(
+                        text =
+                            "안전점수 ${aiInfo.safetyScore}점",
+
+                        fontSize =
+                            13.sp,
+
+                        fontWeight =
+                            FontWeight.SemiBold,
+
+                        color =
+                            RouteBlue
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                8.dp
+                            )
+                    )
+
+
+                    Text(
+                        text =
+                            "• 보안등 ${aiInfo.securityLightCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• CCTV ${aiInfo.cctvCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• 비상벨 ${aiInfo.emergencyBellCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• 경찰시설 ${aiInfo.policeCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• 안심지킴이집 ${aiInfo.safeHouseCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• 스마트가로등 ${aiInfo.smartLightCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        showAiReasonDialog =
+                            false
+                    }
+
+                ) {
+
+                    Text(
+                        text =
+                            "확인",
+
+                        color =
+                            RouteBlue
+                    )
+                }
+            }
+        )
+    }
+
+
+    // ========================================
     // 화면
     // ========================================
 
@@ -470,10 +717,6 @@ fun RouteSelectScreen(
             .statusBarsPadding()
     ) {
 
-
-        // ========================================
-        // 헤더
-        // ========================================
 
         RouteHeader(
             onBackClick =
@@ -489,6 +732,7 @@ fun RouteSelectScreen(
                 )
         ) {
 
+
             Spacer(
                 modifier =
                     Modifier.height(
@@ -502,6 +746,7 @@ fun RouteSelectScreen(
             // ========================================
 
             RouteLocationCard(
+
                 startName =
                     startName,
 
@@ -539,6 +784,7 @@ fun RouteSelectScreen(
                 ) {
 
                     CircularProgressIndicator(
+
                         modifier =
                             Modifier.size(
                                 21.dp
@@ -562,7 +808,7 @@ fun RouteSelectScreen(
 
                     Text(
                         text =
-                            "도보 경로를 계산하고 있습니다.",
+                            "도보 경로와 AI 안전경로를 계산하고 있습니다.",
 
                         fontSize =
                             13.sp,
@@ -596,7 +842,9 @@ fun RouteSelectScreen(
                         13.sp,
 
                     color =
-                        MaterialTheme.colorScheme.error
+                        MaterialTheme
+                            .colorScheme
+                            .error
                 )
 
 
@@ -621,19 +869,24 @@ fun RouteSelectScreen(
                 distance =
                     fastRouteInfo
                         ?.let {
+
                             routeDistanceText(
                                 it.distanceMeter
                             )
                         }
                         ?: if (isLoading) {
+
                             "계산 중"
+
                         } else {
+
                             "-"
                         },
 
                 time =
                     fastRouteInfo
                         ?.let {
+
                             routeTimeText(
                                 it.timeSecond
                             )
@@ -661,28 +914,37 @@ fun RouteSelectScreen(
 
 
             // ========================================
-            // 밝은길
+            // AI 안전경로
             // ========================================
 
-            RouteChoiceCard(
+            AiSafeRouteCard(
 
-                title =
-                    "밝은길",
+                routeInfo =
+                    aiSafeRouteInfo,
 
-                distance =
-                    "준비 중",
+                isLoading =
+                    isLoading,
 
-                time =
-                    "",
+                onClick = {
 
-                description =
-                    "가로등·CCTV 등 안전시설 기반 경로",
+                    if (
+                        aiSafeRouteInfo != null
+                    ) {
 
-                enabled =
-                    false,
+                        onAiSafeRouteClick()
+                    }
+                },
 
-                onClick =
-                    onBrightRouteClick
+                onReasonClick = {
+
+                    if (
+                        aiSafeRouteInfo != null
+                    ) {
+
+                        showAiReasonDialog =
+                            true
+                    }
+                }
             )
 
 
@@ -706,19 +968,24 @@ fun RouteSelectScreen(
                 distance =
                     broadRouteInfo
                         ?.let {
+
                             routeDistanceText(
                                 it.distanceMeter
                             )
                         }
                         ?: if (isLoading) {
+
                             "계산 중"
+
                         } else {
+
                             "-"
                         },
 
                 time =
                     broadRouteInfo
                         ?.let {
+
                             routeTimeText(
                                 it.timeSecond
                             )
@@ -1001,7 +1268,7 @@ private fun RouteLocationRow(
 
 
 // ========================================
-// 경로 카드
+// 일반 경로 카드
 // ========================================
 
 @Composable
@@ -1018,6 +1285,7 @@ private fun RouteChoiceCard(
     enabled: Boolean,
 
     onClick: () -> Unit
+
 ) {
 
     Card(
@@ -1213,14 +1481,306 @@ private fun RouteChoiceCard(
 
 
 // ========================================
-// 거리 포맷
+// AI 안전경로 카드
+// ========================================
+
+@Composable
+private fun AiSafeRouteCard(
+
+    routeInfo: AiSafeRouteResponse?,
+
+    isLoading: Boolean,
+
+    onClick: () -> Unit,
+
+    onReasonClick: () -> Unit
+
+) {
+
+    val enabled =
+        routeInfo != null &&
+                !isLoading
+
+
+    Card(
+
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(
+                    enabled =
+                        enabled
+                ) {
+
+                    onClick()
+                },
+
+        shape =
+            RoundedCornerShape(
+                14.dp
+            ),
+
+        border =
+            BorderStroke(
+                width =
+                    1.5.dp,
+
+                color =
+                    if (enabled) {
+
+                        RouteBlue
+
+                    } else {
+
+                        RouteBorderGray
+                    }
+            ),
+
+        colors =
+            CardDefaults.cardColors(
+
+                containerColor =
+                    if (enabled) {
+
+                        Color.White
+
+                    } else {
+
+                        Color(
+                            0xFFF3F4F6
+                        )
+                    }
+            )
+    ) {
+
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        16.dp
+                    )
+        ) {
+
+            Text(
+                text =
+                    "AI 안전경로 ✨",
+
+                fontSize =
+                    17.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    if (enabled) {
+
+                        RouteTextBlack
+
+                    } else {
+
+                        RouteTextGray
+                    }
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        8.dp
+                    )
+            )
+
+
+            if (
+                routeInfo == null
+            ) {
+
+                Text(
+                    text =
+                        if (isLoading) {
+
+                            "AI 안전경로 계산 중"
+
+                        } else {
+
+                            "AI 안전경로를 불러오지 못했습니다."
+                        },
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        RouteTextGray
+                )
+
+                return@Column
+            }
+
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text =
+                        routeDistanceText(
+                            routeInfo.distanceMeter
+                        ),
+
+                    fontSize =
+                        14.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    color =
+                        RouteTextBlack
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            12.dp
+                        )
+                )
+
+
+                Text(
+                    text =
+                        routeTimeText(
+                            routeInfo.timeSecond
+                        ),
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        RouteTextGray
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            12.dp
+                        )
+                )
+
+
+                Text(
+                    text =
+                        "안전 ${routeInfo.safetyScore}점",
+
+                    fontSize =
+                        12.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    color =
+                        RouteBlue
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        12.dp
+                    )
+            )
+
+
+            Text(
+                text =
+                    "보안등 ${routeInfo.securityLightCount}개 · " +
+                            "CCTV ${routeInfo.cctvCount}개 · " +
+                            "비상벨 ${routeInfo.emergencyBellCount}개",
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    RouteTextGray
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        6.dp
+                    )
+            )
+
+
+            Text(
+                text =
+                    "실제 안전시설 데이터와 AI 분석을 반영한 추천 경로",
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    RouteTextGray
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        10.dp
+                    )
+            )
+
+
+            TextButton(
+
+                onClick = {
+
+                    onReasonClick()
+                },
+
+                contentPadding =
+                    PaddingValues(
+                        horizontal = 0.dp,
+                        vertical = 0.dp
+                    )
+
+            ) {
+
+                Text(
+                    text =
+                        "왜 이 경로를 추천했나요? >",
+
+                    fontSize =
+                        12.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    color =
+                        RouteBlue
+                )
+            }
+        }
+    }
+}
+
+
+// ========================================
+// 거리
 // ========================================
 
 private fun routeDistanceText(
     meter: Int
 ): String {
 
-    return if (meter < 1000) {
+    return if (
+        meter < 1000
+    ) {
 
         "${meter}m"
 
@@ -1236,7 +1796,7 @@ private fun routeDistanceText(
 
 
 // ========================================
-// 시간 포맷
+// 시간
 // ========================================
 
 private fun routeTimeText(
@@ -1266,6 +1826,7 @@ private fun routeTimeText(
 private fun RouteSelectScreenPreview() {
 
     RouteSelectScreen(
+
         destinationName =
             "강남역",
 

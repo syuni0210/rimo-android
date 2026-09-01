@@ -664,14 +664,22 @@ fun AppNavigation() {
                 },
 
 
-                // ========================================
-                // 밝은길 / AI 추천경로
-                // ========================================
+                /// ========================================
+// AI 안전경로
+// ========================================
 
-                onBrightRouteClick = {
+                onAiSafeRouteClick = {
 
-                    // 아직 실제 AI 경로 미구현
-                    // 추후 "AI_RECOMMENDED" 등으로 연결 예정
+                    selectedRouteMode =
+                        "AI_SAFE"
+
+                    navController.navigate(
+                        "active_route"
+                    ) {
+
+                        launchSingleTop =
+                            true
+                    }
                 },
 
 
