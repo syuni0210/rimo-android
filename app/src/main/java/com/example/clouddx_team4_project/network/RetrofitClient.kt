@@ -13,10 +13,6 @@ object RetrofitClient {
     private const val BASE_URL =
         "http://127.0.0.1:8080/"
 
-    // Ubuntu Spring Boot 서버 (GPS/위치공유/긴급구조) - 게이트웨이 미포함 직접 연결
-    private const val TRACKING_API_BASE_URL =
-        "http://127.0.0.1:8082/"
-
     var tokenManager: TokenManager? = null
 
     // ========================================
@@ -64,13 +60,11 @@ object RetrofitClient {
         retrofit.create(AuthApi::class.java)
     }
 
+    // ========================================
+    // 긴급구조 / 위치추적
+    // ========================================
     val trackingApi: TrackingApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(TRACKING_API_BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(TrackingApi::class.java)
+        retrofit.create(TrackingApi::class.java)
     }
 
     // ========================================
