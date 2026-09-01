@@ -1,9 +1,6 @@
 package com.example.clouddx_team4_project.ui.screens
 
-<<<<<<< HEAD
-=======
 import android.util.Log
->>>>>>> ldk
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -45,21 +42,12 @@ private val ProfileTextGray =
 @Composable
 fun ProfileSettingScreen(
 
-<<<<<<< HEAD
-    // 로그인 완성 전 테스트 회원
-    memberId: Long = 3L,
-
-    onBackClick: () -> Unit = {}
-
-) {
-=======
     // 로그인 완성
     onBackClick: () -> Unit = {}
 
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val tokenManager = remember { com.example.clouddx_team4_project.data.TokenManager(context) }
->>>>>>> ldk
 
     var memberName by remember {
         mutableStateOf("")
@@ -98,13 +86,7 @@ fun ProfileSettingScreen(
     // 프로필 조회
     // ========================================
 
-<<<<<<< HEAD
-    LaunchedEffect(
-        memberId
-    ) {
-=======
     LaunchedEffect(Unit) {
->>>>>>> ldk
 
         isLoading =
             true
@@ -114,26 +96,6 @@ fun ProfileSettingScreen(
 
 
         try {
-<<<<<<< HEAD
-
-            val profile =
-                RetrofitClient
-                    .memberApi
-                    .getProfile(
-                        memberId
-                    )
-
-
-            memberName =
-                profile.memberName
-
-            loginId =
-                profile.loginId
-
-            email =
-                profile.email
-
-=======
             val currentMemberId = tokenManager.getMemberId()
 
             if(currentMemberId != null) {
@@ -144,7 +106,7 @@ fun ProfileSettingScreen(
             } else {
                 errorMessage = "로그인 정보가 없습니다."
             }
->>>>>>> ldk
+
 
         } catch (
             e: Exception
@@ -555,58 +517,7 @@ fun ProfileSettingScreen(
 
 
                             try {
-<<<<<<< HEAD
 
-                                val response =
-                                    RetrofitClient
-                                        .memberApi
-                                        .updateProfile(
-
-                                            memberId =
-                                                memberId,
-
-                                            request =
-                                                ProfileUpdateRequest(
-                                                    memberName =
-                                                        memberName.trim(),
-
-                                                    email =
-                                                        email.trim()
-                                                )
-                                        )
-
-
-                                if (
-                                    response.isSuccessful
-                                ) {
-
-                                    showSuccessDialog =
-                                        true
-
-                                } else {
-
-                                    errorMessage =
-                                        "프로필 수정에 실패했습니다."
-                                }
-
-
-                            } catch (
-                                e: Exception
-                            ) {
-
-                                errorMessage =
-                                    "서버와 통신할 수 없습니다."
-
-                                e.printStackTrace()
-
-                            } finally {
-
-                                isSaving =
-                                    false
-                            }
-                        }
-                    },
-=======
                                 val currentMemberId = tokenManager.getMemberId()
 
                                 if (currentMemberId != null) {
@@ -637,7 +548,6 @@ fun ProfileSettingScreen(
                             }
                                 }
                             },
->>>>>>> ldk
 
                     enabled =
                         !isSaving,
