@@ -35,6 +35,14 @@ import com.example.clouddx_team4_project.ui.screens.more.PrivacyPolicyScreen
 import com.example.clouddx_team4_project.ui.screens.more.ServiceIntroScreen
 
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.example.clouddx_team4_project.network.EmergencyTriggerRequest
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.launch
+
+
 @Composable
 fun AppNavigation() {
 
@@ -48,12 +56,7 @@ fun AppNavigation() {
         TokenManager(context)
     }
 
-    val startDest =
-        if (tokenManager.hasValidToken()) {
-            "home"
-        } else {
-            "login"
-        }
+    val startDest = if (tokenManager.hasValidToken()) "home" else "login"
 
     // 로그인한 사용자 memberId L
     var currentMemberId by remember {
@@ -73,6 +76,8 @@ fun AppNavigation() {
 
     val navController =
         rememberNavController()
+
+    val coroutineScope = rememberCoroutineScope()
 
 
     // ========================================
@@ -1415,7 +1420,68 @@ fun AppNavigation() {
 
             onEmergencyConfirmed = {
 
-                // 추후 긴급신고 API 연결
+                val currentMemberId = tokenManager.getMemberId()
+
+                if (currentMemberId != null) {
+
+                    val finePermission = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    )
+                    val coarsePermission = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+
+                    if (
+                        finePermission == PackageManager.PERMISSION_GRANTED ||
+                        coarsePermission == PackageManager.PERMISSION_GRANTED
+                    ) {
+
+                        val fusedLocationClient =
+                            LocationServices.getFusedLocationProviderClient(context)
+
+                        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+
+                            if (location != null) {
+
+                                coroutineScope.launch {
+
+                                    try {
+
+                                        val response = RetrofitClient.trackingApi.triggerEmergency(
+                                            EmergencyTriggerRequest(
+                                                memberId = currentMemberId,
+                                                lat = location.latitude,
+                                                lng = location.longitude
+                                            )
+                                        )
+
+                                        android.util.Log.d(
+                                            "EMERGENCY_API",
+                                            "긴급구조 전송 완료, 보호자 ${response.notifiedGuardianCount}명"
+                                        )
+
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        android.util.Log.e(
+                                            "EMERGENCY_API",
+                                            "긴급구조 전송 실패",
+                                            e
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                } else {
+
+                    android.util.Log.e(
+                        "EMERGENCY_API",
+                        "로그인 정보(memberId)가 없어 긴급구조를 전송할 수 없습니다."
+                    )
+                }
             },
 
             onQuackClick = {
