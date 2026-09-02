@@ -17,7 +17,8 @@ data class LoginRequest(
 // 로그인 응답 DTO[cite: 1]
 data class LoginResponse(
     val message: String,
-    val token: String,
+    val accessToken: String,
+    val refreshToken: String,
     val memberId: Long,
     val name: String
 )

@@ -1,5 +1,8 @@
 package com.example.clouddx_team4_project.ui.navigation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -9,8 +12,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.launch
 import com.example.clouddx_team4_project.data.KakaoPlace
 import com.example.clouddx_team4_project.data.TokenManager
+import com.example.clouddx_team4_project.network.EmergencyTriggerRequest
 import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.ui.components.EmergencyDialog
 import com.example.clouddx_team4_project.ui.screens.ActiveRouteScreen
@@ -33,15 +39,6 @@ import com.example.clouddx_team4_project.ui.screens.more.InquiryScreen
 import com.example.clouddx_team4_project.ui.screens.more.NoticeScreen
 import com.example.clouddx_team4_project.ui.screens.more.PrivacyPolicyScreen
 import com.example.clouddx_team4_project.ui.screens.more.ServiceIntroScreen
-
-
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
-import com.example.clouddx_team4_project.network.EmergencyTriggerRequest
-import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.launch
-
 
 @Composable
 fun AppNavigation() {
@@ -137,12 +134,6 @@ fun AppNavigation() {
 
     // ========================================
     // 목적지 검색 용도
-    //
-    // ROUTE
-    // -> 일반 안심경로 목적지 검색
-    //
-    // DEFAULT_DESTINATION
-    // -> 기본 목적지 등록용 검색
     // ========================================
 
     var destinationSearchMode by remember {
@@ -170,7 +161,6 @@ fun AppNavigation() {
 
                 onLoginClick = { _, _ ->
 
-                    // LoginScreen에서 로그인 성공 후 저장한 실제 memberId
                     val loggedInMemberId =
                         tokenManager.getMemberId()
 
@@ -243,14 +233,12 @@ fun AppNavigation() {
                             }
                         }
 
-
                         "안심친구" -> {
 
                             navController.navigate("friend") {
                                 launchSingleTop = true
                             }
                         }
-
 
                         "꽥꽥이" -> {
 
@@ -259,7 +247,6 @@ fun AppNavigation() {
                             }
                         }
 
-
                         "안심지도" -> {
 
                             navController.navigate("safe_map") {
@@ -267,14 +254,12 @@ fun AppNavigation() {
                             }
                         }
 
-
                         "사용 리포트" -> {
 
                             navController.navigate("report") {
                                 launchSingleTop = true
                             }
                         }
-
 
                         "더보기" -> {
 
@@ -327,25 +312,12 @@ fun AppNavigation() {
                 selectedRouteMode =
                     selectedRouteMode,
 
-
-                // 뒤로가기
                 onBackClick = {
 
                     navController.popBackStack()
                 },
 
-
-                // 현재 위치
-                onStartSearchClick = {
-
-                    // SafeRouteScreen 내부에서
-                    // GPS 현재 위치 처리
-                },
-
-
-                // ========================================
-                // 일반 목적지 검색
-                // ========================================
+                onStartSearchClick = {},
 
                 onDestinationSearchClick = {
 
@@ -359,11 +331,6 @@ fun AppNavigation() {
                     )
                 },
 
-
-                // ========================================
-                // 경로 검색
-                // ========================================
-
                 onRouteSearchClick = {
 
                     if (selectedDestination != null) {
@@ -373,15 +340,6 @@ fun AppNavigation() {
                         )
                     }
                 },
-
-
-                // ========================================
-                // 기본 목적지 선택
-                //
-                // 예:
-                // 집 버튼 -> 방배역
-                // 방배역을 실제 목적지로 설정
-                // ========================================
 
                 onDefaultDestinationSelected = {
                         placeName,
@@ -413,8 +371,6 @@ fun AppNavigation() {
 
                     showSelectedRoute = false
 
-                    // 기본 목적지를 선택하면
-                    // 일반 검색과 동일하게 경로 선택 화면으로 이동
                     navController.navigate(
                         "route_select"
                     ) {
@@ -422,11 +378,6 @@ fun AppNavigation() {
                         launchSingleTop = true
                     }
                 },
-
-
-                // ========================================
-                // 지도에서 직접 목적지 선택
-                // ========================================
 
                 onMapDestinationSelected = {
                         latitude,
@@ -457,11 +408,6 @@ fun AppNavigation() {
                     showSelectedRoute = false
                 },
 
-
-                // ========================================
-                // 하단 메뉴
-                // ========================================
-
                 onTabSelected = { tab ->
 
                     when (tab) {
@@ -478,7 +424,6 @@ fun AppNavigation() {
                             }
                         }
 
-
                         "더보기" -> {
 
                             navController.navigate("more") {
@@ -487,7 +432,6 @@ fun AppNavigation() {
                         }
                     }
                 },
-
 
                 onEmergencyClick = {
 
@@ -510,13 +454,7 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
 
-
                 onPlaceSelected = { place ->
-
-
-                    // ========================================
-                    // 일반 안심경로 목적지 검색
-                    // ========================================
 
                     if (
                         destinationSearchMode ==
@@ -542,16 +480,7 @@ fun AppNavigation() {
                             launchSingleTop = true
                         }
 
-
                     } else {
-
-
-                        // ========================================
-                        // 기본 목적지 등록용 검색
-                        //
-                        // 장소 선택
-                        // -> 기본 목적지 화면으로 돌아감
-                        // ========================================
 
                         pendingDefaultPlace =
                             place
@@ -594,11 +523,6 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
 
-
-                // ========================================
-                // 빠른길
-                // ========================================
-
                 onFastRouteClick = {
 
                     selectedRouteMode =
@@ -612,11 +536,6 @@ fun AppNavigation() {
                     }
                 },
 
-
-                // ========================================
-                // AI 안전경로
-                // ========================================
-
                 onAiSafeRouteClick = {
 
                     selectedRouteMode =
@@ -629,11 +548,6 @@ fun AppNavigation() {
                         launchSingleTop = true
                     }
                 },
-
-
-                // ========================================
-                // 대로변 우선
-                // ========================================
 
                 onBroadRouteClick = {
 
@@ -735,9 +649,7 @@ fun AppNavigation() {
 
                 onAddFriendClick = {},
 
-                onAddFriendSubmit = { _, _ ->
-
-                },
+                onAddFriendSubmit = { _, _ -> },
 
                 onAcceptRequest = {},
 
@@ -764,7 +676,6 @@ fun AppNavigation() {
                                 launchSingleTop = true
                             }
                         }
-
 
                         "더보기" -> {
 
@@ -822,7 +733,6 @@ fun AppNavigation() {
                             }
                         }
 
-
                         "더보기" -> {
 
                             navController.navigate(
@@ -868,7 +778,6 @@ fun AppNavigation() {
                                 launchSingleTop = true
                             }
                         }
-
 
                         "더보기" -> {
 
@@ -924,7 +833,6 @@ fun AppNavigation() {
                             }
                         }
 
-
                         "더보기" -> {
 
                             navController.navigate(
@@ -957,21 +865,11 @@ fun AppNavigation() {
 
                     when (menu) {
 
-
-                        // ========================================
-                        // 로그아웃
-                        // ========================================
-
                         "로그아웃" -> {
 
                             showLogoutDialog =
                                 true
                         }
-
-
-                        // ========================================
-                        // 프로필
-                        // ========================================
 
                         "프로필 설정" -> {
 
@@ -980,22 +878,12 @@ fun AppNavigation() {
                             )
                         }
 
-
-                        // ========================================
-                        // 기본 목적지 설정
-                        // ========================================
-
                         "기본 목적지 설정" -> {
 
                             navController.navigate(
                                 "default_destination"
                             )
                         }
-
-
-                        // ========================================
-                        // 보호자 등록
-                        // ========================================
 
                         "보호자 등록" -> {
 
@@ -1004,14 +892,12 @@ fun AppNavigation() {
                             )
                         }
 
-
                         "공지사항" -> {
 
                             navController.navigate(
                                 "notice"
                             )
                         }
-
 
                         "문의하기" -> {
 
@@ -1020,7 +906,6 @@ fun AppNavigation() {
                             )
                         }
 
-
                         "도움말" -> {
 
                             navController.navigate(
@@ -1028,14 +913,12 @@ fun AppNavigation() {
                             )
                         }
 
-
                         "서비스 소개" -> {
 
                             navController.navigate(
                                 "service_intro"
                             )
                         }
-
 
                         "개인정보처리방침" -> {
 
@@ -1046,10 +929,7 @@ fun AppNavigation() {
                     }
                 },
 
-                onSettingsClick = {
-
-                    // 설정 화면 추후 연결
-                },
+                onSettingsClick = {},
 
                 onTabSelected = { tab ->
 
@@ -1069,11 +949,7 @@ fun AppNavigation() {
                             }
                         }
 
-
-                        "더보기" -> {
-
-                            // 현재 화면
-                        }
+                        "더보기" -> {}
                     }
                 },
 
@@ -1087,7 +963,7 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 기본 목적지 설정
+        // 기본 목적지 설정 (통합 완료)
         // ========================================
 
         composable(
@@ -1110,12 +986,6 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
 
-
-                // ========================================
-                // 새 기본 목적지 등록
-                // 장소 검색 화면 이동
-                // ========================================
-
                 onSearchPlaceClick = {
 
                     pendingDefaultPlace =
@@ -1129,19 +999,9 @@ fun AppNavigation() {
                     )
                 },
 
-
-                // ========================================
-                // 검색한 장소명
-                // ========================================
-
                 selectedPlaceName =
                     pendingDefaultPlace
                         ?.placeName,
-
-
-                // ========================================
-                // 도로명 주소 우선
-                // ========================================
 
                 selectedAddress =
 
@@ -1154,30 +1014,15 @@ fun AppNavigation() {
                         ?: pendingDefaultPlace
                             ?.addressName,
 
-
-                // ========================================
-                // 위도
-                // ========================================
-
                 selectedLatitude =
                     pendingDefaultPlace
                         ?.latitude
                         ?.toDoubleOrNull(),
 
-
-                // ========================================
-                // 경도
-                // ========================================
-
                 selectedLongitude =
                     pendingDefaultPlace
                         ?.longitude
                         ?.toDoubleOrNull(),
-
-
-                // ========================================
-                // 기본 목적지 저장 후 초기화
-                // ========================================
 
                 onDestinationSaved = {
 
@@ -1281,15 +1126,9 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
 
-                onRegisterClick = { _, _, _ ->
+                onRegisterClick = { _, _, _ -> },
 
-                    // GuardianRegisterScreen 내부에서 API 처리
-                },
-
-                onDeleteClick = { _ ->
-
-                    // GuardianRegisterScreen 내부에서 API 처리
-                }
+                onDeleteClick = { _ -> }
             )
         }
 
@@ -1355,7 +1194,6 @@ fun AppNavigation() {
                         showLogoutDialog =
                             false
 
-                        // JWT 삭제
                         tokenManager.clearToken()
 
                         currentMemberId = null
@@ -1405,7 +1243,7 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 공용 긴급구조 팝업
+    // 공용 긴급구조 팝업 (팀원 추가 위치 권한 연동 완료)
     // ========================================
 
     if (showEmergencyDialog) {

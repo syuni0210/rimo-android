@@ -338,6 +338,10 @@ fun LoginScreen(
         // 로그인 버튼 (API 연동 및 토큰 저장 추가)
         // ========================================
 
+        // ========================================
+        // 로그인 버튼 (API 연동 및 토큰 2개 저장 처리)
+        // ========================================
+
         Button(
             onClick = {
                 if (userId.isBlank() || password.isBlank()) {
@@ -355,8 +359,13 @@ fun LoginScreen(
                         if (response.isSuccessful && response.body() != null) {
                             val loginResponse = response.body()!!
 
-                            // 💡 토큰 저장
-                            tokenManager.saveToken(loginResponse.token)
+                            // 💡 1. 두 개의 토큰(Access, Refresh)을 한 번에 저장합니다.
+                            tokenManager.saveTokens(
+                                accessToken = loginResponse.accessToken,
+                                refreshToken = loginResponse.refreshToken
+                            )
+
+                            // 💡 2. 사용자 고유 번호를 저장합니다.
                             tokenManager.saveMemberId(loginResponse.memberId)
 
                             Toast.makeText(context, "로그인 성공", Toast.LENGTH_SHORT).show()
