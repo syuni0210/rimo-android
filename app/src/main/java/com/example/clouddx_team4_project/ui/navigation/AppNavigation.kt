@@ -32,6 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import com.example.clouddx_team4_project.data.TokenManager
+import com.example.clouddx_team4_project.ui.screens.DefaultDestinationScreen
 
 @Composable
 fun AppNavigation() {
@@ -1002,6 +1003,22 @@ fun AppNavigation() {
 
                     showEmergencyDialog =
                         true
+                }
+            )
+        }
+        // ========================================
+        // 기본 목적지 설정
+        // ========================================
+        composable(
+            "default_destination"
+        ) {
+            DefaultDestinationScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onSearchPlaceClick = {
+                    // 장소 검색 화면으로 이동
+                    navController.navigate("destination_search")
                 }
             )
         }
