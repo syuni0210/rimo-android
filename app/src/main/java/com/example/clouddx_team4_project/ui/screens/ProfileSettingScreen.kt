@@ -42,7 +42,8 @@ private val ProfileTextGray =
 @Composable
 fun ProfileSettingScreen(
 
-    // 로그인 완성
+    memberId: Long,
+
     onBackClick: () -> Unit = {}
 
 ) {

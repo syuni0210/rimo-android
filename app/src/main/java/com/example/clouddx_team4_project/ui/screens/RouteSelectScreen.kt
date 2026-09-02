@@ -7,7 +7,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -25,10 +24,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.clouddx_team4_project.data.KakaoDirectionsClient
+import com.example.clouddx_team4_project.data.RouteSessionData
+import com.example.clouddx_team4_project.data.RouteSessionPoint
+import com.example.clouddx_team4_project.data.RouteSessionStore
+import com.example.clouddx_team4_project.network.AiSafeRouteRequest
+import com.example.clouddx_team4_project.network.AiSafeRouteResponse
+import com.example.clouddx_team4_project.network.RetrofitClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
-import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import java.util.Locale
 
 
@@ -49,7 +55,7 @@ private val RouteBorderGray =
 
 
 // ========================================
-// API 경로 정보
+// 일반 경로 정보
 // ========================================
 
 private data class RouteInfo(
@@ -73,14 +79,14 @@ fun RouteSelectScreen(
 
     destinationLongitude: Double? = null,
 
-
     onBackClick: () -> Unit = {},
 
     onFastRouteClick: () -> Unit = {},
 
-    onBrightRouteClick: () -> Unit = {},
+    onAiSafeRouteClick: () -> Unit = {},
 
     onBroadRouteClick: () -> Unit = {}
+
 ) {
 
     val context =
@@ -111,7 +117,7 @@ fun RouteSelectScreen(
 
 
     // ========================================
-    // 실제 경로 결과
+    // 빠른길 / 대로변
     // ========================================
 
     var fastRouteInfo by remember {
@@ -124,20 +130,49 @@ fun RouteSelectScreen(
 
 
     // ========================================
-    // 상태
+    // 실제 AI 안전경로 응답
     // ========================================
 
-    var isLoading by remember {
+    var aiSafeRouteInfo by remember {
+        mutableStateOf<AiSafeRouteResponse?>(null)
+    }
+
+
+    // ========================================
+    // 상태
+    //
+    // 각 경로를 따로 로딩합니다.
+    // AI가 오래 걸려도 빠른길/대로변은 먼저 선택할 수 있습니다.
+    // ========================================
+
+    var isFastLoading by remember {
         mutableStateOf(true)
     }
+
+    var isBroadLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var isAiLoading by remember {
+        mutableStateOf(true)
+    }
+
+    val isLoading =
+        isFastLoading ||
+                isBroadLoading ||
+                isAiLoading
 
     var routeError by remember {
         mutableStateOf<String?>(null)
     }
 
+    var showAiReasonDialog by remember {
+        mutableStateOf(false)
+    }
+
 
     // ========================================
-    // 권한
+    // 위치 권한
     // ========================================
 
     val hasLocationPermission =
@@ -154,7 +189,7 @@ fun RouteSelectScreen(
 
 
     // ========================================
-    // 현재 GPS
+    // 현재 GPS 한 번 조회
     // ========================================
 
     @SuppressLint("MissingPermission")
@@ -165,8 +200,9 @@ fun RouteSelectScreen(
             routeError =
                 "현재 위치 권한이 필요합니다."
 
-            isLoading =
-                false
+            isFastLoading = false
+            isBroadLoading = false
+            isAiLoading = false
 
             return
         }
@@ -188,8 +224,9 @@ fun RouteSelectScreen(
                     routeError =
                         "현재 위치를 가져오지 못했습니다."
 
-                    isLoading =
-                        false
+                    isFastLoading = false
+                    isBroadLoading = false
+                    isAiLoading = false
 
                     return@addOnSuccessListener
                 }
@@ -213,8 +250,9 @@ fun RouteSelectScreen(
                 routeError =
                     "현재 위치를 가져오지 못했습니다."
 
-                isLoading =
-                    false
+                isFastLoading = false
+                isBroadLoading = false
+                isAiLoading = false
             }
     }
 
@@ -226,7 +264,13 @@ fun RouteSelectScreen(
 
 
     // ========================================
-    // 실제 경로 두 개 요청
+    // 빠른길 + 대로변 + AI 안전경로 조회
+    //
+    // 핵심 최적화
+    // 1) 세 요청은 서로 독립적으로 동시에 실행
+    // 2) 먼저 끝난 경로는 즉시 카드 활성화
+    // 3) 전체 경로 좌표까지 RouteSessionStore에 저장
+    // 4) 귀가 진행 화면에서는 API를 다시 호출하지 않고 재사용
     // ========================================
 
     LaunchedEffect(
@@ -240,15 +284,12 @@ fun RouteSelectScreen(
             currentLatitude
                 ?: return@LaunchedEffect
 
-
         val startLng =
             currentLongitude
                 ?: return@LaunchedEffect
 
-
         val endLat =
             destinationLatitude
-
 
         val endLng =
             destinationLongitude
@@ -262,122 +303,80 @@ fun RouteSelectScreen(
             routeError =
                 "목적지 위치 정보가 없습니다."
 
-            isLoading =
-                false
+            isFastLoading = false
+            isBroadLoading = false
+            isAiLoading = false
 
             return@LaunchedEffect
         }
 
 
-        try {
+        RouteSessionStore.prepareDestination(
+            endLat,
+            endLng
+        )
 
-            isLoading =
-                true
+        fastRouteInfo = null
+        broadRouteInfo = null
+        aiSafeRouteInfo = null
 
-            routeError =
-                null
+        isFastLoading = true
+        isBroadLoading = true
+        isAiLoading = true
 
-
-            // ========================================
-            // 빠른길
-            // ========================================
-
-            val fastDeferred =
-                async {
-
-                    KakaoDirectionsClient
-                        .api
-                        .getWalkingRoute(
-
-                            authorization =
-                                KakaoDirectionsClient
-                                    .authorization,
-
-                            startX =
-                                startLng.toString(),
-
-                            startY =
-                                startLat.toString(),
-
-                            endX =
-                                endLng.toString(),
-
-                            endY =
-                                endLat.toString(),
-
-                            startName =
-                                startName,
-
-                            endName =
-                                destinationName,
-
-                            routeMode =
-                                "SHORTEST"
-                        )
-                }
+        routeError = null
 
 
-            // ========================================
-            // 대로변
-            // ========================================
+        supervisorScope {
 
-            val broadDeferred =
-                async {
+            launch {
 
-                    KakaoDirectionsClient
-                        .api
-                        .getWalkingRoute(
+                try {
 
-                            authorization =
-                                KakaoDirectionsClient
-                                    .authorization,
+                    val response =
+                        KakaoDirectionsClient
+                            .api
+                            .getWalkingRoute(
 
-                            startX =
-                                startLng.toString(),
+                                authorization =
+                                    KakaoDirectionsClient
+                                        .authorization,
 
-                            startY =
-                                startLat.toString(),
+                                startX =
+                                    startLng.toString(),
 
-                            endX =
-                                endLng.toString(),
+                                startY =
+                                    startLat.toString(),
 
-                            endY =
-                                endLat.toString(),
+                                endX =
+                                    endLng.toString(),
 
-                            startName =
-                                startName,
+                                endY =
+                                    endLat.toString(),
 
-                            endName =
-                                destinationName,
+                                startName =
+                                    startName,
 
-                            routeMode =
-                                "BROAD_FIRST"
-                        )
-                }
+                                endName =
+                                    destinationName,
 
-
-            val fastResponse =
-                fastDeferred.await()
+                                routeMode =
+                                    "SHORTEST"
+                            )
 
 
-            val broadResponse =
-                broadDeferred.await()
-
-
-            // ========================================
-            // 빠른길 데이터
-            // ========================================
-
-            fastResponse
-                .route
-                ?.properties
-                ?.let {
+                    val properties =
+                        response
+                            .route
+                            ?.properties
 
                     val distance =
-                        it.totalDistance
+                        properties
+                            ?.totalDistance
 
                     val time =
-                        it.totalTime
+                        properties
+                            ?.totalTime
 
 
                     if (
@@ -385,75 +384,565 @@ fun RouteSelectScreen(
                         time != null
                     ) {
 
-                        fastRouteInfo =
-                            RouteInfo(
-                                distanceMeter = distance,
-                                timeSecond = time
+                        val points =
+                            mutableListOf<RouteSessionPoint>()
+
+
+                        response
+                            .route
+                            ?.legs
+                            ?.forEach { leg ->
+
+                                leg.steps
+                                    ?.forEach { step ->
+
+                                        step.path
+                                            ?.points
+                                            ?.forEach { point ->
+
+                                                if (
+                                                    point.size >= 2
+                                                ) {
+
+                                                    points.add(
+                                                        RouteSessionPoint(
+                                                            latitude = point[1],
+                                                            longitude = point[0]
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                    }
+                            }
+
+
+                        if (
+                            points.size >= 2
+                        ) {
+
+                            RouteSessionStore.put(
+                                RouteSessionData(
+
+                                    routeMode =
+                                        "SHORTEST",
+
+                                    startLatitude =
+                                        startLat,
+
+                                    startLongitude =
+                                        startLng,
+
+                                    destinationLatitude =
+                                        endLat,
+
+                                    destinationLongitude =
+                                        endLng,
+
+                                    distanceMeter =
+                                        distance,
+
+                                    timeSecond =
+                                        time,
+
+                                    points =
+                                        points
+                                )
                             )
+
+                            // 캐시 저장이 끝난 뒤 카드를 활성화합니다.
+                            fastRouteInfo =
+                                RouteInfo(
+                                    distanceMeter = distance,
+                                    timeSecond = time
+                                )
+                        }
                     }
+
+
+                } catch (
+                    error: Exception
+                ) {
+
+                    Log.e(
+                        "ROUTE_SELECT",
+                        "빠른길 API 오류",
+                        error
+                    )
+
+                } finally {
+
+                    isFastLoading =
+                        false
                 }
-
-
-            // ========================================
-            // 대로변 데이터
-            // ========================================
-
-            broadResponse
-                .route
-                ?.properties
-                ?.let {
-
-                    val distance =
-                        it.totalDistance
-
-                    val time =
-                        it.totalTime
-
-
-                    if (
-                        distance != null &&
-                        time != null
-                    ) {
-
-                        broadRouteInfo =
-                            RouteInfo(
-                                distanceMeter = distance,
-                                timeSecond = time
-                            )
-                    }
-                }
-
-
-            if (
-                fastRouteInfo == null &&
-                broadRouteInfo == null
-            ) {
-
-                routeError =
-                    "도보 경로를 찾지 못했습니다."
             }
 
 
-        } catch (
-            error: Exception
+            launch {
+
+                try {
+
+                    val response =
+                        KakaoDirectionsClient
+                            .api
+                            .getWalkingRoute(
+
+                                authorization =
+                                    KakaoDirectionsClient
+                                        .authorization,
+
+                                startX =
+                                    startLng.toString(),
+
+                                startY =
+                                    startLat.toString(),
+
+                                endX =
+                                    endLng.toString(),
+
+                                endY =
+                                    endLat.toString(),
+
+                                startName =
+                                    startName,
+
+                                endName =
+                                    destinationName,
+
+                                routeMode =
+                                    "BROAD_FIRST"
+                            )
+
+
+                    val properties =
+                        response
+                            .route
+                            ?.properties
+
+                    val distance =
+                        properties
+                            ?.totalDistance
+
+                    val time =
+                        properties
+                            ?.totalTime
+
+
+                    if (
+                        distance != null &&
+                        time != null
+                    ) {
+
+                        val points =
+                            mutableListOf<RouteSessionPoint>()
+
+
+                        response
+                            .route
+                            ?.legs
+                            ?.forEach { leg ->
+
+                                leg.steps
+                                    ?.forEach { step ->
+
+                                        step.path
+                                            ?.points
+                                            ?.forEach { point ->
+
+                                                if (
+                                                    point.size >= 2
+                                                ) {
+
+                                                    points.add(
+                                                        RouteSessionPoint(
+                                                            latitude = point[1],
+                                                            longitude = point[0]
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                    }
+                            }
+
+
+                        if (
+                            points.size >= 2
+                        ) {
+
+                            RouteSessionStore.put(
+                                RouteSessionData(
+
+                                    routeMode =
+                                        "BROAD_FIRST",
+
+                                    startLatitude =
+                                        startLat,
+
+                                    startLongitude =
+                                        startLng,
+
+                                    destinationLatitude =
+                                        endLat,
+
+                                    destinationLongitude =
+                                        endLng,
+
+                                    distanceMeter =
+                                        distance,
+
+                                    timeSecond =
+                                        time,
+
+                                    points =
+                                        points
+                                )
+                            )
+
+                            // 캐시 저장이 끝난 뒤 카드를 활성화합니다.
+                            broadRouteInfo =
+                                RouteInfo(
+                                    distanceMeter = distance,
+                                    timeSecond = time
+                                )
+                        }
+                    }
+
+
+                } catch (
+                    error: Exception
+                ) {
+
+                    Log.e(
+                        "ROUTE_SELECT",
+                        "대로변 API 오류",
+                        error
+                    )
+
+                } finally {
+
+                    isBroadLoading =
+                        false
+                }
+            }
+
+
+            launch {
+
+                try {
+
+                    val aiResponse =
+                        RetrofitClient
+                            .aiSafeRouteApi
+                            .getAiSafeRoute(
+
+                                AiSafeRouteRequest(
+
+                                    startLatitude =
+                                        startLat,
+
+                                    startLongitude =
+                                        startLng,
+
+                                    destinationLatitude =
+                                        endLat,
+
+                                    destinationLongitude =
+                                        endLng
+                                )
+                            )
+
+
+                    val selectedKakaoMode =
+
+                        aiResponse
+                            .routeMode
+                            .takeIf {
+                                it == "SHORTEST" ||
+                                        it == "BROAD_FIRST"
+                            }
+                            ?: aiResponse
+                                .candidates
+                                .maxByOrNull {
+                                    it.safetyScore
+                                }
+                                ?.routeMode
+                            ?: "SHORTEST"
+
+
+                    val points =
+                        aiResponse
+                            .path
+                            .map { point ->
+
+                                RouteSessionPoint(
+                                    latitude =
+                                        point.latitude,
+
+                                    longitude =
+                                        point.longitude
+                                )
+                            }
+
+
+                    if (
+                        points.size >= 2
+                    ) {
+
+                        RouteSessionStore.put(
+                            RouteSessionData(
+
+                                routeMode =
+                                    "AI_SAFE",
+
+                                startLatitude =
+                                    startLat,
+
+                                startLongitude =
+                                    startLng,
+
+                                destinationLatitude =
+                                    endLat,
+
+                                destinationLongitude =
+                                    endLng,
+
+                                distanceMeter =
+                                    aiResponse.distanceMeter,
+
+                                timeSecond =
+                                    aiResponse.timeSecond,
+
+                                points =
+                                    points,
+
+                                aiSelectedKakaoRouteMode =
+                                    selectedKakaoMode
+                            )
+                        )
+
+                        // 캐시 저장이 끝난 뒤 AI 카드를 활성화합니다.
+                        aiSafeRouteInfo =
+                            aiResponse
+                    }
+
+
+                    Log.d(
+                        "ROUTE_SELECT",
+                        """
+                        AI 안전경로 조회 성공
+                        distance = ${aiResponse.distanceMeter}
+                        time = ${aiResponse.timeSecond}
+                        score = ${aiResponse.safetyScore}
+                        pathSize = ${aiResponse.path.size}
+                        selectedMode = $selectedKakaoMode
+                        """.trimIndent()
+                    )
+
+
+                } catch (
+                    error: Exception
+                ) {
+
+                    Log.e(
+                        "ROUTE_SELECT",
+                        "AI 안전경로 API 오류",
+                        error
+                    )
+
+                } finally {
+
+                    isAiLoading =
+                        false
+                }
+            }
+        }
+
+
+        if (
+            fastRouteInfo == null &&
+            broadRouteInfo == null &&
+            aiSafeRouteInfo == null
         ) {
-
-            Log.e(
-                "ROUTE_SELECT",
-                "경로 API 오류",
-                error
-            )
-
 
             routeError =
                 "경로 정보를 불러오지 못했습니다."
-
-
-        } finally {
-
-            isLoading =
-                false
         }
+    }
+
+
+    // ========================================
+    // AI 추천 이유 Dialog
+    // ========================================
+
+    if (
+        showAiReasonDialog &&
+        aiSafeRouteInfo != null
+    ) {
+
+        val aiInfo =
+            aiSafeRouteInfo!!
+
+
+        AlertDialog(
+
+            onDismissRequest = {
+
+                showAiReasonDialog =
+                    false
+            },
+
+            title = {
+
+                Text(
+                    text =
+                        "AI 추천 이유",
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            },
+
+            text = {
+
+                Column {
+
+                    Text(
+                        text =
+                            aiInfo.recommendationReason,
+
+                        fontSize =
+                            14.sp,
+
+                        color =
+                            RouteTextBlack
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                16.dp
+                            )
+                    )
+
+
+                    Text(
+                        text =
+                            "안전점수 ${aiInfo.safetyScore}점",
+
+                        fontSize =
+                            13.sp,
+
+                        fontWeight =
+                            FontWeight.SemiBold,
+
+                        color =
+                            RouteBlue
+                    )
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                8.dp
+                            )
+                    )
+
+
+                    Text(
+                        text =
+                            "• 보안등 ${aiInfo.securityLightCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• CCTV ${aiInfo.cctvCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• 비상벨 ${aiInfo.emergencyBellCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• 경찰시설 ${aiInfo.policeCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• 안심지킴이집 ${aiInfo.safeHouseCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+
+
+                    Text(
+                        text =
+                            "• 스마트가로등 ${aiInfo.smartLightCount}개",
+
+                        fontSize =
+                            13.sp,
+
+                        color =
+                            RouteTextGray
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        showAiReasonDialog =
+                            false
+                    }
+
+                ) {
+
+                    Text(
+                        text =
+                            "확인",
+
+                        color =
+                            RouteBlue
+                    )
+                }
+            }
+        )
     }
 
 
@@ -471,10 +960,6 @@ fun RouteSelectScreen(
     ) {
 
 
-        // ========================================
-        // 헤더
-        // ========================================
-
         RouteHeader(
             onBackClick =
                 onBackClick
@@ -489,6 +974,7 @@ fun RouteSelectScreen(
                 )
         ) {
 
+
             Spacer(
                 modifier =
                     Modifier.height(
@@ -502,6 +988,7 @@ fun RouteSelectScreen(
             // ========================================
 
             RouteLocationCard(
+
                 startName =
                     startName,
 
@@ -539,6 +1026,7 @@ fun RouteSelectScreen(
                 ) {
 
                     CircularProgressIndicator(
+
                         modifier =
                             Modifier.size(
                                 21.dp
@@ -562,7 +1050,7 @@ fun RouteSelectScreen(
 
                     Text(
                         text =
-                            "도보 경로를 계산하고 있습니다.",
+                            "도보 경로와 AI 안전경로를 계산하고 있습니다.",
 
                         fontSize =
                             13.sp,
@@ -596,7 +1084,9 @@ fun RouteSelectScreen(
                         13.sp,
 
                     color =
-                        MaterialTheme.colorScheme.error
+                        MaterialTheme
+                            .colorScheme
+                            .error
                 )
 
 
@@ -621,19 +1111,24 @@ fun RouteSelectScreen(
                 distance =
                     fastRouteInfo
                         ?.let {
+
                             routeDistanceText(
                                 it.distanceMeter
                             )
                         }
-                        ?: if (isLoading) {
+                        ?: if (isFastLoading) {
+
                             "계산 중"
+
                         } else {
+
                             "-"
                         },
 
                 time =
                     fastRouteInfo
                         ?.let {
+
                             routeTimeText(
                                 it.timeSecond
                             )
@@ -645,7 +1140,7 @@ fun RouteSelectScreen(
 
                 enabled =
                     fastRouteInfo != null &&
-                            !isLoading,
+                            !isFastLoading,
 
                 onClick =
                     onFastRouteClick
@@ -661,28 +1156,37 @@ fun RouteSelectScreen(
 
 
             // ========================================
-            // 밝은길
+            // AI 안전경로
             // ========================================
 
-            RouteChoiceCard(
+            AiSafeRouteCard(
 
-                title =
-                    "밝은길",
+                routeInfo =
+                    aiSafeRouteInfo,
 
-                distance =
-                    "준비 중",
+                isLoading =
+                    isAiLoading,
 
-                time =
-                    "",
+                onClick = {
 
-                description =
-                    "가로등·CCTV 등 안전시설 기반 경로",
+                    if (
+                        aiSafeRouteInfo != null
+                    ) {
 
-                enabled =
-                    false,
+                        onAiSafeRouteClick()
+                    }
+                },
 
-                onClick =
-                    onBrightRouteClick
+                onReasonClick = {
+
+                    if (
+                        aiSafeRouteInfo != null
+                    ) {
+
+                        showAiReasonDialog =
+                            true
+                    }
+                }
             )
 
 
@@ -706,19 +1210,24 @@ fun RouteSelectScreen(
                 distance =
                     broadRouteInfo
                         ?.let {
+
                             routeDistanceText(
                                 it.distanceMeter
                             )
                         }
-                        ?: if (isLoading) {
+                        ?: if (isBroadLoading) {
+
                             "계산 중"
+
                         } else {
+
                             "-"
                         },
 
                 time =
                     broadRouteInfo
                         ?.let {
+
                             routeTimeText(
                                 it.timeSecond
                             )
@@ -730,7 +1239,7 @@ fun RouteSelectScreen(
 
                 enabled =
                     broadRouteInfo != null &&
-                            !isLoading,
+                            !isBroadLoading,
 
                 onClick =
                     onBroadRouteClick
@@ -1001,7 +1510,7 @@ private fun RouteLocationRow(
 
 
 // ========================================
-// 경로 카드
+// 일반 경로 카드
 // ========================================
 
 @Composable
@@ -1018,6 +1527,7 @@ private fun RouteChoiceCard(
     enabled: Boolean,
 
     onClick: () -> Unit
+
 ) {
 
     Card(
@@ -1213,14 +1723,306 @@ private fun RouteChoiceCard(
 
 
 // ========================================
-// 거리 포맷
+// AI 안전경로 카드
+// ========================================
+
+@Composable
+private fun AiSafeRouteCard(
+
+    routeInfo: AiSafeRouteResponse?,
+
+    isLoading: Boolean,
+
+    onClick: () -> Unit,
+
+    onReasonClick: () -> Unit
+
+) {
+
+    val enabled =
+        routeInfo != null &&
+                !isLoading
+
+
+    Card(
+
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(
+                    enabled =
+                        enabled
+                ) {
+
+                    onClick()
+                },
+
+        shape =
+            RoundedCornerShape(
+                14.dp
+            ),
+
+        border =
+            BorderStroke(
+                width =
+                    1.5.dp,
+
+                color =
+                    if (enabled) {
+
+                        RouteBlue
+
+                    } else {
+
+                        RouteBorderGray
+                    }
+            ),
+
+        colors =
+            CardDefaults.cardColors(
+
+                containerColor =
+                    if (enabled) {
+
+                        Color.White
+
+                    } else {
+
+                        Color(
+                            0xFFF3F4F6
+                        )
+                    }
+            )
+    ) {
+
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        16.dp
+                    )
+        ) {
+
+            Text(
+                text =
+                    "AI 안전경로 ✨",
+
+                fontSize =
+                    17.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    if (enabled) {
+
+                        RouteTextBlack
+
+                    } else {
+
+                        RouteTextGray
+                    }
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        8.dp
+                    )
+            )
+
+
+            if (
+                routeInfo == null
+            ) {
+
+                Text(
+                    text =
+                        if (isLoading) {
+
+                            "AI 안전경로 계산 중"
+
+                        } else {
+
+                            "AI 안전경로를 불러오지 못했습니다."
+                        },
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        RouteTextGray
+                )
+
+                return@Column
+            }
+
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text =
+                        routeDistanceText(
+                            routeInfo.distanceMeter
+                        ),
+
+                    fontSize =
+                        14.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    color =
+                        RouteTextBlack
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            12.dp
+                        )
+                )
+
+
+                Text(
+                    text =
+                        routeTimeText(
+                            routeInfo.timeSecond
+                        ),
+
+                    fontSize =
+                        13.sp,
+
+                    color =
+                        RouteTextGray
+                )
+
+
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            12.dp
+                        )
+                )
+
+
+                Text(
+                    text =
+                        "안전 ${routeInfo.safetyScore}점",
+
+                    fontSize =
+                        12.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    color =
+                        RouteBlue
+                )
+            }
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        12.dp
+                    )
+            )
+
+
+            Text(
+                text =
+                    "보안등 ${routeInfo.securityLightCount}개 · " +
+                            "CCTV ${routeInfo.cctvCount}개 · " +
+                            "비상벨 ${routeInfo.emergencyBellCount}개",
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    RouteTextGray
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        6.dp
+                    )
+            )
+
+
+            Text(
+                text =
+                    "실제 안전시설 데이터와 AI 분석을 반영한 추천 경로",
+
+                fontSize =
+                    12.sp,
+
+                color =
+                    RouteTextGray
+            )
+
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        10.dp
+                    )
+            )
+
+
+            TextButton(
+
+                onClick = {
+
+                    onReasonClick()
+                },
+
+                contentPadding =
+                    PaddingValues(
+                        horizontal = 0.dp,
+                        vertical = 0.dp
+                    )
+
+            ) {
+
+                Text(
+                    text =
+                        "왜 이 경로를 추천했나요? >",
+
+                    fontSize =
+                        12.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold,
+
+                    color =
+                        RouteBlue
+                )
+            }
+        }
+    }
+}
+
+
+// ========================================
+// 거리
 // ========================================
 
 private fun routeDistanceText(
     meter: Int
 ): String {
 
-    return if (meter < 1000) {
+    return if (
+        meter < 1000
+    ) {
 
         "${meter}m"
 
@@ -1236,7 +2038,7 @@ private fun routeDistanceText(
 
 
 // ========================================
-// 시간 포맷
+// 시간
 // ========================================
 
 private fun routeTimeText(
@@ -1266,6 +2068,7 @@ private fun routeTimeText(
 private fun RouteSelectScreenPreview() {
 
     RouteSelectScreen(
+
         destinationName =
             "강남역",
 

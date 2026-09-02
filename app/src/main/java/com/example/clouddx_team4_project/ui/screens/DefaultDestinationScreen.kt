@@ -51,11 +51,20 @@ private val DestinationBorder =
 @Composable
 fun DefaultDestinationScreen(
 
+    // ========================================
+    // 로그인 사용자
+    // ========================================
+
+    memberId: Long,
+
+
     onBackClick: () -> Unit = {},
+
 
     // 목적지 등록 버튼 클릭
     // → 장소 검색 화면 이동
     onSearchPlaceClick: () -> Unit = {},
+
 
     // 검색 후 선택한 장소 정보
     selectedPlaceName: String? = null,
@@ -65,6 +74,7 @@ fun DefaultDestinationScreen(
     selectedLatitude: Double? = null,
 
     selectedLongitude: Double? = null,
+
 
     // 저장/취소 후 Navigation에 있는
     // 임시 선택 장소 초기화
@@ -77,7 +87,6 @@ fun DefaultDestinationScreen(
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
     val memberId = tokenManager.getMemberId() ?: -1L
-
 
     // ========================================
     // DB에서 불러온 목적지 목록

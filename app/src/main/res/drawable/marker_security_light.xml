@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 보라색 원 -->
+    <path
+        android:fillColor="#9675F5"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="
+            M12,1
+            C5.925,1 1,5.925 1,12
+            C1,18.075 5.925,23 12,23
+            C18.075,23 23,18.075 23,12
+            C23,5.925 18.075,1 12,1
+            Z" />
+
+    <!-- 조명 몸체 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M5,10
+            L9,10
+            L15,7
+            L15,17
+            L9,14
+            L5,14
+            Z" />
+
+    <!-- 손잡이 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M7,14
+            L10,14
+            L9.5,18
+            L7.5,18
+            Z" />
+
+    <!-- 빛 1 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M17,9 L19,7.5" />
+
+    <!-- 빛 2 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M17.5,12 L20,12" />
+
+    <!-- 빛 3 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M17,15 L19,16.5" />
+
+</vector>
