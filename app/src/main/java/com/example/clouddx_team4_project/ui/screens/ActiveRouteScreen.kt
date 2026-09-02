@@ -46,6 +46,9 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import com.example.clouddx_team4_project.R
 import com.example.clouddx_team4_project.data.TokenManager
+import com.example.clouddx_team4_project.data.RouteSessionData
+import com.example.clouddx_team4_project.data.RouteSessionPoint
+import com.example.clouddx_team4_project.data.RouteSessionStore
 
 
 // ========================================
@@ -116,6 +119,33 @@ fun ActiveRouteScreen(
         }
 
     // ========================================
+    // 경로 선택 화면에서 이미 계산한 경로 재사용
+    //
+    // 캐시가 있으면 귀가 진행 화면에 들어오자마자
+    // 네트워크 호출 없이 경로/거리/시간을 즉시 사용합니다.
+    // ========================================
+
+    val cachedRoute =
+        remember(
+            routeMode,
+            destinationLatitude,
+            destinationLongitude
+        ) {
+
+            RouteSessionStore.get(
+                routeMode =
+                    routeMode,
+
+                destinationLatitude =
+                    destinationLatitude,
+
+                destinationLongitude =
+                    destinationLongitude
+            )
+        }
+
+
+    // ========================================
     // 안전 확인 팝업 상태
     // ========================================
 
@@ -164,15 +194,58 @@ fun ActiveRouteScreen(
 
 
     // ========================================
+    // 경로 계산에 사용할 최초 출발 위치
+    //
+    // GPS는 계속 갱신하지만, 경로 계산 기준점은
+    // 안내 시작 시 최초 위치로 고정합니다.
+    // 따라서 안내 종료 전까지 선택한 경로가 유지됩니다.
+    // ========================================
+
+    var routeStartLatitude by remember(
+        destinationLatitude,
+        destinationLongitude,
+        routeMode
+    ) {
+        mutableStateOf(
+            cachedRoute
+                ?.startLatitude
+        )
+    }
+
+    var routeStartLongitude by remember(
+        destinationLatitude,
+        destinationLongitude,
+        routeMode
+    ) {
+        mutableStateOf(
+            cachedRoute
+                ?.startLongitude
+        )
+    }
+
+
+    // ========================================
     // 최초 거리 / 시간
     // ========================================
 
-    var initialDistance by remember {
-        mutableIntStateOf(0)
+    var initialDistance by remember(
+        cachedRoute
+    ) {
+        mutableIntStateOf(
+            cachedRoute
+                ?.distanceMeter
+                ?: 0
+        )
     }
 
-    var initialTime by remember {
-        mutableIntStateOf(0)
+    var initialTime by remember(
+        cachedRoute
+    ) {
+        mutableIntStateOf(
+            cachedRoute
+                ?.timeSecond
+                ?: 0
+        )
     }
 
 
@@ -180,12 +253,24 @@ fun ActiveRouteScreen(
     // 남은 거리 / 시간
     // ========================================
 
-    var remainingDistance by remember {
-        mutableIntStateOf(0)
+    var remainingDistance by remember(
+        cachedRoute
+    ) {
+        mutableIntStateOf(
+            cachedRoute
+                ?.distanceMeter
+                ?: 0
+        )
     }
 
-    var remainingTime by remember {
-        mutableIntStateOf(0)
+    var remainingTime by remember(
+        cachedRoute
+    ) {
+        mutableIntStateOf(
+            cachedRoute
+                ?.timeSecond
+                ?: 0
+        )
     }
 
 
@@ -193,9 +278,20 @@ fun ActiveRouteScreen(
     // 실제 경로 좌표
     // ========================================
 
-    var routePoints by remember {
+    var routePoints by remember(
+        cachedRoute
+    ) {
         mutableStateOf<List<LatLng>>(
-            emptyList()
+            cachedRoute
+                ?.points
+                ?.map { point ->
+
+                    LatLng.from(
+                        point.latitude,
+                        point.longitude
+                    )
+                }
+                ?: emptyList()
         )
     }
 
@@ -209,8 +305,25 @@ fun ActiveRouteScreen(
     // 다시 경로선을 그리므로 사용
     // ========================================
 
-    var aiSelectedKakaoRouteMode by remember {
-        mutableStateOf<String?>(null)
+    var aiSelectedKakaoRouteMode by remember(
+        cachedRoute
+    ) {
+        mutableStateOf<String?>(
+            cachedRoute
+                ?.aiSelectedKakaoRouteMode
+        )
+    }
+
+
+    // ========================================
+    // GPS가 움직일 때 전체 경로를 매번 처음부터 찾지 않도록
+    // 직전에 가장 가까웠던 경로점 인덱스를 기억합니다.
+    // ========================================
+
+    var nearestRouteIndex by remember(
+        routePoints
+    ) {
+        mutableIntStateOf(0)
     }
 
 
@@ -218,8 +331,20 @@ fun ActiveRouteScreen(
     // 상태
     // ========================================
 
-    var isLoading by remember {
-        mutableStateOf(true)
+    var routeInitialized by remember(
+        cachedRoute
+    ) {
+        mutableStateOf(
+            cachedRoute != null
+        )
+    }
+
+    var isLoading by remember(
+        cachedRoute
+    ) {
+        mutableStateOf(
+            cachedRoute == null
+        )
     }
 
     var routeError by remember {
@@ -385,7 +510,10 @@ fun ActiveRouteScreen(
 
 
     // ========================================
-    // 최초 경로 조회
+    // 최초 출발 위치 고정
+    //
+    // GPS는 길안내 동안 계속 갱신됩니다.
+    // 다만 경로 자체는 최초 위치를 기준으로 딱 한 번 계산합니다.
     // ========================================
 
     LaunchedEffect(
@@ -396,9 +524,47 @@ fun ActiveRouteScreen(
         routeMode
     ) {
 
-        // GPS 이동할 때마다 API 재호출 방지
         if (
-            routePoints.isNotEmpty()
+            !routeInitialized &&
+            routeStartLatitude == null &&
+            routeStartLongitude == null &&
+            currentLatitude != null &&
+            currentLongitude != null
+        ) {
+
+            routeStartLatitude =
+                currentLatitude
+
+            routeStartLongitude =
+                currentLongitude
+
+            Log.d(
+                "ACTIVE_ROUTE",
+                "경로 출발 위치 고정: $routeStartLatitude, $routeStartLongitude"
+            )
+        }
+    }
+
+
+    // ========================================
+    // 최초 경로 조회
+    //
+    // 중요:
+    // currentLatitude/currentLongitude를 key로 사용하지 않습니다.
+    // GPS가 갱신되어도 네트워크 경로 요청은 다시 실행되지 않습니다.
+    // ========================================
+
+    LaunchedEffect(
+        routeStartLatitude,
+        routeStartLongitude,
+        destinationLatitude,
+        destinationLongitude,
+        routeMode,
+        routeInitialized
+    ) {
+
+        if (
+            routeInitialized
         ) {
 
             return@LaunchedEffect
@@ -406,19 +572,16 @@ fun ActiveRouteScreen(
 
 
         val startLat =
-            currentLatitude
+            routeStartLatitude
                 ?: return@LaunchedEffect
-
 
         val startLng =
-            currentLongitude
+            routeStartLongitude
                 ?: return@LaunchedEffect
-
 
         val endLat =
             destinationLatitude
                 ?: return@LaunchedEffect
-
 
         val endLng =
             destinationLongitude
@@ -464,10 +627,6 @@ fun ActiveRouteScreen(
                         )
 
 
-                // ========================================
-                // 거리 / 시간
-                // ========================================
-
                 initialDistance =
                     response.distanceMeter
 
@@ -481,10 +640,7 @@ fun ActiveRouteScreen(
                     initialTime
 
 
-                // ========================================
-                // 백엔드가 선택한 실제 path
-                // ========================================
-
+                // 서버가 최종 선택한 실제 경로를 그대로 고정 저장합니다.
                 routePoints =
                     response.path
                         .map { point ->
@@ -495,13 +651,6 @@ fun ActiveRouteScreen(
                             )
                         }
 
-
-                // ========================================
-                // AI가 선택한 후보 찾기
-                //
-                // 현재 백엔드는 안전점수가 높은 후보를
-                // 최종 선택하므로 maxByOrNull 사용
-                // ========================================
 
                 aiSelectedKakaoRouteMode =
                     response
@@ -531,7 +680,7 @@ fun ActiveRouteScreen(
 
 
                 // ========================================
-                // 기존 빠른길 / 대로변
+                // 빠른길 / 대로변
                 // ========================================
 
                 val response =
@@ -577,16 +726,13 @@ fun ActiveRouteScreen(
                         ?.totalDistance
                         ?: 0
 
-
                 initialTime =
                     properties
                         ?.totalTime
                         ?: 0
 
-
                 remainingDistance =
                     initialDistance
-
 
                 remainingTime =
                     initialTime
@@ -636,9 +782,61 @@ fun ActiveRouteScreen(
             }
 
 
+            val initializedRoutePoints = routePoints
+
+            if (
+                initializedRoutePoints.size >= 2
+            ) {
+
+                RouteSessionStore.put(
+                    RouteSessionData(
+
+                        routeMode =
+                            routeMode,
+
+                        startLatitude =
+                            startLat,
+
+                        startLongitude =
+                            startLng,
+
+                        destinationLatitude =
+                            endLat,
+
+                        destinationLongitude =
+                            endLng,
+
+                        distanceMeter =
+                            initialDistance,
+
+                        timeSecond =
+                            initialTime,
+
+                        points =
+                            initializedRoutePoints.map { point ->
+
+                                RouteSessionPoint(
+                                    latitude =
+                                        point.latitude,
+
+                                    longitude =
+                                        point.longitude
+                                )
+                            },
+
+                        aiSelectedKakaoRouteMode =
+                            aiSelectedKakaoRouteMode
+                    )
+                )
+
+                routeInitialized =
+                    true
+            }
+
+
             Log.d(
                 "ACTIVE_ROUTE",
-                "경로 좌표 수 = ${routePoints.size}"
+                "고정 경로 좌표 수 = ${initializedRoutePoints.size}"
             )
 
 
@@ -709,40 +907,6 @@ fun ActiveRouteScreen(
 
 
 // ========================================
-// 경로 이탈 감지 (경로에서 30m 이상)
-// GPS 정확도가 나쁘면 판정 제외
-// ========================================
-
-    LaunchedEffect(currentLatitude, currentLongitude, currentAccuracy, routePoints) {
-
-        val lat = currentLatitude ?: return@LaunchedEffect
-        val lng = currentLongitude ?: return@LaunchedEffect
-        val accuracy = currentAccuracy ?: return@LaunchedEffect
-
-        if (accuracy > 20f) {
-            return@LaunchedEffect
-        }
-
-        if (routePoints.isEmpty()) return@LaunchedEffect
-
-        val nearestDistance = routePoints.minOf { point ->
-            calculateDistanceMeter(lat, lng, point.latitude, point.longitude)
-        }
-
-        if (nearestDistance > 30.0) {
-
-            if (deviationStartTime == null) {
-                deviationStartTime = System.currentTimeMillis()
-            }
-
-        } else {
-
-            deviationStartTime = null
-        }
-    }
-
-
-// ========================================
 // 30분 감시 루프
 // ========================================
 
@@ -760,7 +924,7 @@ fun ActiveRouteScreen(
                 when {
 
                     //now - lastMovementTime >= 30 * 60 * 1000L -> {
-                    now - lastMovementTime >= 20_000L -> {
+                    now - lastMovementTime >= 30_000L -> {
                         safetyPopupState = SafetyPopupState.INACTIVITY_CHECK
                     }
 
@@ -803,13 +967,65 @@ fun ActiveRouteScreen(
 
 
     // ========================================
-    // GPS 이동 시 남은 거리 / 시간 계산
+    // 고정 경로의 누적 남은 거리 미리 계산
+    //
+    // routePoints가 바뀔 때 딱 한 번 계산합니다.
+    // GPS 갱신 때마다 모든 남은 선분을 다시 더하지 않습니다.
+    // ========================================
+
+    val remainingDistanceFromIndex =
+        remember(routePoints) {
+
+            val fixedRoutePoints = routePoints
+
+            DoubleArray(
+                fixedRoutePoints.size
+            ).also { distances ->
+
+                if (
+                    fixedRoutePoints.size >= 2
+                ) {
+
+                    for (
+                    index in fixedRoutePoints.size - 2 downTo 0
+                    ) {
+
+                        val point1 =
+                            fixedRoutePoints[index]
+
+                        val point2 =
+                            fixedRoutePoints[index + 1]
+
+                        distances[index] =
+                            distances[index + 1] +
+                                    calculateDistanceMeter(
+                                        point1.latitude,
+                                        point1.longitude,
+                                        point2.latitude,
+                                        point2.longitude
+                                    )
+                    }
+                }
+            }
+        }
+
+
+    // ========================================
+    // GPS 이동 시
+    // 1. 도착 여부 확인
+    // 2. 고정 경로에서 현재 위치와 가장 가까운 점 탐색
+    // 3. 경로 이탈 여부 확인
+    // 4. 남은 거리 / 시간 계산
+    //
+    // 전체 경로 탐색을 한 번만 수행합니다.
     // ========================================
 
     LaunchedEffect(
         currentLatitude,
         currentLongitude,
+        currentAccuracy,
         routePoints,
+        remainingDistanceFromIndex,
         destinationLatitude,
         destinationLongitude
     ) {
@@ -818,20 +1034,19 @@ fun ActiveRouteScreen(
             currentLatitude
                 ?: return@LaunchedEffect
 
-
         val currentLng =
             currentLongitude
                 ?: return@LaunchedEffect
-
 
         val endLat =
             destinationLatitude
                 ?: return@LaunchedEffect
 
-
         val endLng =
             destinationLongitude
                 ?: return@LaunchedEffect
+
+        val fixedRoutePoints = routePoints
 
 
         // 목적지까지 현재 직선거리
@@ -849,10 +1064,6 @@ fun ActiveRouteScreen(
             "목적지까지 직선 거리 = ${destinationDistance.roundToInt()}m"
         )
 
-
-        // ========================================
-        // 목적지 50m 이내
-        // ========================================
 
         if (
             destinationDistance <=
@@ -872,9 +1083,7 @@ fun ActiveRouteScreen(
             remainingTime =
                 0
 
-
             stopLocationUpdates()
-
 
             showArrivalDialog =
                 true
@@ -885,19 +1094,13 @@ fun ActiveRouteScreen(
                 "목적지 부근 도착 감지"
             )
 
-
-            return@LaunchedEffect
-        }
-
-
-        if (arrivalHandled) {
-
             return@LaunchedEffect
         }
 
 
         if (
-            routePoints.isEmpty()
+            arrivalHandled ||
+            fixedRoutePoints.isEmpty()
         ) {
 
             return@LaunchedEffect
@@ -905,89 +1108,156 @@ fun ActiveRouteScreen(
 
 
         // ========================================
-        // 현재 위치와 가장 가까운 경로점
+        // 고정 경로에서 현재 위치와 가장 가까운 점
+        //
+        // 매 GPS 갱신마다 경로 전체를 스캔하지 않고
+        // 직전 위치 주변 구간을 먼저 찾습니다.
+        // 주변에서 경로를 찾지 못한 경우에만 전체 스캔합니다.
         // ========================================
 
         var nearestIndex =
-            0
+            nearestRouteIndex
+                .coerceIn(
+                    0,
+                    fixedRoutePoints.lastIndex
+                )
 
         var nearestDistance =
             Double.MAX_VALUE
 
 
-        routePoints
-            .forEachIndexed {
-                    index,
-                    point ->
-
-
-                val distance =
-                    calculateDistanceMeter(
-
-                        currentLat,
-
-                        currentLng,
-
-                        point.latitude,
-
-                        point.longitude
-                    )
-
-
-                if (
-                    distance <
-                    nearestDistance
-                ) {
-
-                    nearestDistance =
-                        distance
-
-                    nearestIndex =
-                        index
-                }
-            }
-
-
-        // ========================================
-        // 현재 위치 이후 남은 경로 거리
-        // ========================================
-
-        var newRemainingDistance =
-            0.0
-
-
-        for (
-        index in nearestIndex
-                until routePoints.size - 1
-        ) {
-
-            val point1 =
-                routePoints[index]
-
-            val point2 =
-                routePoints[index + 1]
-
-
-            newRemainingDistance +=
-                calculateDistanceMeter(
-
-                    point1.latitude,
-
-                    point1.longitude,
-
-                    point2.latitude,
-
-                    point2.longitude
-                )
-        }
-
-
-        remainingDistance =
-            newRemainingDistance
-                .roundToInt()
+        val searchStart =
+            (nearestIndex - 40)
                 .coerceAtLeast(
                     0
                 )
+
+        val searchEnd =
+            (nearestIndex + 120)
+                .coerceAtMost(
+                    fixedRoutePoints.lastIndex
+                )
+
+
+        for (
+        index in searchStart..searchEnd
+        ) {
+
+            val point =
+                fixedRoutePoints[index]
+
+            val distance =
+                calculateDistanceMeter(
+                    currentLat,
+                    currentLng,
+                    point.latitude,
+                    point.longitude
+                )
+
+
+            if (
+                distance < nearestDistance
+            ) {
+
+                nearestDistance =
+                    distance
+
+                nearestIndex =
+                    index
+            }
+        }
+
+
+        // GPS가 크게 튀었거나 사용자가 멀리 이동한 경우
+        // 부분 탐색만으로 잘못 판정하지 않도록 전체 경로를 한 번 확인합니다.
+        if (
+            nearestDistance > 60.0 &&
+            (
+                    searchStart > 0 ||
+                            searchEnd < fixedRoutePoints.lastIndex
+                    )
+        ) {
+
+            fixedRoutePoints
+                .forEachIndexed {
+                        index,
+                        point ->
+
+                    val distance =
+                        calculateDistanceMeter(
+                            currentLat,
+                            currentLng,
+                            point.latitude,
+                            point.longitude
+                        )
+
+
+                    if (
+                        distance < nearestDistance
+                    ) {
+
+                        nearestDistance =
+                            distance
+
+                        nearestIndex =
+                            index
+                    }
+                }
+        }
+
+
+        nearestRouteIndex =
+            nearestIndex
+
+
+        // ========================================
+        // 경로 이탈 감지
+        // GPS 정확도가 나쁜 경우에는 이탈 판정을 하지 않습니다.
+        // ========================================
+
+        val accuracy =
+            currentAccuracy
+
+        if (
+            accuracy != null &&
+            accuracy <= 20f
+        ) {
+
+            if (
+                nearestDistance > 30.0
+            ) {
+
+                if (
+                    deviationStartTime == null
+                ) {
+
+                    deviationStartTime =
+                        System.currentTimeMillis()
+                }
+
+            } else {
+
+                deviationStartTime =
+                    null
+            }
+        }
+
+
+        // ========================================
+        // 남은 거리
+        // 미리 계산한 누적 거리 배열에서 즉시 가져옵니다.
+        // ========================================
+
+        remainingDistance =
+            remainingDistanceFromIndex
+                .getOrNull(
+                    nearestIndex
+                )
+                ?.roundToInt()
+                ?.coerceAtLeast(
+                    0
+                )
+                ?: 0
 
 
         // ========================================
@@ -995,7 +1265,6 @@ fun ActiveRouteScreen(
         // ========================================
 
         remainingTime =
-
             if (
                 initialDistance > 0 &&
                 initialTime > 0
@@ -1513,22 +1782,11 @@ fun ActiveRouteScreen(
             ) {
 
 
-                // AI_SAFE일 경우
-                // 백엔드가 선택한 실제 Kakao 후보를 지도에 표시
-                val mapRouteMode =
-
-                    if (
-                        routeMode == "AI_SAFE"
-                    ) {
-
-                        aiSelectedKakaoRouteMode
-                            ?: ""
-
-                    } else {
-
-                        routeMode
-                    }
-
+                // ========================================
+                // 지도에는 최초에 확정한 routePoints를 그대로 전달합니다.
+                // GPS가 움직여도 경로선은 다시 계산하지 않습니다.
+                // 현재 위치 마커만 계속 갱신됩니다.
+                // ========================================
 
                 KakaoMapView(
 
@@ -1545,10 +1803,13 @@ fun ActiveRouteScreen(
                         destinationLongitude,
 
                     routeMode =
-                        mapRouteMode,
+                        routeMode,
 
                     showRoute =
-                        mapRouteMode.isNotBlank(),
+                        routePoints.size >= 2,
+
+                    fixedRoutePoints =
+                        routePoints,
 
                     currentLatitude =
                         currentLatitude,
@@ -1863,6 +2124,7 @@ fun ActiveRouteScreen(
 
                         stopLocationUpdates()
 
+                        RouteSessionStore.clear()
                         onFinishClick()
                     },
 
@@ -1949,6 +2211,7 @@ fun ActiveRouteScreen(
 
                             stopLocationUpdates()
 
+                            RouteSessionStore.clear()
                             onFinishClick()
                         },
 

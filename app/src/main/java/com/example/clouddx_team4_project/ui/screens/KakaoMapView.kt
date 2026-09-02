@@ -124,6 +124,11 @@ fun KakaoMapView(
 
     showRoute: Boolean = false,
 
+    // 이미 계산된 고정 경로가 있으면 그대로 그립니다.
+    // ActiveRouteScreen에서는 이 값을 사용하므로
+    // GPS 갱신 때 경로 API를 다시 호출하지 않습니다.
+    fixedRoutePoints: List<LatLng> = emptyList(),
+
     facilities: List<FacilityMapDto> = emptyList(),
 
     // ========================================
@@ -352,6 +357,59 @@ fun KakaoMapView(
             ?: internalLongitude
 
 
+    // ========================================
+    // fallback 경로 조회용 최초 출발 위치
+    //
+    // fixedRoutePoints가 없는 다른 화면에서도
+    // GPS 변경 때마다 경로 API를 다시 호출하지 않도록
+    // 최초 위치를 고정합니다.
+    // ========================================
+
+    var routeStartLatitude by remember(
+        destinationLatitude,
+        destinationLongitude,
+        routeMode
+    ) {
+        mutableStateOf<Double?>(null)
+    }
+
+    var routeStartLongitude by remember(
+        destinationLatitude,
+        destinationLongitude,
+        routeMode
+    ) {
+        mutableStateOf<Double?>(null)
+    }
+
+
+    LaunchedEffect(
+        realCurrentLatitude,
+        realCurrentLongitude,
+        destinationLatitude,
+        destinationLongitude,
+        routeMode,
+        showRoute,
+        fixedRoutePoints
+    ) {
+
+        if (
+            showRoute &&
+            fixedRoutePoints.isEmpty() &&
+            routeStartLatitude == null &&
+            routeStartLongitude == null &&
+            realCurrentLatitude != null &&
+            realCurrentLongitude != null
+        ) {
+
+            routeStartLatitude =
+                realCurrentLatitude
+
+            routeStartLongitude =
+                realCurrentLongitude
+        }
+    }
+
+
 // ========================================
 // 현재 GPS 위치를 부모 화면으로 전달
 //
@@ -416,6 +474,13 @@ fun KakaoMapView(
     val facilityLabelIds =
         remember {
             mutableListOf<String>()
+        }
+
+    // 동일한 마커 drawable을 시설 개수만큼 Bitmap으로
+    // 반복 변환하지 않도록 캐시합니다.
+    val markerBitmapCache =
+        remember {
+            mutableMapOf<Int, Bitmap>()
         }
 
     // ========================================
@@ -932,10 +997,15 @@ fun KakaoMapView(
                 // ========================================
 
                 val markerBitmap =
-                    drawableToBitmap(
-                        context,
-                        markerRes
-                    )
+                    markerBitmapCache
+                        .getOrPut(
+                            markerRes
+                        ) {
+                            drawableToBitmap(
+                                context,
+                                markerRes
+                            )
+                        }
 
 
                 // ========================================
@@ -1152,43 +1222,34 @@ fun KakaoMapView(
 
     // ========================================
     // 경로선
+    //
+    // 1순위: fixedRoutePoints를 그대로 표시
+    // 2순위: fixedRoutePoints가 없는 화면은 최초 위치 기준으로
+    //        Kakao 경로를 한 번만 조회해서 표시
+    //
+    // 현재 GPS 좌표는 LaunchedEffect의 key가 아니므로
+    // GPS 갱신 때 경로선/API가 다시 실행되지 않습니다.
     // ========================================
 
     LaunchedEffect(
-
         kakaoMap,
-
-        realCurrentLatitude,
-
-        realCurrentLongitude,
-
+        fixedRoutePoints,
+        routeStartLatitude,
+        routeStartLongitude,
         destinationLatitude,
-
         destinationLongitude,
-
         routeMode,
-
         showRoute
-
     ) {
-
 
         val map =
             kakaoMap
                 ?: return@LaunchedEffect
 
 
-        // ========================================
-        // 기존 경로선 제거
-        // ========================================
-
         routeLayer
             ?.removeAll()
 
-
-        // ========================================
-        // 경로 표시 안 하는 화면이면 종료
-        // ========================================
 
         if (
             !showRoute
@@ -1197,6 +1258,67 @@ fun KakaoMapView(
             return@LaunchedEffect
         }
 
+
+        // ========================================
+        // 이미 계산된 고정 경로가 있으면
+        // 네트워크 호출 없이 바로 표시
+        // ========================================
+
+        if (
+            fixedRoutePoints.size >= 2
+        ) {
+
+            val routeColor =
+                0xFF6A92FE
+                    .toInt()
+
+            val routeStyle =
+                RouteLineStyle
+                    .from(
+                        14f,
+                        routeColor
+                    )
+
+            val routeStyles =
+                RouteLineStyles
+                    .from(
+                        routeStyle
+                    )
+
+            val routeSegment =
+                RouteLineSegment
+                    .from(
+                        fixedRoutePoints
+                    )
+                    .setStyles(
+                        routeStyles
+                    )
+
+            val routeOptions =
+                RouteLineOptions
+                    .from(
+                        routeSegment
+                    )
+
+            routeLayer
+                ?.addRouteLine(
+                    routeOptions
+                )
+
+
+            Log.d(
+                "WALK_ROUTE",
+                "고정 경로선 표시 완료: ${fixedRoutePoints.size} points"
+            )
+
+            return@LaunchedEffect
+        }
+
+
+        // ========================================
+        // fixedRoutePoints가 없는 기존 화면용 fallback
+        // 최초 출발 위치를 기준으로 한 번만 조회
+        // ========================================
 
         if (
             routeMode.isBlank()
@@ -1207,19 +1329,16 @@ fun KakaoMapView(
 
 
         val startLat =
-            realCurrentLatitude
+            routeStartLatitude
                 ?: return@LaunchedEffect
-
 
         val startLng =
-            realCurrentLongitude
+            routeStartLongitude
                 ?: return@LaunchedEffect
-
 
         val endLat =
             destinationLatitude
                 ?: return@LaunchedEffect
-
 
         val endLng =
             destinationLongitude
@@ -1228,13 +1347,7 @@ fun KakaoMapView(
 
         try {
 
-
-            // ========================================
-            // 카카오 도보 길찾기 API
-            // ========================================
-
             val response =
-
                 KakaoDirectionsClient
                     .api
                     .getWalkingRoute(
@@ -1259,7 +1372,6 @@ fun KakaoMapView(
                             "현재 위치",
 
                         endName =
-
                             if (
                                 destinationName.isBlank()
                             ) {
@@ -1276,11 +1388,7 @@ fun KakaoMapView(
                     )
 
 
-            // ========================================
-            // 경로 좌표
-            // ========================================
-
-            val routePoints =
+            val fetchedRoutePoints =
                 mutableListOf<LatLng>()
 
 
@@ -1289,36 +1397,23 @@ fun KakaoMapView(
                 ?.legs
                 ?.forEach { leg ->
 
-
                     leg
                         .steps
                         ?.forEach { step ->
-
 
                             step
                                 .path
                                 ?.points
                                 ?.forEach { point ->
 
-
                                     if (
                                         point.size >= 2
                                     ) {
 
-
-                                        val longitude =
-                                            point[0]
-
-
-                                        val latitude =
-                                            point[1]
-
-
-                                        routePoints.add(
-
+                                        fetchedRoutePoints.add(
                                             LatLng.from(
-                                                latitude,
-                                                longitude
+                                                point[1],
+                                                point[0]
                                             )
                                         )
                                     }
@@ -1327,56 +1422,41 @@ fun KakaoMapView(
                 }
 
 
-            // ========================================
-            // 지도에 경로선 표시
-            // ========================================
-
             if (
-                routePoints.size >= 2
+                fetchedRoutePoints.size >= 2
             ) {
 
-
                 val routeColor =
-
                     0xFF6A92FE
                         .toInt()
 
-
                 val routeStyle =
-
                     RouteLineStyle
                         .from(
                             14f,
                             routeColor
                         )
 
-
                 val routeStyles =
-
                     RouteLineStyles
                         .from(
                             routeStyle
                         )
 
-
                 val routeSegment =
-
                     RouteLineSegment
                         .from(
-                            routePoints
+                            fetchedRoutePoints
                         )
                         .setStyles(
                             routeStyles
                         )
 
-
                 val routeOptions =
-
                     RouteLineOptions
                         .from(
                             routeSegment
                         )
-
 
                 routeLayer
                     ?.addRouteLine(
@@ -1386,7 +1466,7 @@ fun KakaoMapView(
 
                 Log.d(
                     "WALK_ROUTE",
-                    "경로선 표시 완료"
+                    "fallback 경로선 표시 완료: ${fetchedRoutePoints.size} points"
                 )
             }
 
@@ -1394,7 +1474,6 @@ fun KakaoMapView(
         } catch (
             e: Exception
         ) {
-
 
             Log.e(
                 "WALK_ROUTE",
