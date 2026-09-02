@@ -30,6 +30,9 @@ import com.example.clouddx_team4_project.data.RouteSessionStore
 import com.example.clouddx_team4_project.network.AiSafeRouteRequest
 import com.example.clouddx_team4_project.network.AiSafeRouteResponse
 import com.example.clouddx_team4_project.network.RetrofitClient
+import com.example.clouddx_team4_project.BuildConfig
+import com.example.clouddx_team4_project.data.KakaoReverseGeocodeClient
+import androidx.compose.runtime.rememberCoroutineScope
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -102,6 +105,7 @@ fun RouteSelectScreen(
                 )
         }
 
+    val coroutineScope = rememberCoroutineScope()
 
     // ========================================
     // 현재 위치
@@ -115,6 +119,9 @@ fun RouteSelectScreen(
         mutableStateOf<Double?>(null)
     }
 
+    var resolvedStartName by remember {
+        mutableStateOf(startName)
+    }
 
     // ========================================
     // 빠른길 / 대로변
@@ -220,23 +227,34 @@ fun RouteSelectScreen(
             .addOnSuccessListener { location ->
 
                 if (location == null) {
-
-                    routeError =
-                        "현재 위치를 가져오지 못했습니다."
-
+                    routeError = "현재 위치를 가져오지 못했습니다."
                     isFastLoading = false
                     isBroadLoading = false
                     isAiLoading = false
-
                     return@addOnSuccessListener
                 }
 
+                currentLatitude = location.latitude
+                currentLongitude = location.longitude
 
-                currentLatitude =
-                    location.latitude
+                coroutineScope.launch {
+                    try {
+                        val response = KakaoReverseGeocodeClient.api.getAddressFromCoordinate(
+                            "KakaoAK ${BuildConfig.KAKAO_REST_API_KEY}",
+                            location.longitude,
+                            location.latitude
+                        )
 
-                currentLongitude =
-                    location.longitude
+                        val document = response.documents.firstOrNull()
+
+                        resolvedStartName = document?.roadAddress?.addressName
+                            ?: document?.address?.addressName
+                                    ?: startName
+
+                    } catch (e: Exception) {
+                        resolvedStartName = startName
+                    }
+                }
             }
             .addOnFailureListener { error ->
 
@@ -990,7 +1008,7 @@ fun RouteSelectScreen(
             RouteLocationCard(
 
                 startName =
-                    startName,
+                    resolvedStartName,
 
                 destinationName =
                     destinationName

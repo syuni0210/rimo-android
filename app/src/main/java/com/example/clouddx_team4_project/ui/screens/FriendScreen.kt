@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -1929,7 +1930,7 @@ private fun FriendCard(
 
 
 // ========================================
-// 임시 프로필 원
+// 프로필 원
 // ========================================
 
 @Composable
@@ -1953,21 +1954,20 @@ private fun ProfileCircle(
             Alignment.Center
     ) {
 
-        Text(
-            text =
-                "👤",
+        Icon(
+            imageVector =
+                Icons.Filled.Person,
 
-            fontSize =
-                if (
-                    size >= 46
-                ) {
+            contentDescription =
+                null,
 
-                    23.sp
+            tint =
+                AnOnBlue,
 
-                } else {
-
-                    21.sp
-                }
+            modifier =
+                Modifier.size(
+                    (size * 0.6).dp
+                )
         )
     }
 }

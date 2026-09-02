@@ -2263,62 +2263,62 @@ fun ActiveRouteScreen(
         if (
             showArrivalDialog
         ) {
-
             AlertDialog(
-
                 onDismissRequest = {
-                    // 자동 도착 팝업
+                    showArrivalDialog =
+                        false
                 },
-
                 title = {
-
                     Text(
                         text =
                             "목적지 도착",
-
                         fontWeight =
                             FontWeight.Bold
                     )
                 },
-
                 text = {
-
                     Text(
                         text =
                             "목적지 부근에 도착했습니다.\n안전경로 안내를 종료합니다."
                     )
                 },
-
                 confirmButton = {
-
                     Button(
-
                         onClick = {
-
                             showArrivalDialog =
                                 false
-
                             stopLocationUpdates()
                             saveJourneyRecord()
                             RouteSessionStore.clear()
                             onFinishClick()
                         },
-
                         colors =
                             ButtonDefaults
                                 .buttonColors(
                                     containerColor =
                                         ActiveBlue
                                 )
-
                     ) {
-
                         Text(
                             text =
                                 "확인",
-
                             color =
                                 Color.White
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showArrivalDialog =
+                                false
+                        }
+                    ) {
+                        Text(
+                            text =
+                                "계속 이동",
+                            color =
+                                Color.Gray
                         )
                     }
                 }
