@@ -688,13 +688,19 @@ fun FriendScreen(
                                     states[friend.memberId] =
                                         checked
                                 }
+                        // 2. 백엔드로 API 호출 로직 추가
+                        friendViewModel.toggleLocationSharing(
+                            currentMemberId = currentMemberId,
+                            friendMemberId = friend.memberId,
+                            isSharing = checked
+                        )
                     },
 
                     onLocationClick = {
+                        friendViewModel.fetchFriendLocation(friend.memberId, friend.name)
 
-                        onLocationClick(
-                            friend.name
-                        )
+                        // 2. 기존 외부 콜백 호출 (필요한 경우)
+                        onLocationClick(friend.name)
                     },
 
                     onDeleteClick = {

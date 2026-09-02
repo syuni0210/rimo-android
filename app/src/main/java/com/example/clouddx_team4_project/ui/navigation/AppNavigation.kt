@@ -639,6 +639,15 @@ fun AppNavigation() {
         // ========================================
 
         composable("friend") {
+            val friendViewModel: com.example.clouddx_team4_project.ui.screens.FriendViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
+            val navigateData = friendViewModel.navigateToMapData
+            LaunchedEffect(navigateData) {
+                navigateData?.let { (name, lat, lng) ->
+                    navController.navigate("friend_map/$name/$lat/$lng")
+                    friendViewModel.clearNavigation()
+                }
+            }
 
             FriendScreen(
 
@@ -657,7 +666,12 @@ fun AppNavigation() {
 
                 onDeleteFriend = {},
 
-                onLocationClick = {},
+                onLocationClick = {friendName ->
+                    val targetFriend = friendViewModel.friends.find { it.memberName == friendName }
+                    targetFriend?.let {
+                        friendViewModel.fetchFriendLocation(it.mmbrId, it.memberName)
+                    }
+                                  },
 
                 onTabSelected = { tab ->
 
@@ -693,6 +707,30 @@ fun AppNavigation() {
 
                     showEmergencyDialog = true
                 }
+            )
+        }
+
+        // ========================================
+        // 안심친구 위치 지도 화면 (이 블록을 새로 추가해 주세요)
+        // ========================================
+
+        composable(
+            route = "friend_map/{name}/{lat}/{lng}",
+            arguments = listOf(
+                androidx.navigation.navArgument("name") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("lat") { type = androidx.navigation.NavType.FloatType },
+                androidx.navigation.navArgument("lng") { type = androidx.navigation.NavType.FloatType }
+            )
+        ) { backStackEntry ->
+            val name = backStackEntry.arguments?.getString("name") ?: ""
+            val lat = backStackEntry.arguments?.getString("lat")?.toDouble() ?: 0.0
+            val lng = backStackEntry.arguments?.getString("lng")?.toDouble() ?: 0.0
+
+            com.example.clouddx_team4_project.ui.screens.FriendLocationMapScreen(
+                friendName = name,
+                friendLat = lat,
+                friendLng = lng,
+                onBackClick = { navController.popBackStack() }
             )
         }
 
