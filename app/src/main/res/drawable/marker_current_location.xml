@@ -14,7 +14,7 @@
         </shape>
     </item>
 
-    <!-- 안쪽 파란 원 -->
+    <!-- 안쪽 분홍 원 -->
     <item
         android:left="2dp"
         android:top="2dp"
@@ -23,7 +23,7 @@
 
         <shape android:shape="oval">
 
-            <solid android:color="#3B82F6" />
+            <solid android:color="#FF5C8A" />
 
         </shape>
     </item>

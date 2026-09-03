@@ -1,8 +1,9 @@
 package com.example.clouddx_team4_project.network
 
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
-
+import retrofit2.http.Query
 
 interface AiSafeRouteApi {
 
@@ -21,6 +22,18 @@ interface AiSafeRouteApi {
     @POST("api/routes/facilities-near-path")
     suspend fun getFacilitiesNearPath(
         @Body request: RouteFacilitiesRequest
+    ): List<FacilityMapDto>
+
+    // ========================================
+    // 귀가 진행 중 현재 위치 주변 50m 안전시설 조회
+    //
+    // 현재 GPS 좌표를 Backend로 전달하고,
+    // 해당 위치에서 실제 반경 50m 이내 시설만 반환받습니다.
+    // ========================================
+    @GET("api/routes/facilities-near-location")
+    suspend fun getFacilitiesNearLocation(
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double
     ): List<FacilityMapDto>
 }
 
