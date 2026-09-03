@@ -90,22 +90,11 @@ fun LoginScreen(
         // ========================================
         // 로고
         // ========================================
-
-        Box(
-            modifier = Modifier
-                .size(110.dp)
-                .background(
-                    color = Color.White.copy(alpha = 0.18f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.rimo_logo),
-                contentDescription = "리모 로고",
-                modifier = Modifier.size(72.dp)
-            )
-        }
+        Image(
+            painter = painterResource(R.drawable.rimo_logo),
+            contentDescription = "리모 로고",
+            modifier = Modifier.size(110.dp)
+        )
 
 
         Spacer(

@@ -39,15 +39,13 @@ import com.example.clouddx_team4_project.ui.screens.more.InquiryScreen
 import com.example.clouddx_team4_project.ui.screens.more.NoticeScreen
 import com.example.clouddx_team4_project.ui.screens.more.PrivacyPolicyScreen
 import com.example.clouddx_team4_project.ui.screens.more.ServiceIntroScreen
+import com.example.clouddx_team4_project.network.LocationUpdateRequest
+import kotlinx.coroutines.delay
 
 @Composable
 fun AppNavigation() {
 
     val context = LocalContext.current
-
-    // ========================================
-    // 로그인 사용자 정보
-    // ========================================
 
     val tokenManager = remember {
         TokenManager(context)
@@ -55,26 +53,77 @@ fun AppNavigation() {
 
     val startDest = if (tokenManager.hasValidToken()) "home" else "login"
 
-    // 로그인한 사용자 memberId L
+    // 로그인한 사용자 memberId
     var currentMemberId by remember {
         mutableStateOf(tokenManager.getMemberId())
     }
 
-    // 앱을 다시 실행해서 이미 로그인된 상태여도
-    // Retrofit의 JWT 인터셉터가 TokenManager를 사용할 수 있도록 연결
     SideEffect {
         RetrofitClient.tokenManager = tokenManager
     }
-
-
-    // ========================================
-    // Navigation
-    // ========================================
 
     val navController =
         rememberNavController()
 
     val coroutineScope = rememberCoroutineScope()
+
+    // ========================================
+    // 로그인 상태 동안 3초마다 GPS를 서버로 전송
+    // (위치공유 기능용)
+    // ========================================
+
+    LaunchedEffect(currentMemberId) {
+
+        val memberId = currentMemberId ?: return@LaunchedEffect
+
+        val fusedLocationClient =
+            LocationServices.getFusedLocationProviderClient(context)
+
+        while (true) {
+
+            delay(3000L)
+
+            val finePermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+
+            val coarsePermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+
+            if (
+                finePermission != PackageManager.PERMISSION_GRANTED &&
+                coarsePermission != PackageManager.PERMISSION_GRANTED
+            ) {
+                continue
+            }
+
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+
+                if (location != null) {
+
+                    coroutineScope.launch {
+
+                        try {
+
+                            RetrofitClient.trackingApi.updateLocation(
+                                LocationUpdateRequest(
+                                    memberId = memberId,
+                                    lat = location.latitude,
+                                    lng = location.longitude
+                                )
+                            )
+
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
     // ========================================
