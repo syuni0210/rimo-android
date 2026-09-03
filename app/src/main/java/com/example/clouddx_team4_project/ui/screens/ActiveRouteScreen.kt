@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.clouddx_team4_project.data.KakaoDirectionsClient
 import com.example.clouddx_team4_project.network.AiSafeRouteRequest
+import com.example.clouddx_team4_project.network.AiRoutePoint
+import com.example.clouddx_team4_project.network.RouteFacilitiesRequest
 import com.example.clouddx_team4_project.network.RetrofitClient
 import com.google.android.gms.location.*
 import com.kakao.vectormap.LatLng
@@ -144,6 +146,42 @@ fun ActiveRouteScreen(
             )
         }
 
+    // ========================================
+// 선택한 경로 주변 50m 안전시설
+//
+// RouteSelectScreen에서 AI 시설 데이터가 이미 준비됐다면
+// 캐시의 시설을 그대로 사용합니다.
+//
+// 아직 준비되지 않았다면 ActiveRouteScreen에서
+// 선택한 실제 경로를 Backend로 보내 한 번만 조회합니다.
+// ========================================
+    var routeFacilities by remember(
+        cachedRoute
+    ) {
+        mutableStateOf(
+            cachedRoute
+                ?.facilities
+                ?: emptyList()
+        )
+    }
+
+
+// ========================================
+// 시설 조회 완료 여부
+//
+// facilities가 비어 있어도 facilitiesLoaded == true라면
+// "조회 결과 실제 시설이 0개"라는 뜻이므로
+// 다시 API를 호출하지 않습니다.
+// ========================================
+    var facilitiesLoaded by remember(
+        cachedRoute
+    ) {
+        mutableStateOf(
+            cachedRoute
+                ?.facilitiesLoaded
+                ?: false
+        )
+    }
 
     // ========================================
     // 안전 확인 팝업 상태
@@ -295,6 +333,158 @@ fun ActiveRouteScreen(
         )
     }
 
+    // ========================================
+// SHORTEST / BROAD_FIRST 시설 fallback
+//
+// AI 시설 데이터가 아직 준비되지 않은 상태에서
+// 사용자가 빠른길 또는 대로변을 먼저 선택한 경우,
+// 선택한 실제 경로를 Backend로 보내
+// 경로 주변 50m 안전시설을 조회합니다.
+//
+// facilitiesLoaded == true이면
+// 이미 조회가 끝난 것이므로 다시 호출하지 않습니다.
+// ========================================
+    LaunchedEffect(
+        routeMode,
+        destinationLatitude,
+        destinationLongitude,
+        routePoints,
+        facilitiesLoaded
+    ) {
+
+        // AI_SAFE는 AI 응답 자체에 시설 목록이 포함되므로
+        // fallback API 대상이 아닙니다.
+        if (
+            routeMode != "SHORTEST" &&
+            routeMode != "BROAD_FIRST"
+        ) {
+            return@LaunchedEffect
+        }
+
+
+        // 이미 시설 조회가 완료된 경우 추가 호출하지 않습니다.
+        if (
+            facilitiesLoaded
+        ) {
+            return@LaunchedEffect
+        }
+
+
+        // 실제 경로가 아직 준비되지 않았다면 기다립니다.
+        if (
+            routePoints.size < 2
+        ) {
+            return@LaunchedEffect
+        }
+
+
+        // 혹시 이 화면에 진입하는 순간
+        // 다른 작업에서 캐시를 이미 보완했는지 한 번 더 확인합니다.
+        val latestCachedRoute =
+            RouteSessionStore.get(
+                routeMode = routeMode,
+                destinationLatitude = destinationLatitude,
+                destinationLongitude = destinationLongitude
+            )
+
+
+        if (
+            latestCachedRoute?.facilitiesLoaded == true
+        ) {
+
+            routeFacilities =
+                latestCachedRoute.facilities
+
+            facilitiesLoaded =
+                true
+
+            return@LaunchedEffect
+        }
+
+
+        try {
+
+            // Kakao LatLng -> Backend RoutePointDto와 동일한 구조로 변환
+            val requestPath =
+                routePoints.map { point ->
+
+                    AiRoutePoint(
+                        latitude =
+                            point.latitude,
+
+                        longitude =
+                            point.longitude
+                    )
+                }
+
+
+            Log.d(
+                "ACTIVE_ROUTE",
+                "시설 fallback 조회 시작: mode=$routeMode, pathSize=${requestPath.size}"
+            )
+
+
+            val facilities =
+                RetrofitClient
+                    .aiSafeRouteApi
+                    .getFacilitiesNearPath(
+                        RouteFacilitiesRequest(
+                            path =
+                                requestPath
+                        )
+                    )
+
+
+            // 지도에 즉시 반영
+            routeFacilities =
+                facilities
+
+            facilitiesLoaded =
+                true
+
+
+            // ========================================
+            // RouteSessionStore에도 결과 저장
+            //
+            // 이후 같은 경로 화면에 다시 들어왔을 때
+            // 시설 API를 다시 호출하지 않도록 합니다.
+            // ========================================
+            RouteSessionStore.get(
+                routeMode = routeMode,
+                destinationLatitude = destinationLatitude,
+                destinationLongitude = destinationLongitude
+            )?.let { existingRoute ->
+
+                RouteSessionStore.put(
+                    existingRoute.copy(
+                        facilities =
+                            facilities,
+
+                        facilitiesLoaded =
+                            true
+                    )
+                )
+            }
+
+
+            Log.d(
+                "ACTIVE_ROUTE",
+                "시설 fallback 조회 완료: mode=$routeMode, facilityCount=${facilities.size}"
+            )
+
+        } catch (
+            error: Exception
+        ) {
+
+            // 실패 시 facilitiesLoaded를 true로 만들지 않습니다.
+            // 따라서 사용자가 나갔다가 다시 진입하면 재시도할 수 있습니다.
+            Log.e(
+                "ACTIVE_ROUTE",
+                "시설 fallback 조회 실패: mode=$routeMode",
+                error
+            )
+        }
+    }
 
     // ========================================
     // AI가 최종 선택한 실제 Kakao 후보
@@ -1793,6 +1983,24 @@ fun ActiveRouteScreen(
                     modifier =
                         Modifier.fillMaxSize(),
 
+                    // 안내 시작 당시 고정된 출발 위치
+                    startLatitude =
+                        routeStartLatitude,
+
+                    startLongitude =
+                        routeStartLongitude,
+
+                    // ========================================
+                    // 귀가 경로에서는 특정 시설 하나가 아니라
+                    // 경로 주변 50m 이내의 모든 안전시설을 표시합니다.
+                    //
+                    // KakaoMapView는 selectedFacility가 null이면
+                    // 시설 마커 표시를 중단하기 때문에,
+                    // 경로 시설 표시용 값을 전달합니다.
+                    // ========================================
+                    selectedFacility =
+                        "ROUTE_FACILITIES",
+
                     destinationName =
                         destinationName,
 
@@ -1815,7 +2023,14 @@ fun ActiveRouteScreen(
                         currentLatitude,
 
                     currentLongitude =
-                        currentLongitude
+                        currentLongitude,
+
+                    // ========================================
+                    // 현재 선택한 경로에서 50m 이내에 있는
+                    // 안전시설만 지도 마커 데이터로 전달합니다.
+                    // ========================================
+                    facilities =
+                        routeFacilities
                 )
 
 
