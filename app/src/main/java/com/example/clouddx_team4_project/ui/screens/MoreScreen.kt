@@ -7,6 +7,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.example.clouddx_team4_project.R
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ChevronRight
@@ -289,20 +292,10 @@ fun MoreScreen(
                         Alignment.CenterVertically
                 ) {
 
-                    Icon(
-                        imageVector =
-                            Icons.Filled.Security,
-
-                        contentDescription =
-                            "Rimo",
-
-                        tint =
-                            AnOnBlue,
-
-                        modifier =
-                            Modifier.size(
-                                dimens.homeLogoSize
-                            )
+                    Image(
+                        painter = painterResource(R.drawable.rimo_logo),
+                        contentDescription = "Rimo",
+                        modifier = Modifier.size(dimens.homeLogoSize)
                     )
 
 

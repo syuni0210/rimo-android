@@ -1,6 +1,8 @@
 package com.example.clouddx_team4_project.network
 
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface ReportApi {
@@ -155,4 +157,13 @@ interface ReportApi {
         neLng: Double
 
     ): List<FacilityMapDto>
+
+    // ========================================
+    // 귀가 여정 저장
+    // ========================================
+
+    @POST("api/report/journeys")
+    suspend fun saveJourney(
+        @Body request: JourneySaveRequest
+    ): JourneySaveResponse
 }

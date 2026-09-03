@@ -225,9 +225,8 @@ fun AppNavigation() {
                     when (menu) {
 
                         "안심경로" -> {
-
                             showSelectedRoute = false
-
+                            selectedDestination = null
                             navController.navigate("safe_route") {
                                 launchSingleTop = true
                             }
@@ -506,7 +505,7 @@ fun AppNavigation() {
                 destinationName =
                     selectedDestination
                         ?.placeName
-                        ?: "목적지",
+                        ?: "목적지를 검색하세요",
 
                 destinationLatitude =
                     selectedDestination
@@ -519,7 +518,7 @@ fun AppNavigation() {
                         ?.toDoubleOrNull(),
 
                 onBackClick = {
-
+                    selectedDestination = null
                     navController.popBackStack()
                 },
 

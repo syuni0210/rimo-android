@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -250,20 +251,10 @@ fun HomeScreen(
                         Alignment.CenterVertically
                 ) {
 
-                    Icon(
-                        imageVector =
-                            Icons.Filled.Security,
-
-                        contentDescription =
-                            "Rimo",
-
-                        tint =
-                            MainBlue,
-
-                        modifier =
-                            Modifier.size(
-                                dimens.homeLogoSize
-                            )
+                    Image(
+                        painter = painterResource(R.drawable.rimo_logo),
+                        contentDescription = "Rimo",
+                        modifier = Modifier.size(dimens.homeLogoSize)
                     )
 
 
@@ -295,25 +286,6 @@ fun HomeScreen(
                     modifier =
                         Modifier.weight(
                             1f
-                        )
-                )
-
-
-                Icon(
-                    imageVector =
-                        Icons.Filled.NotificationsNone,
-
-                    contentDescription =
-                        "알림",
-
-                    tint =
-                        Color(
-                            0xFF999999
-                        ),
-
-                    modifier =
-                        Modifier.size(
-                            dimens.homeNotificationSize
                         )
                 )
             }
@@ -377,15 +349,11 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .size(
-                                dimens.homeProfileIconSize
-                            )
-                            .clip(
-                                CircleShape
+                                dimens.largeIconSize + 30.dp
                             )
                             .background(
-                                Color(
-                                    0xFFEAF0FF
-                                )
+                                color = Color(0xFFE8EEFF),
+                                shape = RoundedCornerShape(dimens.cardRadius)
                             ),
 
                         contentAlignment =
@@ -394,7 +362,7 @@ fun HomeScreen(
 
                         Icon(
                             imageVector =
-                                Icons.Filled.Person,
+                                Icons.Filled.AccountCircle,
 
                             contentDescription =
                                 "프로필",
@@ -404,7 +372,7 @@ fun HomeScreen(
 
                             modifier =
                                 Modifier.size(
-                                    dimens.homeProfilePersonIconSize
+                                    dimens.largeIconSize + 10.dp
                                 )
                         )
                     }

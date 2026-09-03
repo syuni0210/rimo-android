@@ -29,6 +29,7 @@ import androidx.core.content.ContextCompat
 import com.example.clouddx_team4_project.data.KakaoDirectionsClient
 import com.example.clouddx_team4_project.network.AiSafeRouteRequest
 import com.example.clouddx_team4_project.network.RetrofitClient
+import com.example.clouddx_team4_project.network.JourneySaveRequest
 import com.google.android.gms.location.*
 import com.kakao.vectormap.LatLng
 import java.text.SimpleDateFormat
@@ -49,7 +50,8 @@ import com.example.clouddx_team4_project.data.TokenManager
 import com.example.clouddx_team4_project.data.RouteSessionData
 import com.example.clouddx_team4_project.data.RouteSessionPoint
 import com.example.clouddx_team4_project.data.RouteSessionStore
-
+import com.example.clouddx_team4_project.BuildConfig
+import com.example.clouddx_team4_project.data.KakaoReverseGeocodeClient
 
 // ========================================
 // 색상
@@ -200,6 +202,15 @@ fun ActiveRouteScreen(
     // 안내 시작 시 최초 위치로 고정합니다.
     // 따라서 안내 종료 전까지 선택한 경로가 유지됩니다.
     // ========================================
+    var journeyStartTime by remember(
+        destinationLatitude,
+        destinationLongitude,
+        routeMode
+    ) {
+        mutableStateOf<Long?>(
+            System.currentTimeMillis()
+        )
+    }
 
     var routeStartLatitude by remember(
         destinationLatitude,
@@ -489,6 +500,84 @@ fun ActiveRouteScreen(
 
 
     // ========================================
+    // 귀가 여정 저장
+    // 안내 종료 시점에 JRNY 테이블에 기록
+    // ========================================
+
+    fun saveJourneyRecord() {
+
+        val memberId = tokenManager.getMemberId() ?: return
+
+        val startLat = routeStartLatitude
+        val startLng = routeStartLongitude
+        val startTime = journeyStartTime
+
+        if (startLat == null || startLng == null || startTime == null) {
+            return
+        }
+
+        val endLat = currentLatitude ?: startLat
+        val endLng = currentLongitude ?: startLng
+
+        val startDateTime = java.time.Instant.ofEpochMilli(startTime)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDateTime()
+            .toString()
+
+        val endDateTime = java.time.LocalDateTime.now().toString()
+
+        coroutineScope.launch {
+            try {
+
+                // ========================================
+                // 출발지 좌표 → 실제 주소로 변환
+                // ========================================
+
+                val startAddressText = try {
+
+                    val response = KakaoReverseGeocodeClient.api.getAddressFromCoordinate(
+                        "KakaoAK ${BuildConfig.KAKAO_REST_API_KEY}",
+                        startLng,
+                        startLat
+                    )
+
+                    val document = response.documents.firstOrNull()
+
+                    document?.roadAddress?.addressName
+                        ?: document?.address?.addressName
+                        ?: "현재 위치"
+
+                } catch (e: Exception) {
+                    "현재 위치"
+                }
+
+                RetrofitClient.reportApi.saveJourney(
+                    JourneySaveRequest(
+                        memberId = memberId,
+                        startAddress = startAddressText,
+                        endAddress = destinationName,
+                        startLatitude = startLat,
+                        startLongitude = startLng,
+                        endLatitude = endLat,
+                        endLongitude = endLng,
+                        pathTypeCode = routeMode,
+                        statusCode = "COMPLETED",
+                        startDateTime = startDateTime,
+                        endDateTime = endDateTime
+                    )
+                )
+
+                Log.d("JOURNEY_SAVE", "귀가 기록 저장 완료")
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Log.e("JOURNEY_SAVE", "귀가 기록 저장 실패", e)
+            }
+        }
+    }
+
+
+    // ========================================
     // 화면 시작 / 종료
     // ========================================
 
@@ -531,7 +620,7 @@ fun ActiveRouteScreen(
             currentLatitude != null &&
             currentLongitude != null
         ) {
-
+            journeyStartTime = System.currentTimeMillis()
             routeStartLatitude =
                 currentLatitude
 
@@ -2123,7 +2212,7 @@ fun ActiveRouteScreen(
                     onClick = {
 
                         stopLocationUpdates()
-
+                        saveJourneyRecord()
                         RouteSessionStore.clear()
                         onFinishClick()
                     },
@@ -2174,62 +2263,62 @@ fun ActiveRouteScreen(
         if (
             showArrivalDialog
         ) {
-
             AlertDialog(
-
                 onDismissRequest = {
-                    // 자동 도착 팝업
+                    showArrivalDialog =
+                        false
                 },
-
                 title = {
-
                     Text(
                         text =
                             "목적지 도착",
-
                         fontWeight =
                             FontWeight.Bold
                     )
                 },
-
                 text = {
-
                     Text(
                         text =
                             "목적지 부근에 도착했습니다.\n안전경로 안내를 종료합니다."
                     )
                 },
-
                 confirmButton = {
-
                     Button(
-
                         onClick = {
-
                             showArrivalDialog =
                                 false
-
                             stopLocationUpdates()
-
+                            saveJourneyRecord()
                             RouteSessionStore.clear()
                             onFinishClick()
                         },
-
                         colors =
                             ButtonDefaults
                                 .buttonColors(
                                     containerColor =
                                         ActiveBlue
                                 )
-
                     ) {
-
                         Text(
                             text =
                                 "확인",
-
                             color =
                                 Color.White
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showArrivalDialog =
+                                false
+                        }
+                    ) {
+                        Text(
+                            text =
+                                "계속 이동",
+                            color =
+                                Color.Gray
                         )
                     }
                 }
