@@ -155,7 +155,7 @@ fun rememberResponsiveDimens(): ResponsiveDimens {
                 // 홈
                 // ------------------------------
 
-                homeLogoSize = 22.dp,
+                homeLogoSize = 26.dp,
 
                 homeNotificationSize = 24.dp,
 
@@ -217,7 +217,7 @@ fun rememberResponsiveDimens(): ResponsiveDimens {
                 // 홈
                 // ------------------------------
 
-                homeLogoSize = 25.dp,
+                homeLogoSize = 29.dp,
 
                 homeNotificationSize = 27.dp,
 
@@ -279,7 +279,7 @@ fun rememberResponsiveDimens(): ResponsiveDimens {
                 // 홈
                 // ------------------------------
 
-                homeLogoSize = 28.dp,
+                homeLogoSize = 32.dp,
 
                 homeNotificationSize = 30.dp,
 

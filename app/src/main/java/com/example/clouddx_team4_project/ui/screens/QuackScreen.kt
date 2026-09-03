@@ -34,6 +34,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import android.media.AudioAttributes
+import android.media.AudioManager
 
 // ========================================
 // 색상
@@ -112,6 +114,10 @@ fun QuackScreen(
         mutableStateOf<MediaPlayer?>(null)
     }
 
+    // 원래 볼륨 저장용
+    var originalAlarmVolume by remember {
+        mutableStateOf<Int?>(null)
+    }
 
     // 작동 상태
     var isRunning by remember {
@@ -131,22 +137,42 @@ fun QuackScreen(
 
         try {
 
+            // ========================================
+            // 기기 알람 볼륨을 최대로 강제 설정
+            // (원래 볼륨은 저장해두고, 종료 시 복원)
+            // ========================================
+
+            val audioManager =
+                context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            originalAlarmVolume =
+                audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+
+            val maxVolume =
+                audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+
+            audioManager.setStreamVolume(
+                AudioManager.STREAM_ALARM,
+                maxVolume,
+                0
+            )
+
             mediaPlayer =
                 MediaPlayer.create(
                     context,
-                    R.raw.siren
+                    R.raw.siren,
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build(),
+                    audioManager.generateAudioSessionId()
                 )
 
             mediaPlayer?.apply {
 
-                // 반복 재생
                 isLooping = true
 
-                // 볼륨
-                setVolume(
-                    1.0f,
-                    1.0f
-                )
+                setVolume(1.0f, 1.0f)
 
                 start()
             }
@@ -181,6 +207,31 @@ fun QuackScreen(
         }
 
         mediaPlayer = null
+
+        // ========================================
+        // 원래 알람 볼륨으로 복원
+        // ========================================
+
+        try {
+
+            originalAlarmVolume?.let { originalVolume ->
+
+                val audioManager =
+                    context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+                audioManager.setStreamVolume(
+                    AudioManager.STREAM_ALARM,
+                    originalVolume,
+                    0
+                )
+            }
+
+        } catch (e: Exception) {
+
+            e.printStackTrace()
+        }
+
+        originalAlarmVolume = null
     }
 
 

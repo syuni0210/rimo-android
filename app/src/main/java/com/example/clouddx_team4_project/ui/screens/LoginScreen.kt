@@ -3,6 +3,9 @@ package com.example.clouddx_team4_project.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.example.clouddx_team4_project.R
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -90,20 +93,17 @@ fun LoginScreen(
 
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(110.dp)
                 .background(
                     color = Color.White.copy(alpha = 0.18f),
                     shape = CircleShape
                 ),
-
             contentAlignment = Alignment.Center
         ) {
-
-            Icon(
-                imageVector = Icons.Filled.Home,
+            Image(
+                painter = painterResource(R.drawable.rimo_logo),
                 contentDescription = "리모 로고",
-                tint = Color.White,
-                modifier = Modifier.size(52.dp)
+                modifier = Modifier.size(72.dp)
             )
         }
 
