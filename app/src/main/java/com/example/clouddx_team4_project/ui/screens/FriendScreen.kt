@@ -697,7 +697,6 @@ fun FriendScreen(
                     },
 
                     onLocationClick = {
-                        friendViewModel.fetchFriendLocation(friend.memberId, friend.name)
 
                         // 2. 기존 외부 콜백 호출 (필요한 경우)
                         onLocationClick(friend.name)

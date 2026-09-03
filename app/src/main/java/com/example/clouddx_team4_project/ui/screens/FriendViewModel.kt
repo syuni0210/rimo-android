@@ -333,24 +333,27 @@ class FriendViewModel : ViewModel() {
     // ========================================
     // 친구 위치 조회 함수 (위치 버튼 클릭 시 호출)
     // ========================================
-    fun fetchFriendLocation(friendMemberId: Long, friendName: String) {
+    fun fetchFriendLocation(requesterId: Long, friendMemberId: Long, friendName: String) {
         viewModelScope.launch {
             try {
                 // TODO: 실제 tracking-api가 준비되면 아래 주석을 풀고 연동하세요.
-                /*
-                val response = RetrofitClient.trackingApi.getFriendLocation(friendMemberId)
+
+                val response = RetrofitClient.trackingApi.getFriendLocation(
+                friendId = friendMemberId,
+                requesterId = requesterId
+                )
+
                 if (response.isSuccessful && response.body() != null) {
-                    val lat = response.body()!!.latitude
-                    val lng = response.body()!!.longitude
-                    navigateToMapData = Triple(friendName, lat, lng)
+                    val result = response.body()!!
+
+                    if (result.success) {
+                    navigateToMapData = Triple(friendName, result.lat, result.lng)
+                    } else {
+                    message = result.message
+                    }
                 } else {
-                    message = "친구의 위치를 불러올 수 없습니다. (위치 공유가 OFF 상태일 수 있습니다)"
+                    message = "서버 응답 오류가 발생했습니다."
                 }
-                */
-
-                // 💡 임시 테스트용 코드 (API 연동 전 지도 화면 테스트용)
-                navigateToMapData = Triple(friendName, 37.5665, 126.9780) // 서울시청 좌표
-
             } catch (e: Exception) {
                 message = "위치 조회 실패: ${e.message}"
             }
