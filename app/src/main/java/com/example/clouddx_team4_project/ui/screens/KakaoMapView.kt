@@ -28,6 +28,10 @@ import com.kakao.vectormap.route.RouteLineStyles
 import com.example.clouddx_team4_project.network.FacilityMapDto
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Typeface
+import com.kakao.vectormap.label.CompetitionType
+import com.kakao.vectormap.label.LabelLayerOptions
 
 private fun drawableToBitmap(
     context: android.content.Context,
@@ -104,6 +108,130 @@ private fun drawableToBitmap(
 }
 
 // ========================================
+// 출발 / 도착 문구용 지도 배지 생성
+//
+// 위쪽에는 둥근 배지를 그리고,
+// 아래쪽은 투명 공간으로 남겨서
+// 실제 좌표의 마커보다 위쪽에 표시합니다.
+// ========================================
+
+private fun createRoutePointBadgeBitmap(
+    context: android.content.Context,
+    text: String,
+    backgroundColor: Int
+): Bitmap {
+
+    val density =
+        context.resources.displayMetrics.density
+
+    val scaledDensity =
+        context.resources.displayMetrics.scaledDensity
+
+
+    // 실제 배지 크기
+    val badgeWidth =
+        (44 * density).toInt()
+
+    val badgeHeight =
+        (24 * density).toInt()
+
+
+    // 아래쪽 투명 여백 포함 전체 높이
+    // 배지가 파란 원/목적지 마커 위에 보이도록 합니다.
+    val bottomPadding =
+        (3 * density).toInt()
+
+    val totalHeight =
+        badgeHeight + bottomPadding
+
+
+    val bitmap =
+        Bitmap.createBitmap(
+            badgeWidth,
+            totalHeight,
+            Bitmap.Config.ARGB_8888
+        )
+
+
+    val canvas =
+        Canvas(bitmap)
+
+
+    // 배경
+    val backgroundPaint =
+        Paint(
+            Paint.ANTI_ALIAS_FLAG
+        ).apply {
+
+            color =
+                backgroundColor
+
+            style =
+                Paint.Style.FILL
+        }
+
+
+    val radius =
+        12 * density
+
+
+    canvas.drawRoundRect(
+        0f,
+        0f,
+        badgeWidth.toFloat(),
+        badgeHeight.toFloat(),
+        radius,
+        radius,
+        backgroundPaint
+    )
+
+
+    // 글자
+    val textPaint =
+        Paint(
+            Paint.ANTI_ALIAS_FLAG
+        ).apply {
+
+            color =
+                android.graphics.Color.WHITE
+
+            textSize =
+                12 * scaledDensity
+
+            textAlign =
+                Paint.Align.CENTER
+
+            typeface =
+                Typeface.create(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+                )
+        }
+
+
+    val fontMetrics =
+        textPaint.fontMetrics
+
+    val textY =
+        badgeHeight / 2f -
+                (
+                        fontMetrics.ascent +
+                                fontMetrics.descent
+                        ) / 2f
+
+
+    canvas.drawText(
+        text,
+        badgeWidth / 2f,
+        textY,
+        textPaint
+    )
+
+
+    return bitmap
+}
+
+// ========================================
 // 카카오맵
 // ========================================
 
@@ -113,6 +241,11 @@ fun KakaoMapView(
     modifier: Modifier = Modifier,
 
     selectedFacility: String? = null,
+
+    // 최초 출발 지점
+    startLatitude: Double? = null,
+
+    startLongitude: Double? = null,
 
     destinationName: String = "",
 
@@ -484,6 +617,24 @@ fun KakaoMapView(
         }
 
     // ========================================
+// 현재 위치 마커 Bitmap
+//
+// marker_current_location.xml을
+// Kakao Label에서 안정적으로 사용할 수 있도록
+// Bitmap으로 한 번만 변환합니다.
+// ========================================
+
+    val currentLocationBitmap =
+        remember(context) {
+
+            drawableToBitmap(
+                context = context,
+                drawableRes =
+                    R.drawable.marker_current_location
+            )
+        }
+
+    // ========================================
     // 경로선 Layer
     // ========================================
 
@@ -812,18 +963,42 @@ fun KakaoMapView(
             )
 
 
-        val layer =
-            map
-                .labelManager
-                ?.layer
+        val labelManager =
+            map.labelManager
+                ?: return@LaunchedEffect
 
+
+// ========================================
+// 현재 위치 전용 LabelLayer
+//
+// 출발/도착/시설 마커와 겹치더라도
+// 현재 위치가 사라지지 않도록 별도 Layer 사용
+// ========================================
+
+        val currentLocationLayer =
+            labelManager.getLayer(
+                "current_location_layer"
+            )
+                ?: labelManager.addLayer(
+                    LabelLayerOptions
+                        .from(
+                            "current_location_layer"
+                        )
+                        .setCompetitionType(
+                            CompetitionType.None
+                        )
+                        .setZOrder(
+                            12000
+                        )
+                )
+                ?: return@LaunchedEffect
 
         // ========================================
         // 기존 현재 위치 마커 제거
         // ========================================
 
-        layer
-            ?.getLabel(
+        currentLocationLayer
+            .getLabel(
                 "current_location"
             )
             ?.remove()
@@ -834,21 +1009,24 @@ fun KakaoMapView(
         // ========================================
 
         val currentOptions =
-
             LabelOptions
                 .from(
                     "current_location",
                     currentPosition
                 )
                 .setStyles(
-
-                    LabelStyle.from(
-                        R.drawable.marker_current_location
-                    )
+                    LabelStyle
+                        .from(
+                            currentLocationBitmap
+                        )
+                        .setApplyDpScale(false)
+                        .setAnchorPoint(
+                            0.5f,
+                            0.5f
+                        )
                 )
 
-
-        layer?.addLabel(
+        currentLocationLayer.addLabel(
             currentOptions
         )
 
@@ -1044,6 +1222,88 @@ fun KakaoMapView(
     }
 
     // ========================================
+// 출발 지점 배지
+//
+// 현재 GPS 마커와 별개입니다.
+// GPS가 움직여도 최초 출발 위치에 고정됩니다.
+// ========================================
+
+    LaunchedEffect(
+        kakaoMap,
+        startLatitude,
+        startLongitude
+    ) {
+
+        val map =
+            kakaoMap
+                ?: return@LaunchedEffect
+
+        val latitude =
+            startLatitude
+                ?: return@LaunchedEffect
+
+        val longitude =
+            startLongitude
+                ?: return@LaunchedEffect
+
+        val layer =
+            map
+                .labelManager
+                ?.layer
+                ?: return@LaunchedEffect
+
+
+        // 기존 출발 배지 제거
+        layer
+            .getLabel(
+                "route_start_badge"
+            )
+            ?.remove()
+
+
+        val position =
+            LatLng.from(
+                latitude,
+                longitude
+            )
+
+
+        val startBadgeBitmap =
+            createRoutePointBadgeBitmap(
+                context = context,
+                text = "출발",
+                backgroundColor =
+                    android.graphics.Color.parseColor(
+                        "#34B768"
+                    )
+            )
+
+
+        val startBadgeOptions =
+            LabelOptions
+                .from(
+                    "route_start_badge",
+                    position
+                )
+                .setStyles(
+                    LabelStyle
+                        .from(
+                            startBadgeBitmap
+                        )
+                        .setApplyDpScale(false)
+                        .setAnchorPoint(
+                            0.5f,
+                            1.0f
+                        )
+                )
+
+
+        layer.addLabel(
+            startBadgeOptions
+        )
+    }
+
+    // ========================================
     // 현재 위치 버튼 클릭
     //
     // SafeMapScreen에서
@@ -1173,30 +1433,50 @@ fun KakaoMapView(
             )
             ?.remove()
 
-
         // ========================================
-        // 목적지 마커 생성
-        // ========================================
+// 목적지 "도착" 배지
+// ========================================
 
-        val destinationOptions =
+        layer
+            ?.getLabel(
+                "route_destination_badge"
+            )
+            ?.remove()
 
+
+        val destinationBadgeBitmap =
+            createRoutePointBadgeBitmap(
+                context = context,
+                text = "도착",
+                backgroundColor =
+                    android.graphics.Color.parseColor(
+                        "#F04444"
+                    )
+            )
+
+
+        val destinationBadgeOptions =
             LabelOptions
                 .from(
-                    "destination",
+                    "route_destination_badge",
                     position
                 )
                 .setStyles(
-
-                    LabelStyle.from(
-                        R.drawable.marker_current_location
-                    )
+                    LabelStyle
+                        .from(
+                            destinationBadgeBitmap
+                        )
+                        .setApplyDpScale(false)
+                        .setAnchorPoint(
+                            0.5f,
+                            1.0f
+                        )
                 )
 
 
         layer?.addLabel(
-            destinationOptions
+            destinationBadgeOptions
         )
-
 
         // ========================================
         // SafeRoute 화면에서는

@@ -30,6 +30,8 @@ import com.example.clouddx_team4_project.data.RouteSessionStore
 import com.example.clouddx_team4_project.network.AiSafeRouteRequest
 import com.example.clouddx_team4_project.network.AiSafeRouteResponse
 import com.example.clouddx_team4_project.network.RetrofitClient
+import com.example.clouddx_team4_project.network.AiRoutePoint
+import com.example.clouddx_team4_project.network.RouteCandidateRequest
 import com.example.clouddx_team4_project.BuildConfig
 import com.example.clouddx_team4_project.data.KakaoReverseGeocodeClient
 import androidx.compose.runtime.rememberCoroutineScope
@@ -347,7 +349,7 @@ fun RouteSelectScreen(
 
         supervisorScope {
 
-            launch {
+            val shortestJob = launch {
 
                 try {
 
@@ -463,7 +465,24 @@ fun RouteSelectScreen(
                                         time,
 
                                     points =
-                                        points
+                                        points,
+
+                                    facilities =
+                                        aiSafeRouteInfo
+                                            ?.candidates
+                                            ?.firstOrNull {
+                                                it.routeMode == "SHORTEST"
+                                            }
+                                            ?.mapFacilities
+                                            ?: emptyList(),
+
+                                    facilitiesLoaded =
+                                        aiSafeRouteInfo
+                                            ?.candidates
+                                            ?.any {
+                                                it.routeMode == "SHORTEST"
+                                            }
+                                                == true,
                                 )
                             )
 
@@ -495,7 +514,7 @@ fun RouteSelectScreen(
             }
 
 
-            launch {
+            val broadJob = launch {
 
                 try {
 
@@ -611,7 +630,24 @@ fun RouteSelectScreen(
                                         time,
 
                                     points =
-                                        points
+                                        points,
+
+                                    facilities =
+                                        aiSafeRouteInfo
+                                            ?.candidates
+                                            ?.firstOrNull {
+                                                it.routeMode == "BROAD_FIRST"
+                                            }
+                                            ?.mapFacilities
+                                            ?: emptyList(),
+
+                                    facilitiesLoaded =
+                                        aiSafeRouteInfo
+                                            ?.candidates
+                                            ?.any {
+                                                it.routeMode == "BROAD_FIRST"
+                                            }
+                                                == true,
                                 )
                             )
 
@@ -645,7 +681,134 @@ fun RouteSelectScreen(
 
             launch {
 
+                // ========================================
+                // Android의 SHORTEST / BROAD_FIRST 계산을
+                // 먼저 모두 완료시킵니다.
+                //
+                // 각 카드의 활성화는 기존 coroutine 안에서
+                // 개별 경로가 완료되는 즉시 이루어집니다.
+                //
+                // AI 요청만 두 후보가 모두 준비될 때까지 기다립니다.
+                // ========================================
+
+                shortestJob.join()
+                broadJob.join()
+
+
+                // ========================================
+                // Android가 실제로 계산해서 캐시에 저장한
+                // SHORTEST / BROAD_FIRST 경로를 가져옵니다.
+                // ========================================
+
+                val shortestRoute =
+                    RouteSessionStore.get(
+                        routeMode =
+                            "SHORTEST",
+
+                        destinationLatitude =
+                            endLat,
+
+                        destinationLongitude =
+                            endLng
+                    )
+
+
+                val broadRoute =
+                    RouteSessionStore.get(
+                        routeMode =
+                            "BROAD_FIRST",
+
+                        destinationLatitude =
+                            endLat,
+
+                        destinationLongitude =
+                            endLng
+                    )
+
+
+                // ========================================
+                // Backend AI 요청용 후보 데이터로 변환
+                //
+                // Android에서 계산된 경로가 정상적으로 존재하면
+                // Backend는 이 데이터를 그대로 사용하므로
+                // Kakao API를 다시 호출하지 않습니다.
+                // ========================================
+
+                val shortestCandidateRequest =
+                    shortestRoute
+                        ?.takeIf {
+                            it.points.size >= 2
+                        }
+                        ?.let { route ->
+
+                            RouteCandidateRequest(
+
+                                routeMode =
+                                    "SHORTEST",
+
+                                distanceMeter =
+                                    route.distanceMeter,
+
+                                timeSecond =
+                                    route.timeSecond,
+
+                                path =
+                                    route.points.map { point ->
+
+                                        AiRoutePoint(
+                                            latitude =
+                                                point.latitude,
+
+                                            longitude =
+                                                point.longitude
+                                        )
+                                    }
+                            )
+                        }
+
+
+                val broadCandidateRequest =
+                    broadRoute
+                        ?.takeIf {
+                            it.points.size >= 2
+                        }
+                        ?.let { route ->
+
+                            RouteCandidateRequest(
+
+                                routeMode =
+                                    "BROAD_FIRST",
+
+                                distanceMeter =
+                                    route.distanceMeter,
+
+                                timeSecond =
+                                    route.timeSecond,
+
+                                path =
+                                    route.points.map { point ->
+
+                                        AiRoutePoint(
+                                            latitude =
+                                                point.latitude,
+
+                                            longitude =
+                                                point.longitude
+                                        )
+                                    }
+                            )
+                        }
+
+
                 try {
+
+                    Log.d(
+                        "ROUTE_SELECT",
+                        "AI 요청 시작: " +
+                                "shortestCandidate=${shortestCandidateRequest != null}, " +
+                                "broadCandidate=${broadCandidateRequest != null}"
+                    )
+
 
                     val aiResponse =
                         RetrofitClient
@@ -664,10 +827,23 @@ fun RouteSelectScreen(
                                         endLat,
 
                                     destinationLongitude =
-                                        endLng
+                                        endLng,
+
+                                    shortestCandidate =
+                                        shortestCandidateRequest,
+
+                                    broadCandidate =
+                                        broadCandidateRequest
                                 )
                             )
 
+
+                    // ========================================
+// AI가 최종 선택한 Kakao 경로 모드 확인
+//
+// 백엔드 routeMode가 SHORTEST 또는 BROAD_FIRST이면 그대로 사용하고,
+// 없거나 예상하지 못한 값이면 후보 중 안전점수가 가장 높은 경로를 사용합니다.
+// ========================================
 
                     val selectedKakaoMode =
 
@@ -686,6 +862,44 @@ fun RouteSelectScreen(
                             ?: "SHORTEST"
 
 
+// ========================================
+// 각 후보 경로의 50m 이내 실제 시설 목록 분리
+//
+// SHORTEST:
+// 빠른길 경로에서 50m 이내에 있는 실제 시설 좌표
+//
+// BROAD_FIRST:
+// 대로변 경로에서 50m 이내에 있는 실제 시설 좌표
+//
+// 백엔드에서 이미 계산한 mapFacilities를 그대로 사용하므로
+// Android에서 시설 DB/API를 추가로 조회하지 않습니다.
+// ========================================
+
+                    val shortestMapFacilities =
+                        aiResponse
+                            .candidates
+                            .firstOrNull {
+                                it.routeMode == "SHORTEST"
+                            }
+                            ?.mapFacilities
+                            ?: emptyList()
+
+
+                    val broadMapFacilities =
+                        aiResponse
+                            .candidates
+                            .firstOrNull {
+                                it.routeMode == "BROAD_FIRST"
+                            }
+                            ?.mapFacilities
+                            ?: emptyList()
+
+
+// ========================================
+// AI가 선택한 최종 경로의 좌표를
+// RouteSessionStore용 좌표 형식으로 변환합니다.
+// ========================================
+
                     val points =
                         aiResponse
                             .path
@@ -701,9 +915,96 @@ fun RouteSelectScreen(
                             }
 
 
+// 경로 좌표가 정상적으로 존재할 때만 캐시에 저장합니다.
                     if (
                         points.size >= 2
                     ) {
+
+                        // ========================================
+                        // AI 응답을 먼저 화면 상태에 저장
+                        //
+                        // 빠른길/대로변 API가 AI보다 늦게 끝나는 경우,
+                        // 해당 coroutine에서 aiSafeRouteInfo를 읽어
+                        // 자신의 mapFacilities를 바로 저장할 수 있게 합니다.
+                        //
+                        // 즉 API 완료 순서가 달라도 시설 데이터가 유지됩니다.
+                        // ========================================
+
+                        aiSafeRouteInfo =
+                            aiResponse
+
+
+                        // ========================================
+                        // 이미 저장되어 있는 SHORTEST 캐시 보완
+                        //
+                        // 빠른길 API가 AI보다 먼저 완료된 경우에는
+                        // 당시 aiSafeRouteInfo가 null이었기 때문에
+                        // facilities가 emptyList()로 저장되어 있을 수 있습니다.
+                        //
+                        // 그런 경우 현재 AI 응답에서 받은
+                        // SHORTEST의 50m 시설 목록으로 다시 갱신합니다.
+                        // ========================================
+
+                        RouteSessionStore.get(
+                            routeMode =
+                                "SHORTEST",
+
+                            destinationLatitude =
+                                endLat,
+
+                            destinationLongitude =
+                                endLng
+                        )?.let { existingRoute ->
+
+                            RouteSessionStore.put(
+                                existingRoute.copy(
+                                    facilities =
+                                        shortestMapFacilities,
+
+                                    facilitiesLoaded =
+                                        true
+                                )
+                            )
+                        }
+
+
+                        // ========================================
+                        // 이미 저장되어 있는 BROAD_FIRST 캐시 보완
+                        //
+                        // 대로변 API가 AI보다 먼저 완료되어
+                        // facilities가 비어 있는 상태로 저장된 경우,
+                        // AI 응답의 BROAD_FIRST 50m 시설 목록으로 갱신합니다.
+                        // ========================================
+
+                        RouteSessionStore.get(
+                            routeMode =
+                                "BROAD_FIRST",
+
+                            destinationLatitude =
+                                endLat,
+
+                            destinationLongitude =
+                                endLng
+                        )?.let { existingRoute ->
+
+                            RouteSessionStore.put(
+                                existingRoute.copy(
+                                    facilities =
+                                        broadMapFacilities,
+
+                                    facilitiesLoaded =
+                                        true
+                                )
+                            )
+                        }
+
+
+                        // ========================================
+                        // AI 안전경로 자체도 RouteSessionStore에 저장
+                        //
+                        // aiResponse.facilities는
+                        // AI가 최종 선택한 경로의 50m 이내 시설 목록입니다.
+                        // ========================================
 
                         RouteSessionStore.put(
                             RouteSessionData(
@@ -732,16 +1033,14 @@ fun RouteSelectScreen(
                                 points =
                                     points,
 
+                                facilities =
+                                    aiResponse.facilities,
+
                                 aiSelectedKakaoRouteMode =
                                     selectedKakaoMode
                             )
                         )
-
-                        // 캐시 저장이 끝난 뒤 AI 카드를 활성화합니다.
-                        aiSafeRouteInfo =
-                            aiResponse
                     }
-
 
                     Log.d(
                         "ROUTE_SELECT",
@@ -751,6 +1050,7 @@ fun RouteSelectScreen(
                         time = ${aiResponse.timeSecond}
                         score = ${aiResponse.safetyScore}
                         pathSize = ${aiResponse.path.size}
+                        facilityCount = ${aiResponse.facilities.size}
                         selectedMode = $selectedKakaoMode
                         """.trimIndent()
                     )

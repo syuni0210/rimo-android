@@ -1,7 +1,7 @@
 package com.example.clouddx_team4_project.data
 
 import kotlin.math.abs
-
+import com.example.clouddx_team4_project.network.FacilityMapDto
 /**
  * 경로 선택 화면에서 이미 계산한 경로를
  * 귀가 진행 화면에서 그대로 재사용하기 위한 메모리 캐시입니다.
@@ -24,6 +24,21 @@ data class RouteSessionData(
     val distanceMeter: Int,
     val timeSecond: Int,
     val points: List<RouteSessionPoint>,
+    val facilities: List<FacilityMapDto> = emptyList(),
+// ========================================
+// 시설 조회 완료 여부
+//
+// false:
+// 아직 시설 데이터를 얻지 못한 상태.
+// 필요하면 facilities-near-path API를 호출합니다.
+//
+// true:
+// 시설 조회가 완료된 상태.
+// facilities가 emptyList()여도
+// "조회했는데 실제 시설이 0개"라는 뜻이므로
+// DB를 다시 조회하지 않습니다.
+// ========================================
+    val facilitiesLoaded: Boolean = false,
     val aiSelectedKakaoRouteMode: String? = null
 )
 
