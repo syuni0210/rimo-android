@@ -35,6 +35,7 @@ import com.example.clouddx_team4_project.network.RouteFacilitiesRequest
 import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.network.JourneySaveRequest
 import com.example.clouddx_team4_project.network.FacilityMapDto
+import com.example.clouddx_team4_project.network.SharingFriendResponse
 import com.google.android.gms.location.*
 import com.kakao.vectormap.LatLng
 import java.text.SimpleDateFormat
@@ -124,6 +125,44 @@ fun ActiveRouteScreen(
         LocalContext.current
 
     val tokenManager = remember { TokenManager(context) }
+
+    // ========================================
+    // 위치 공유 중인 모든 친구 목록 및 3초 주기 폴링
+    // ========================================
+
+    var sharingFriends by remember {
+        mutableStateOf(emptyList<SharingFriendResponse>())
+    }
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            val memberId = tokenManager.getMemberId()
+
+            if (memberId != null) {
+
+                try {
+                    val response = RetrofitClient.trackingApi.getSharingFriendsLocations(
+                        requesterId = memberId
+                    )
+
+                    if (response.isSuccessful) {
+                        sharingFriends = response.body() ?: emptyList()
+                    }
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            delay(3000)
+        }
+    }
+
+    var sharingCount by remember {
+        mutableStateOf(0)
+    }
 
     val fusedLocationClient =
         remember {
@@ -311,6 +350,27 @@ fun ActiveRouteScreen(
         mutableStateOf<Long?>(
             System.currentTimeMillis()
         )
+    }
+
+    // ========================================
+    // 위치공유 대상 수 조회 (3초마다 갱신)
+    // ========================================
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            val memberId = tokenManager.getMemberId()
+
+            if (memberId != null) {
+
+                try {
+                    sharingCount = RetrofitClient.trackingApi.getSharingCount(memberId)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
     }
 
     var routeStartLatitude by remember(
@@ -2069,24 +2129,20 @@ fun ActiveRouteScreen(
                                     )
                                 )
                                 .background(
-                                    ActiveBlue
+                                    if (sharingCount > 0) ActiveBlue else Color(0xFFBEBEBE)
                                 )
                                 .padding(
                                     horizontal = 10.dp,
                                     vertical = 4.dp
                                 )
                         ) {
-
                             Text(
                                 text =
-                                    "ON",
-
+                                    if (sharingCount > 0) "ON" else "OFF",
                                 fontSize =
                                     11.sp,
-
                                 fontWeight =
                                     FontWeight.Bold,
-
                                 color =
                                     Color.White
                             )
@@ -2126,11 +2182,9 @@ fun ActiveRouteScreen(
 
                         Text(
                             text =
-                                "공유 대상 2명",
-
+                                "공유 대상 ${sharingCount}명",
                             fontSize =
                                 12.sp,
-
                             color =
                                 ActiveTextBlack
                         )
@@ -2167,14 +2221,13 @@ fun ActiveRouteScreen(
                 // ========================================
 
                 KakaoMapView(
-
                     modifier =
                         Modifier.fillMaxSize(),
-
+                    sharingFriends =
+                        sharingFriends,
                     // 안내 시작 당시 고정된 출발 위치
                     startLatitude =
                         routeStartLatitude,
-
                     startLongitude =
                         routeStartLongitude,
 
@@ -2229,8 +2282,8 @@ fun ActiveRouteScreen(
 
 
                 // ========================================
-// 오른쪽 버튼
-// ========================================
+                // 오른쪽 버튼
+                // ========================================
 
                 Column(
                     modifier = Modifier
@@ -2238,7 +2291,7 @@ fun ActiveRouteScreen(
                             Alignment.CenterEnd
                         )
                         .offset(
-                            y = 44.dp
+                            y = 100.dp
                         )
                         .padding(
                             end = 18.dp
@@ -2903,21 +2956,6 @@ private object SafetyAlertPlayer {
     fun start(context: android.content.Context) {
 
         stop()
-
-        try {
-            mediaPlayer = MediaPlayer.create(context, R.raw.siren).apply {
-                isLooping = true
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                start()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
 
         try {
             vibrator = getVibrator(context)

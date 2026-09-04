@@ -36,6 +36,11 @@ interface TrackingApi {
         @Query("requesterId") requesterId: Long
     ): Response<List<SharingFriendResponse>>
 
+    @GET("api/tracking/sharing-count")
+    suspend fun getSharingCount(
+        @Query("memberId") memberId: Long
+    ): Int
+
     @GET("api/tracking/emergency/pending")
     suspend fun getPendingEmergencyPopup(
         @Query("memberId") memberId: Long

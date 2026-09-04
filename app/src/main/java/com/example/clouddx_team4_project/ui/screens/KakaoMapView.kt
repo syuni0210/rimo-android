@@ -2014,21 +2014,17 @@ fun KakaoMapView(
 
 
 // ============================================================
-// 본인 마커(18dp) + 노란색 틴트 + 하얀 구멍 + 텍스트
+// 노란색 위치 핀 마커 (Canvas로 직접 그림, PNG 없음)
 // ============================================================
 private fun createCustomFriendMarkerBitmap(context: android.content.Context, friendName: String): android.graphics.Bitmap {
-    val drawable = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.marker_current_location)?.mutate()
 
-    if (drawable != null) {
-        androidx.core.graphics.drawable.DrawableCompat.setTint(drawable, android.graphics.Color.parseColor("#FFC107"))
-    }
-
-    // 1. 이전(36dp)의 정확히 절반인 18dp로 크기 대폭 축소
     val density = context.resources.displayMetrics.density
-    val markerW = (18 * density).toInt()
-    val markerH = (21 * density).toInt()
 
-    // 2. 텍스트 크기도 절반 수준(10dp)으로 맞추고 가독성 유지
+    // 핀 크기
+    val pinWidth = (16 * density).toInt()
+    val pinHeight = (20 * density).toInt()
+
+    // 텍스트 준비
     val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.BLACK
         textSize = 10f * density
@@ -2045,31 +2041,52 @@ private fun createCustomFriendMarkerBitmap(context: android.content.Context, fri
         strokeWidth = 2.5f * density
     }
 
-    val textMargin = (3 * density).toInt()
+    val textMargin = (4 * density).toInt()
     val textHeight = (textPaint.descent() - textPaint.ascent()).toInt()
-    val totalWidth = Math.max(markerW, textPaint.measureText(friendName).toInt() + (8 * density).toInt())
-    val totalHeight = textHeight + textMargin + markerH
+    val totalWidth = Math.max(pinWidth, textPaint.measureText(friendName).toInt() + (12 * density).toInt())
+    val totalHeight = textHeight + textMargin + pinHeight
 
     val bitmap = android.graphics.Bitmap.createBitmap(totalWidth, totalHeight, android.graphics.Bitmap.Config.ARGB_8888)
     val canvas = android.graphics.Canvas(bitmap)
 
+    // 이름 텍스트 (핀 위쪽)
     val textX = totalWidth / 2f
     val textY = -textPaint.ascent()
     canvas.drawText(friendName, textX, textY, strokePaint)
     canvas.drawText(friendName, textX, textY, textPaint)
 
-    val markerLeft = (totalWidth - markerW) / 2
-    val markerTop = textHeight + textMargin
-    drawable?.setBounds(markerLeft, markerTop, markerLeft + markerW, markerTop + markerH)
-    drawable?.draw(canvas)
+    // 핀 그리기 (물방울 모양)
+    val pinLeft = (totalWidth - pinWidth) / 2f
+    val pinTop = (textHeight + textMargin).toFloat()
+    val pinCenterX = pinLeft + pinWidth / 2f
+    val pinCircleRadius = pinWidth / 2f
+    val pinCircleCenterY = pinTop + pinCircleRadius
 
-    val whiteCirclePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+    val pinPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor("#FFD900")
+        style = Paint.Style.FILL
+    }
+
+// 1. 삼각형(아래 뾰족한 부분)을 먼저 그림
+    val tipY = pinTop + pinHeight
+    val triangleTopWidth = pinCircleRadius * 0.9f
+
+    val trianglePath = android.graphics.Path()
+    trianglePath.moveTo(pinCenterX - triangleTopWidth, pinCircleCenterY + pinCircleRadius * 0.5f)
+    trianglePath.lineTo(pinCenterX, tipY)
+    trianglePath.lineTo(pinCenterX + triangleTopWidth, pinCircleCenterY + pinCircleRadius * 0.5f)
+    trianglePath.close()
+
+    canvas.drawPath(trianglePath, pinPaint)
+
+// 2. 원(위쪽 둥근 부분)을 그 위에 덮어서 그림
+    canvas.drawCircle(pinCenterX, pinCircleCenterY, pinCircleRadius, pinPaint)
+
+// 3. 중앙 흰색 원
+    val whiteCirclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
     }
-    val circleCenterX = markerLeft + (markerW / 2f)
-    val circleCenterY = markerTop + (markerH * 0.43f)
-    val circleRadius = markerW * 0.22f
-    canvas.drawCircle(circleCenterX, circleCenterY, circleRadius, whiteCirclePaint)
+    canvas.drawCircle(pinCenterX, pinCircleCenterY, pinCircleRadius * 0.42f, whiteCirclePaint)
 
     return bitmap
 }

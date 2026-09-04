@@ -42,6 +42,7 @@ import com.kakao.vectormap.MapView
 import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
+import android.graphics.Path
 import kotlinx.coroutines.launch
 
 // ========================================
@@ -301,77 +302,78 @@ fun FriendLocationMapScreen(
     }
 }
 
+
 // ============================================================
-// 1. marker_current_location.png 로드
-// 2. 15% 크기 축소 및 노란색 틴트 적용
-// 3. 마커 '위쪽'에 친구 이름 합성
-// 4. 틴트로 인해 덮인 가운데 하얀색 원 직접 복구
+// 노란색 위치 핀 마커
 // ============================================================
 private fun createCustomFriendMarkerBitmap(context: Context, friendName: String): Bitmap {
-    // 1. 프로젝트 내 PNG 마커 이미지 불러오기
-    val drawable = ContextCompat.getDrawable(context, R.drawable.marker_current_location)?.mutate()
 
-    // 2. 마커에 예쁜 노란색(#FFC107) 틴트 입히기
-    // (이때 하얀색 구멍까지 싹 다 노란색으로 덮입니다)
-    if (drawable != null) {
-        DrawableCompat.setTint(drawable, android.graphics.Color.parseColor("#FFC107"))
-    }
+    val density = context.resources.displayMetrics.density
 
-    // 3. 기존 크기에서 15% 축소 (0.85배)
-    val originalW = drawable?.intrinsicWidth ?: 100
-    val originalH = drawable?.intrinsicHeight ?: 100
-    val markerW = (originalW * 0.85f).toInt()
-    val markerH = (originalH * 0.85f).toInt()
+    val pinWidth = (22 * density).toInt()
+    val pinHeight = (27 * density).toInt()
 
-    // 4. 이름 텍스트 및 테두리 설정
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.BLACK
-        textSize = 42f
+        textSize = 12f * density
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
     }
 
     val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
-        textSize = 42f
+        textSize = 12f * density
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
         style = Paint.Style.STROKE
-        strokeWidth = 8f
+        strokeWidth = 3f * density
     }
 
-    // 5. 전체 도화지 크기 계산
-    val textMargin = 12
+    val textMargin = (4 * density).toInt()
     val textHeight = (textPaint.descent() - textPaint.ascent()).toInt()
-    val totalWidth = Math.max(markerW, textPaint.measureText(friendName).toInt() + 20)
-    val totalHeight = textHeight + textMargin + markerH
+    val totalWidth = Math.max(pinWidth, textPaint.measureText(friendName).toInt() + (12 * density).toInt())
+    val totalHeight = textHeight + textMargin + pinHeight
 
     val bitmap = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    // 6. 이름 텍스트 렌더링
+    // 이름 텍스트 (핀 위쪽)
     val textX = totalWidth / 2f
     val textY = -textPaint.ascent()
     canvas.drawText(friendName, textX, textY, strokePaint)
     canvas.drawText(friendName, textX, textY, textPaint)
 
-    // 7. 노란색으로 덮인 PNG 마커 렌더링
-    val markerLeft = (totalWidth - markerW) / 2
-    val markerTop = textHeight + textMargin
-    drawable?.setBounds(markerLeft, markerTop, markerLeft + markerW, markerTop + markerH)
-    drawable?.draw(canvas)
+    // 핀 그리기 (물방울 모양)
+    val pinLeft = (totalWidth - pinWidth) / 2f
+    val pinTop = (textHeight + textMargin).toFloat()
+    val pinCenterX = pinLeft + pinWidth / 2f
+    val pinCircleRadius = pinWidth / 2f
+    val pinCircleCenterY = pinTop + pinCircleRadius
 
-    // 8. ⭐️ 여기서 가운데 하얀색 포인트를 다시 복구합니다! ⭐️
+    val pinPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor("#FFD900")
+        style = Paint.Style.FILL
+    }
+
+// 1. 삼각형(아래 뾰족한 부분)을 먼저 그림
+    val tipY = pinTop + pinHeight
+    val triangleTopWidth = pinCircleRadius * 0.9f
+
+    val trianglePath = android.graphics.Path()
+    trianglePath.moveTo(pinCenterX - triangleTopWidth, pinCircleCenterY + pinCircleRadius * 0.5f)
+    trianglePath.lineTo(pinCenterX, tipY)
+    trianglePath.lineTo(pinCenterX + triangleTopWidth, pinCircleCenterY + pinCircleRadius * 0.5f)
+    trianglePath.close()
+
+    canvas.drawPath(trianglePath, pinPaint)
+
+// 2. 원(위쪽 둥근 부분)을 그 위에 덮어서 그림
+    canvas.drawCircle(pinCenterX, pinCircleCenterY, pinCircleRadius, pinPaint)
+
+// 3. 중앙 흰색 원
     val whiteCirclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
     }
-    // 마커 머리 부분의 중심점 (대략 위에서부터 마커 너비의 절반만큼 내려온 위치)
-    val circleCenterX = markerLeft + (markerW / 2f)
-    val circleCenterY = markerTop + (markerW / 2f)
-    // 하얀 원의 크기 (마커 너비의 22% 정도로 설정)
-    val circleRadius = markerW * 0.22f
-
-    canvas.drawCircle(circleCenterX, circleCenterY, circleRadius, whiteCirclePaint)
-
+    canvas.drawCircle(pinCenterX, pinCircleCenterY, pinCircleRadius * 0.42f, whiteCirclePaint)
     return bitmap
 }
