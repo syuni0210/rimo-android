@@ -35,6 +35,17 @@ interface TrackingApi {
     suspend fun getSharingFriendsLocations(
         @Query("requesterId") requesterId: Long
     ): Response<List<SharingFriendResponse>>
+
+    @GET("api/tracking/emergency/pending")
+    suspend fun getPendingEmergencyPopup(
+        @Query("memberId") memberId: Long
+    ): Response<EmergencyPopupResponse>
+
+    @POST("api/tracking/emergency/{emergencyId}/ack")
+    suspend fun acknowledgeEmergencyPopup(
+        @Path("emergencyId") emergencyId: Long,
+        @Query("memberId") memberId: Long
+    ): Response<Unit>
 }
 
 data class EmergencyTriggerRequest(
@@ -72,4 +83,11 @@ data class SharingFriendResponse(
     val lat: Double,
     val lng: Double
 
+)
+
+data class EmergencyPopupResponse(
+    val hasEmergency: Boolean,
+    val emergencyId: Long?,
+    val senderId: Long?,
+    val senderName: String?
 )
