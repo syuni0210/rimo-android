@@ -64,4 +64,12 @@ interface FriendApi {
         @Query("memberId") memberId: Long,
         @Query("friendMemberId") friendMemberId: Long
     ): Response<FriendResponse>
+
+    // 위치 공유 상태 변경 API (추가)
+    @PATCH("api/friends/{friendMemberId}/location-sharing")
+    suspend fun toggleLocationSharing(
+        @Path("friendMemberId") friendMemberId: Long,
+        @Query("memberId") memberId: Long,
+        @Query("isSharing") isSharing: Boolean
+    ): Response<FriendResponse> // 백엔드 응답 타입에 맞춰 수정
 }

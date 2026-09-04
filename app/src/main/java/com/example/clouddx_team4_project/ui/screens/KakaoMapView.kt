@@ -28,33 +28,42 @@ import com.kakao.vectormap.route.RouteLineStyles
 import com.example.clouddx_team4_project.network.FacilityMapDto
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import com.example.clouddx_team4_project.network.SharingFriendResponse
 
+// ========================================
+// XML Drawable을 Bitmap으로 변환 (색상 틴트 지원)
+// ========================================
 private fun drawableToBitmap(
     context: android.content.Context,
-    drawableRes: Int
+    drawableRes: Int,
+    tintColor: Int? = null
 ): Bitmap {
 
     // ========================================
     // XML drawable 불러오기
     // ========================================
-
     val drawable =
         ContextCompat.getDrawable(
             context,
             drawableRes
-        ) ?: return Bitmap.createBitmap(
+        )?.mutate() ?: return Bitmap.createBitmap(
             44,
             44,
             Bitmap.Config.ARGB_8888
         )
 
-    // ========================================
-    // XML에 지정된 마커 크기 사용
-    //
-    // intrinsic 크기를 얻을 수 없는 경우
-    // 44 x 44를 기본값으로 사용
-    // ========================================
 
+    // ========================================
+    // 틴트 색상이 지정된 경우 드로어블에 색상 적용
+    // ========================================
+    if (tintColor != null) {
+        androidx.core.graphics.drawable.DrawableCompat.setTint(drawable, tintColor)
+    }
+
+
+    // ========================================
+    // 마커 크기 설정 (기본 44x44)
+    // ========================================
     val width =
         if (drawable.intrinsicWidth > 0) {
             drawable.intrinsicWidth
@@ -69,10 +78,10 @@ private fun drawableToBitmap(
             44
         }
 
+
     // ========================================
     // 투명 배경 Bitmap 생성
     // ========================================
-
     val bitmap =
         Bitmap.createBitmap(
             width,
@@ -83,20 +92,16 @@ private fun drawableToBitmap(
     val canvas =
         Canvas(bitmap)
 
-    // ========================================
-    // Drawable 크기를 Bitmap 크기에 맞춤
-    // ========================================
 
+    // ========================================
+    // Drawable 크기를 Bitmap에 맞춘 뒤 그리기
+    // ========================================
     drawable.setBounds(
         0,
         0,
         canvas.width,
         canvas.height
     )
-
-    // ========================================
-    // XML drawable을 Bitmap에 그림
-    // ========================================
 
     drawable.draw(canvas)
 
@@ -109,6 +114,7 @@ private fun drawableToBitmap(
 
 @Composable
 fun KakaoMapView(
+    sharingFriends: List<SharingFriendResponse> = emptyList(),
 
     modifier: Modifier = Modifier,
 
@@ -382,6 +388,7 @@ fun KakaoMapView(
     }
 
 
+
     LaunchedEffect(
         realCurrentLatitude,
         realCurrentLongitude,
@@ -440,6 +447,7 @@ fun KakaoMapView(
             longitude
         )
     }
+
 
 
 // ========================================
@@ -632,6 +640,37 @@ fun KakaoMapView(
                     "현재 위치 가져오기: ${location.latitude}, ${location.longitude}"
                 )
             }
+    }
+
+    // KakaoMapView 내부의 LaunchedEffect 수정
+    LaunchedEffect(kakaoMap, sharingFriends) {
+        val map = kakaoMap ?: return@LaunchedEffect
+        val layer = map.labelManager?.layer ?: return@LaunchedEffect
+
+        // 1. 서버에서 받아온 친구 리스트를 각각 돌면서 마커 처리
+        sharingFriends.forEach { friend ->
+            val position = LatLng.from(friend.lat, friend.lng)
+
+            // 친구 고유 ID를 조합해 마커마다 개별 레이블 ID 부여 (예: "friend_marker_24")
+            val markerId = "friend_marker_${friend.friendId}"
+
+            val existingMarker = layer.getLabel(markerId)
+
+            if (existingMarker == null) {
+                // 해당 친구의 마커가 없으면 새로 생성 (이름 텍스트와 노란색 핀 비트맵 적용)
+                val markerBitmap = createCustomFriendMarkerBitmap(context, friend.friendName)
+                layer.addLabel(
+                    LabelOptions.from(markerId, position)
+                        .setStyles(
+                            LabelStyle.from(markerBitmap)
+                                .setAnchorPoint(0.5f, 1.0f)
+                        )
+                )
+            } else {
+                // 이미 있으면 3초마다 부드럽게 위치만 이동
+                existingMarker.moveTo(position)
+            }
+        }
     }
 
 
@@ -1488,6 +1527,12 @@ fun KakaoMapView(
     // 화면 종료
     // ========================================
 
+
+
+
+
+
+
     DisposableEffect(
         Unit
     ) {
@@ -1515,4 +1560,67 @@ fun KakaoMapView(
                 null
         }
     }
+
+}
+
+
+// ============================================================
+// 본인 마커(18dp) + 노란색 틴트 + 하얀 구멍 + 텍스트
+// ============================================================
+private fun createCustomFriendMarkerBitmap(context: android.content.Context, friendName: String): android.graphics.Bitmap {
+    val drawable = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.marker_current_location)?.mutate()
+
+    if (drawable != null) {
+        androidx.core.graphics.drawable.DrawableCompat.setTint(drawable, android.graphics.Color.parseColor("#FFC107"))
+    }
+
+    // 1. 이전(36dp)의 정확히 절반인 18dp로 크기 대폭 축소
+    val density = context.resources.displayMetrics.density
+    val markerW = (18 * density).toInt()
+    val markerH = (21 * density).toInt()
+
+    // 2. 텍스트 크기도 절반 수준(10dp)으로 맞추고 가독성 유지
+    val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.BLACK
+        textSize = 10f * density
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+        textAlign = android.graphics.Paint.Align.CENTER
+    }
+
+    val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = 10f * density
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+        textAlign = android.graphics.Paint.Align.CENTER
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = 2.5f * density
+    }
+
+    val textMargin = (3 * density).toInt()
+    val textHeight = (textPaint.descent() - textPaint.ascent()).toInt()
+    val totalWidth = Math.max(markerW, textPaint.measureText(friendName).toInt() + (8 * density).toInt())
+    val totalHeight = textHeight + textMargin + markerH
+
+    val bitmap = android.graphics.Bitmap.createBitmap(totalWidth, totalHeight, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bitmap)
+
+    val textX = totalWidth / 2f
+    val textY = -textPaint.ascent()
+    canvas.drawText(friendName, textX, textY, strokePaint)
+    canvas.drawText(friendName, textX, textY, textPaint)
+
+    val markerLeft = (totalWidth - markerW) / 2
+    val markerTop = textHeight + textMargin
+    drawable?.setBounds(markerLeft, markerTop, markerLeft + markerW, markerTop + markerH)
+    drawable?.draw(canvas)
+
+    val whiteCirclePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+    }
+    val circleCenterX = markerLeft + (markerW / 2f)
+    val circleCenterY = markerTop + (markerH * 0.43f)
+    val circleRadius = markerW * 0.22f
+    canvas.drawCircle(circleCenterX, circleCenterY, circleRadius, whiteCirclePaint)
+
+    return bitmap
 }

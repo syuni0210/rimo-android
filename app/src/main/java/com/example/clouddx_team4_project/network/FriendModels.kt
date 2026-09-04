@@ -7,7 +7,8 @@ data class UserResponse(
     val profileColor: String?,
     val memberStatusCode: String?,
     val useYn: String?,
-    val deleteYn: String?
+    val deleteYn: String?,
+    val locationSharing: Boolean = false
 )
 
 data class FriendResponse(
