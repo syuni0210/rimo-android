@@ -35,6 +35,11 @@ interface TrackingApi {
     suspend fun getSharingFriendsLocations(
         @Query("requesterId") requesterId: Long
     ): Response<List<SharingFriendResponse>>
+
+    @GET("api/tracking/sharing-count")
+    suspend fun getSharingCount(
+        @Query("memberId") memberId: Long
+    ): Int
 }
 
 data class EmergencyTriggerRequest(

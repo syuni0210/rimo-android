@@ -125,6 +125,10 @@ fun ActiveRouteScreen(
 
     val tokenManager = remember { TokenManager(context) }
 
+    var sharingCount by remember {
+        mutableStateOf(0)
+    }
+
     val fusedLocationClient =
         remember {
 
@@ -311,6 +315,27 @@ fun ActiveRouteScreen(
         mutableStateOf<Long?>(
             System.currentTimeMillis()
         )
+    }
+
+    // ========================================
+    // 위치공유 대상 수 조회 (3초마다 갱신)
+    // ========================================
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            val memberId = tokenManager.getMemberId()
+
+            if (memberId != null) {
+
+                try {
+                    sharingCount = RetrofitClient.trackingApi.getSharingCount(memberId)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
     }
 
     var routeStartLatitude by remember(
@@ -2069,24 +2094,20 @@ fun ActiveRouteScreen(
                                     )
                                 )
                                 .background(
-                                    ActiveBlue
+                                    if (sharingCount > 0) ActiveBlue else Color(0xFFBEBEBE)
                                 )
                                 .padding(
                                     horizontal = 10.dp,
                                     vertical = 4.dp
                                 )
                         ) {
-
                             Text(
                                 text =
-                                    "ON",
-
+                                    if (sharingCount > 0) "ON" else "OFF",
                                 fontSize =
                                     11.sp,
-
                                 fontWeight =
                                     FontWeight.Bold,
-
                                 color =
                                     Color.White
                             )
@@ -2126,11 +2147,9 @@ fun ActiveRouteScreen(
 
                         Text(
                             text =
-                                "공유 대상 2명",
-
+                                "공유 대상 ${sharingCount}명",
                             fontSize =
                                 12.sp,
-
                             color =
                                 ActiveTextBlack
                         )
@@ -2229,8 +2248,8 @@ fun ActiveRouteScreen(
 
 
                 // ========================================
-// 오른쪽 버튼
-// ========================================
+                // 오른쪽 버튼
+                // ========================================
 
                 Column(
                     modifier = Modifier
@@ -2238,7 +2257,7 @@ fun ActiveRouteScreen(
                             Alignment.CenterEnd
                         )
                         .offset(
-                            y = 44.dp
+                            y = 100.dp
                         )
                         .padding(
                             end = 18.dp
