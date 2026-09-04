@@ -137,7 +137,7 @@ fun ServiceIntroScreen(
 
             IntroCard(
                 title = "긴급 기능",
-                content = "위급 상황에서 긴급구조 기능과 꽥꽥이를 빠르게 사용할 수 있습니다."
+                content = "위급 상황에서 긴급신고 기능과 꽥꽥이를 빠르게 사용할 수 있습니다."
             )
 
             Spacer(modifier = Modifier.height(30.dp))

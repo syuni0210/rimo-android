@@ -1242,7 +1242,7 @@ fun AppNavigation() {
 
 
     // ========================================
-    // 공용 긴급구조 팝업 (팀원 추가 위치 권한 연동 완료)
+    // 공용 긴급신고 팝업 (팀원 추가 위치 권한 연동 완료)
     // ========================================
 
     if (showEmergencyDialog) {
@@ -1296,14 +1296,14 @@ fun AppNavigation() {
 
                                         android.util.Log.d(
                                             "EMERGENCY_API",
-                                            "긴급구조 전송 완료, 보호자 ${response.notifiedGuardianCount}명"
+                                            "긴급신고 전송 완료, 보호자 ${response.notifiedGuardianCount}명"
                                         )
 
                                     } catch (e: Exception) {
                                         e.printStackTrace()
                                         android.util.Log.e(
                                             "EMERGENCY_API",
-                                            "긴급구조 전송 실패",
+                                            "긴급신고 전송 실패",
                                             e
                                         )
                                     }
@@ -1316,7 +1316,7 @@ fun AppNavigation() {
 
                     android.util.Log.e(
                         "EMERGENCY_API",
-                        "로그인 정보(memberId)가 없어 긴급구조를 전송할 수 없습니다."
+                        "로그인 정보(memberId)가 없어 긴급신고를 전송할 수 없습니다."
                     )
                 }
             },
