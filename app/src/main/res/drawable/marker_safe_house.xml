@@ -7,7 +7,7 @@
 
     <!-- 분홍 원 -->
     <path
-        android:fillColor="#FF6F9E"
+        android:fillColor="#FFB1BE"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="1.2"
         android:pathData="

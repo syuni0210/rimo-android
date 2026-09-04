@@ -485,7 +485,7 @@ fun SafeMapScreen(
             SafeMapFacility(
                 name = "지킴이집",
                 icon = Icons.Filled.Home,
-                color = Color(0xFFFF6F9E)
+                color = Color(0xFFFFB1BE)
             ),
 
             SafeMapFacility(
