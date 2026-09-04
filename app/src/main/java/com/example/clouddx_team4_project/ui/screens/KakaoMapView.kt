@@ -334,15 +334,7 @@ fun KakaoMapView(
 
     onVisibleBoundsChanged:
         (Double, Double, Double, Double) -> Unit =
-        { _, _, _, _ -> },
-
-// ========================================
-// 지도 클릭 목적지 선택
-// ========================================
-
-    onDestinationSelected:
-        (Double, Double) -> Unit =
-        { _, _ -> }
+        { _, _, _, _ -> }
 
 ) {
 
@@ -969,25 +961,6 @@ fun KakaoMapView(
                             loadInternalLocation(
                                 map
                             )
-
-                            // ========================================
-                            // 지도 클릭 시 좌표 전달
-                            // ========================================
-
-                            map.setOnMapClickListener {
-                                    _,
-                                    position,
-                                    _,
-                                    _ ->
-
-
-                                onDestinationSelected(
-
-                                    position.latitude,
-
-                                    position.longitude
-                                )
-                            }
                         }
                     }
                 )
@@ -1056,7 +1029,7 @@ fun KakaoMapView(
                                 0.30f,
                                 0.0f,
                                 10.0f,
-                                34.0f
+                                50.0f
                             )
                         )
                 )

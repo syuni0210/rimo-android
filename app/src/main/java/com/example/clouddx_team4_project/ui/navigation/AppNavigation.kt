@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import com.example.clouddx_team4_project.data.KakaoPlace
 import com.example.clouddx_team4_project.data.TokenManager
 import com.example.clouddx_team4_project.network.EmergencyTriggerRequest
+import com.example.clouddx_team4_project.network.EmergencyPopupResponse
 import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.ui.components.EmergencyDialog
 import com.example.clouddx_team4_project.ui.screens.ActiveRouteScreen
@@ -58,6 +59,18 @@ fun AppNavigation() {
         mutableStateOf(tokenManager.getMemberId())
     }
 
+    // ========================================
+    // 목적지 검색 거리 계산용 현재 GPS 위치
+    // ========================================
+
+    var currentLatitude by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    var currentLongitude by remember {
+        mutableStateOf<Double?>(null)
+    }
+
     SideEffect {
         RetrofitClient.tokenManager = tokenManager
     }
@@ -66,6 +79,17 @@ fun AppNavigation() {
         rememberNavController()
 
     val coroutineScope = rememberCoroutineScope()
+
+    // ========================================
+    // 친구에게서 받은 긴급신고 팝업
+    // ========================================
+    var pendingEmergencyPopup by remember {
+        mutableStateOf<EmergencyPopupResponse?>(null)
+    }
+
+    var isEmergencyPopupAcking by remember {
+        mutableStateOf(false)
+    }
 
     // ========================================
     // 로그인 상태 동안 3초마다 GPS를 서버로 전송
@@ -104,6 +128,11 @@ fun AppNavigation() {
 
                 if (location != null) {
 
+                    // 목적지 검색에서 거리(m/km)를 계산할 수 있도록
+                    // 현재 GPS 위치 저장
+                    currentLatitude = location.latitude
+                    currentLongitude = location.longitude
+
                     coroutineScope.launch {
 
                         try {
@@ -125,6 +154,53 @@ fun AppNavigation() {
         }
     }
 
+    // ========================================
+    // 로그인 상태 동안 3초마다
+    // 나에게 온 긴급신고 팝업 확인
+    // ========================================
+    LaunchedEffect(currentMemberId) {
+
+        val memberId = currentMemberId ?: return@LaunchedEffect
+
+        while (true) {
+
+            try {
+
+                // 이미 팝업을 보여주고 있다면
+                // 새 조회 결과로 덮어쓰지 않음
+                if (pendingEmergencyPopup == null) {
+
+                    val response =
+                        RetrofitClient.trackingApi.getPendingEmergencyPopup(
+                            memberId
+                        )
+
+                    if (response.isSuccessful) {
+
+                        val popup = response.body()
+
+                        if (
+                            popup?.hasEmergency == true &&
+                            popup.emergencyId != null
+                        ) {
+
+                            pendingEmergencyPopup = popup
+                        }
+                    }
+                }
+
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "EMERGENCY_POPUP",
+                    "긴급신고 팝업 조회 실패",
+                    e
+                )
+            }
+
+            delay(3000L)
+        }
+    }
 
     // ========================================
     // 로그아웃 팝업
@@ -169,7 +245,6 @@ fun AppNavigation() {
     var showEmergencyDialog by remember {
         mutableStateOf(false)
     }
-
 
     // ========================================
     // 기본 목적지 등록 중
@@ -387,17 +462,6 @@ fun AppNavigation() {
                         launchSingleTop = true
                     }
                 },
-                onMapDestinationSelected = { latitude, longitude ->
-                    selectedDestination = KakaoPlace(
-                        id = "manual_location",
-                        placeName = "선택한 위치",
-                        addressName = "",
-                        roadAddressName = "",
-                        longitude = longitude.toString(),
-                        latitude = latitude.toString()
-                    )
-                    showSelectedRoute = false
-                },
                 onTabSelected = { tab ->
                     when (tab) {
                         "홈" -> {
@@ -423,6 +487,9 @@ fun AppNavigation() {
         composable("destination_search") {
 
             DestinationSearchScreen(
+
+                currentLatitude = currentLatitude,
+                currentLongitude = currentLongitude,
 
                 onBackClick = {
 
@@ -1354,6 +1421,106 @@ fun AppNavigation() {
 
                     launchSingleTop =
                         true
+                }
+            }
+        )
+    }
+    // ========================================
+    // 친구에게서 받은 긴급신고 전역 팝업
+    // ========================================
+    val receivedEmergency = pendingEmergencyPopup
+
+    if (
+        receivedEmergency != null &&
+        !showEmergencyDialog &&
+        !showLogoutDialog
+    ) {
+
+        AlertDialog(
+
+            // 바깥 영역이나 뒤로가기로 닫히지 않도록 함
+            // 반드시 확인 버튼으로 처리
+            onDismissRequest = {},
+
+            title = {
+                Text(
+                    text = "긴급신고",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+
+            text = {
+                Text(
+                    text =
+                        "${receivedEmergency.senderName ?: "친구"}님이 긴급신고를 보냈습니다."
+                )
+            },
+
+            confirmButton = {
+
+                TextButton(
+
+                    enabled = !isEmergencyPopupAcking,
+
+                    onClick = {
+
+                        val memberId =
+                            currentMemberId
+
+                        val emergencyId =
+                            receivedEmergency.emergencyId
+
+                        if (
+                            memberId != null &&
+                            emergencyId != null &&
+                            !isEmergencyPopupAcking
+                        ) {
+
+                            isEmergencyPopupAcking = true
+
+                            coroutineScope.launch {
+
+                                try {
+
+                                    val response =
+                                        RetrofitClient.trackingApi
+                                            .acknowledgeEmergencyPopup(
+                                                emergencyId = emergencyId,
+                                                memberId = memberId
+                                            )
+
+                                    if (response.isSuccessful) {
+
+                                        pendingEmergencyPopup = null
+
+                                    } else {
+
+                                        android.util.Log.e(
+                                            "EMERGENCY_POPUP",
+                                            "긴급신고 확인 처리 실패: ${response.code()}"
+                                        )
+                                    }
+
+                                } catch (e: Exception) {
+
+                                    android.util.Log.e(
+                                        "EMERGENCY_POPUP",
+                                        "긴급신고 확인 처리 중 오류",
+                                        e
+                                    )
+
+                                } finally {
+
+                                    isEmergencyPopupAcking = false
+                                }
+                            }
+                        }
+                    }
+                ) {
+
+                    Text(
+                        text = "확인"
+                    )
                 }
             }
         )

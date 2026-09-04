@@ -115,16 +115,7 @@ fun SafeRouteScreen(
         address: String,
         latitude: Double,
         longitude: Double
-    ) -> Unit = { _, _, _, _ -> },
-
-
-    // ========================================
-    // 지도 직접 목적지 지정
-    // ========================================
-
-    onMapDestinationSelected:
-        (Double, Double) -> Unit =
-        { _, _ -> }
+    ) -> Unit = { _, _, _, _ -> }
 
 ) {
     android.util.Log.d("SAFE_ROUTE_TEST", "SafeRouteScreen 함수 진입 성공!! memberId: $memberId")
@@ -519,27 +510,6 @@ fun SafeRouteScreen(
             )
 
 
-            // ========================================
-            // 지도 직접 지정 안내
-            // ========================================
-
-            Text(
-                text =
-                    "지도를 눌러 도착지 위치를 직접 지정할 수도 있습니다.",
-
-                fontSize =
-                    12.sp,
-
-                color =
-                    TextGray,
-
-                modifier =
-                    Modifier.padding(
-                        horizontal = 20.dp
-                    )
-            )
-
-
             Spacer(
                 modifier =
                     Modifier.height(
@@ -687,16 +657,6 @@ fun SafeRouteScreen(
                     recenterRequestKey =
                         recenterRequestKey,
 
-
-                    onDestinationSelected = {
-                            latitude,
-                            longitude ->
-
-                        onMapDestinationSelected(
-                            latitude,
-                            longitude
-                        )
-                    }
                 )
 
 

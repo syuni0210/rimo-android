@@ -12,11 +12,22 @@ interface KakaoLocalApi {
 
     @GET("v2/local/search/keyword.json")
     suspend fun searchKeyword(
+
         @Header("Authorization")
         authorization: String,
 
         @Query("query")
-        query: String
+        query: String,
+
+        @Query("x")
+        longitude: Double? = null,
+
+        @Query("y")
+        latitude: Double? = null,
+
+        @Query("sort")
+        sort: String = "accuracy"
+
     ): KakaoPlaceResponse
 }
 
@@ -31,7 +42,9 @@ object KakaoLocalClient {
                 GsonConverterFactory.create()
             )
             .build()
-            .create(KakaoLocalApi::class.java)
+            .create(
+                KakaoLocalApi::class.java
+            )
     }
 }
 
@@ -63,5 +76,23 @@ data class KakaoPlace(
 
     // y = 위도
     @SerializedName("y")
-    val latitude: String
+    val latitude: String,
+
+    // 현재 위치(x, y)와의 거리
+    @SerializedName("distance")
+    val distance: String = "",
+
+    // 카카오 장소 카테고리 그룹 코드
+    // SW8 = 지하철역
+    @SerializedName("category_group_code")
+    val categoryGroupCode: String = "",
+
+    // 예: 지하철역
+    @SerializedName("category_group_name")
+    val categoryGroupName: String = "",
+
+    // 예:
+    // 교통,수송 > 지하철,전철 > 수도권1호선
+    @SerializedName("category_name")
+    val categoryName: String = ""
 )
