@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
 import com.example.clouddx_team4_project.data.KakaoDirectionsClient
 import com.example.clouddx_team4_project.network.AiSafeRouteRequest
@@ -271,6 +272,17 @@ fun ActiveRouteScreen(
 
     var currentLongitude by remember {
         mutableStateOf<Double?>(null)
+    }
+
+    // ========================================
+    // 현재 이동 방향
+    //
+    // Android Location.bearing 기준
+    // 북쪽 0°, 동쪽 90°, 남쪽 180°, 서쪽 270°
+    // ========================================
+
+    var currentBearing by remember {
+        mutableStateOf<Float?>(null)
     }
 
     // ========================================
@@ -706,6 +718,20 @@ fun ActiveRouteScreen(
                     currentAccuracy =
                         location.accuracy
 
+                    // ========================================
+                    // 이동 중일 때만 방향 갱신
+                    //
+                    // 정지 상태에서는 GPS bearing이 튈 수 있으므로
+                    // 마지막 정상 이동 방향을 그대로 유지합니다.
+                    // ========================================
+
+                    if (
+                        location.hasBearing() &&
+                        location.speed >= 0.4f
+                    ) {
+                        currentBearing =
+                            location.bearing
+                    }
 
                     Log.d(
                         "ACTIVE_ROUTE",
@@ -2187,6 +2213,9 @@ fun ActiveRouteScreen(
                     currentLongitude =
                         currentLongitude,
 
+                    currentBearing =
+                        currentBearing,
+
                     recenterRequestKey =
                         recenterRequestKey,
 
@@ -2209,7 +2238,7 @@ fun ActiveRouteScreen(
                             Alignment.CenterEnd
                         )
                         .offset(
-                            y = 16.dp
+                            y = 44.dp
                         )
                         .padding(
                             end = 18.dp
@@ -2220,7 +2249,7 @@ fun ActiveRouteScreen(
                 ) {
 
                     // ========================================
-                    // 긴급구조
+                    // 긴급신고
                     // ========================================
 
                     FloatingActionButton(
@@ -2246,11 +2275,12 @@ fun ActiveRouteScreen(
                         ) {
 
                             Icon(
-                                imageVector =
-                                    Icons.Filled.Emergency,
+                                painter = painterResource(
+                                    R.drawable.ic_emergency_siren
+                                ),
 
                                 contentDescription =
-                                    "긴급구조",
+                                    "긴급신고",
 
                                 tint =
                                     Color.White,
@@ -2263,7 +2293,7 @@ fun ActiveRouteScreen(
 
                             Text(
                                 text =
-                                    "긴급구조",
+                                    "긴급신고",
 
                                 fontSize =
                                     9.sp,
@@ -2380,7 +2410,7 @@ fun ActiveRouteScreen(
                                 "현재 위치로 이동",
 
                             tint =
-                                ActiveBlue,
+                                Color.Black,
 
                             modifier =
                                 Modifier.size(

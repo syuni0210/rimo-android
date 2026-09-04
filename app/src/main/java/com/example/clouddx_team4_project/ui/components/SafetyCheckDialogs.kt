@@ -412,7 +412,7 @@ fun FinalSafetyCheckDialog(
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed)
             ) {
-                Text(text = "긴급구조", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(text = "긴급신고", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -478,7 +478,7 @@ fun GuardianAlertSentDialog(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "필요하면 긴급구조 또는 꽥꽥이를\n바로 이용해 주세요.",
+            text = "필요하면 긴급신고 또는 꽥꽥이를\n바로 이용해 주세요.",
             fontSize = 12.sp,
             lineHeight = 18.sp,
             textAlign = TextAlign.Center,

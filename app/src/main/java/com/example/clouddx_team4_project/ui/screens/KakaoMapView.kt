@@ -33,6 +33,16 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import com.kakao.vectormap.label.CompetitionType
 import com.kakao.vectormap.label.LabelLayerOptions
+import com.kakao.vectormap.animation.Interpolation
+import com.kakao.vectormap.shape.DotPoints
+import com.kakao.vectormap.shape.Polygon
+import com.kakao.vectormap.shape.PolygonOptions
+import com.kakao.vectormap.shape.ShapeAnimator
+import com.kakao.vectormap.shape.ShapeLayer
+import com.kakao.vectormap.shape.ShapeLayerOptions
+import com.kakao.vectormap.shape.ShapeLayerPass
+import com.kakao.vectormap.shape.animation.CircleWave
+import com.kakao.vectormap.shape.animation.CircleWaves
 
 
 // ========================================
@@ -279,6 +289,10 @@ fun KakaoMapView(
     currentLatitude: Double? = null,
 
     currentLongitude: Double? = null,
+
+    // 현재 GPS 이동 방향
+    // 0° = 북쪽, 90° = 동쪽
+    currentBearing: Float? = null,
 
 
     // ========================================
@@ -607,6 +621,22 @@ fun KakaoMapView(
         mutableStateOf<KakaoMap?>(
             null
         )
+    }
+
+    // ========================================
+// 현재 위치 Pulse 애니메이션
+// ========================================
+
+    var currentLocationPulseLayer by remember {
+        mutableStateOf<ShapeLayer?>(null)
+    }
+
+    var currentLocationPulsePolygon by remember {
+        mutableStateOf<Polygon?>(null)
+    }
+
+    var currentLocationPulseAnimator by remember {
+        mutableStateOf<ShapeAnimator?>(null)
     }
 
     // ========================================
@@ -965,6 +995,158 @@ fun KakaoMapView(
         }
     )
 
+// ========================================
+// 현재 위치 Pulse 준비
+// ========================================
+
+    LaunchedEffect(kakaoMap) {
+
+        val map =
+            kakaoMap
+                ?: return@LaunchedEffect
+
+        val shapeManager =
+            map.shapeManager
+                ?: return@LaunchedEffect
+
+
+        // Pulse 전용 Layer
+        currentLocationPulseLayer =
+
+            shapeManager.getLayer(
+                "current_location_pulse_layer"
+            )
+                ?: shapeManager.addLayer(
+
+                    ShapeLayerOptions.from(
+                        "current_location_pulse_layer",
+                        12000,
+                        ShapeLayerPass.Route
+                    )
+                )
+
+
+        // Pulse Animator
+        currentLocationPulseAnimator =
+
+            shapeManager.getAnimator(
+                "current_location_pulse_animator"
+            )
+                ?: shapeManager.addAnimator(
+
+                    CircleWaves
+                        .from(
+                            "current_location_pulse_animator"
+                        )
+                        .setRepeatCount(
+                            100_000
+                        )
+                        .setDuration(
+                            1500
+                        )
+                        .setInterpolation(
+                            Interpolation.CubicOut
+                        )
+                        .setHideShapeAtStop(
+                            true
+                        )
+                        .addCircleWave(
+
+                            CircleWave.from(
+                                0.30f,
+                                0.0f,
+                                10.0f,
+                                34.0f
+                            )
+                        )
+                )
+    }
+
+    // ========================================
+// 현재 위치 Pulse 이동
+// ========================================
+
+    LaunchedEffect(
+        kakaoMap,
+        realCurrentLatitude,
+        realCurrentLongitude,
+        currentBearing
+    ) {
+
+        kakaoMap
+            ?: return@LaunchedEffect
+
+        val latitude =
+            realCurrentLatitude
+                ?: return@LaunchedEffect
+
+        val longitude =
+            realCurrentLongitude
+                ?: return@LaunchedEffect
+
+        val pulseLayer =
+            currentLocationPulseLayer
+                ?: return@LaunchedEffect
+
+        val pulseAnimator =
+            currentLocationPulseAnimator
+                ?: return@LaunchedEffect
+
+
+        val currentPosition =
+            LatLng.from(
+                latitude,
+                longitude
+            )
+
+
+        val pulsePoints =
+            DotPoints.fromCircle(
+                currentPosition,
+                1.0f
+            )
+
+
+        val existingPulse =
+            currentLocationPulsePolygon
+
+
+        if (existingPulse == null) {
+
+            // 최초 한 번만 Pulse 생성
+            val newPulse =
+
+                pulseLayer.addPolygon(
+
+                    PolygonOptions.from(
+                        pulsePoints,
+                        android.graphics.Color.parseColor(
+                            "#FF5C8A"
+                        )
+                    )
+                )
+
+
+            currentLocationPulsePolygon =
+                newPulse
+
+
+            pulseAnimator.addPolygons(
+                newPulse
+            )
+
+            pulseAnimator.start()
+
+        } else {
+
+            // GPS가 움직이면 기존 Pulse의 중심만 이동
+            existingPulse.changeDotPoints(
+                listOf(
+                    pulsePoints
+                )
+            )
+        }
+    }
 
     // ========================================
     // 현재 위치 마커
@@ -1066,9 +1248,22 @@ fun KakaoMapView(
                         )
                 )
 
-        currentLocationLayer.addLabel(
-            currentOptions
-        )
+        val currentLocationLabel =
+            currentLocationLayer.addLabel(
+                currentOptions
+            )
+
+        currentBearing?.let { bearing ->
+
+            val bearingRadians =
+                Math.toRadians(
+                    bearing.toDouble()
+                ).toFloat()
+
+            currentLocationLabel.rotateTo(
+                bearingRadians
+            )
+        }
 
 
         Log.d(

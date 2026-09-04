@@ -1,25 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 바깥쪽 흰색 테두리 -->
+    <!-- 전체 마커 크기 유지를 위한 투명 영역 -->
     <item>
         <shape android:shape="oval">
 
             <size
-                android:width="20dp"
-                android:height="20dp" />
+                android:width="30dp"
+                android:height="30dp" />
+
+            <solid android:color="#00000000" />
+
+        </shape>
+    </item>
+
+
+    <!-- 흰색 테두리 -->
+    <item
+        android:left="3dp"
+        android:top="3dp"
+        android:right="3dp"
+        android:bottom="3dp">
+
+        <shape android:shape="oval">
 
             <solid android:color="#FFFFFF" />
 
         </shape>
     </item>
 
-    <!-- 안쪽 분홍 원 -->
+
+    <!-- 중앙 분홍 원 -->
+    <!-- 흰색 테두리를 이전보다 얇게 -->
     <item
-        android:left="2dp"
-        android:top="2dp"
-        android:right="2dp"
-        android:bottom="2dp">
+        android:left="4dp"
+        android:top="4dp"
+        android:right="4dp"
+        android:bottom="4dp">
 
         <shape android:shape="oval">
 
@@ -27,5 +44,11 @@
 
         </shape>
     </item>
+
+
+    <!-- 중앙 방향 화살표 -->
+    <item
+        android:drawable="@drawable/ic_current_location_direction"
+        android:gravity="center" />
 
 </layer-list>
