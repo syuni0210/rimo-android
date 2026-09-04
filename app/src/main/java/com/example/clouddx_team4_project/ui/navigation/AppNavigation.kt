@@ -39,15 +39,13 @@ import com.example.clouddx_team4_project.ui.screens.more.InquiryScreen
 import com.example.clouddx_team4_project.ui.screens.more.NoticeScreen
 import com.example.clouddx_team4_project.ui.screens.more.PrivacyPolicyScreen
 import com.example.clouddx_team4_project.ui.screens.more.ServiceIntroScreen
+import com.example.clouddx_team4_project.network.LocationUpdateRequest
+import kotlinx.coroutines.delay
 
 @Composable
 fun AppNavigation() {
 
     val context = LocalContext.current
-
-    // ========================================
-    // 로그인 사용자 정보
-    // ========================================
 
     val tokenManager = remember {
         TokenManager(context)
@@ -55,26 +53,77 @@ fun AppNavigation() {
 
     val startDest = if (tokenManager.hasValidToken()) "home" else "login"
 
-    // 로그인한 사용자 memberId L
+    // 로그인한 사용자 memberId
     var currentMemberId by remember {
         mutableStateOf(tokenManager.getMemberId())
     }
 
-    // 앱을 다시 실행해서 이미 로그인된 상태여도
-    // Retrofit의 JWT 인터셉터가 TokenManager를 사용할 수 있도록 연결
     SideEffect {
         RetrofitClient.tokenManager = tokenManager
     }
-
-
-    // ========================================
-    // Navigation
-    // ========================================
 
     val navController =
         rememberNavController()
 
     val coroutineScope = rememberCoroutineScope()
+
+    // ========================================
+    // 로그인 상태 동안 3초마다 GPS를 서버로 전송
+    // (위치공유 기능용)
+    // ========================================
+
+    LaunchedEffect(currentMemberId) {
+
+        val memberId = currentMemberId ?: return@LaunchedEffect
+
+        val fusedLocationClient =
+            LocationServices.getFusedLocationProviderClient(context)
+
+        while (true) {
+
+            delay(3000L)
+
+            val finePermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+
+            val coarsePermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+
+            if (
+                finePermission != PackageManager.PERMISSION_GRANTED &&
+                coarsePermission != PackageManager.PERMISSION_GRANTED
+            ) {
+                continue
+            }
+
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+
+                if (location != null) {
+
+                    coroutineScope.launch {
+
+                        try {
+
+                            RetrofitClient.trackingApi.updateLocation(
+                                LocationUpdateRequest(
+                                    memberId = memberId,
+                                    lat = location.latitude,
+                                    lng = location.longitude
+                                )
+                            )
+
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
     // ========================================
@@ -278,164 +327,91 @@ fun AppNavigation() {
 
 
         // ========================================
-        // 안심경로
+        // 안심경로 (동적 변수 friendId, friendName 수신 가능하도록 변경)
         // ========================================
+        composable(
+            route = "safe_route?friendId={friendId}&friendName={friendName}",
+            arguments = listOf(
+                androidx.navigation.navArgument("friendId") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                androidx.navigation.navArgument("friendName") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val memberId = currentMemberId ?: return@composable
 
-        composable("safe_route") {
-
-            val memberId =
-                currentMemberId ?: return@composable
+            // 라우터에서 전달받은 진짜(동적) 데이터를 꺼냅니다.
+            val passedFriendId = backStackEntry.arguments?.getString("friendId")?.toLongOrNull()
+            val passedFriendName = backStackEntry.arguments?.getString("friendName")
 
             SafeRouteScreen(
-
                 memberId = memberId,
+                friendId = passedFriendId,     // 고정값이 아닌 전달받은 진짜 ID 적용
+                friendName = passedFriendName, // 고정값이 아닌 전달받은 진짜 이름 적용
 
-                destinationName =
-                    selectedDestination
-                        ?.placeName
-                        ?: "",
+                destinationName = selectedDestination?.placeName ?: "",
+                destinationLatitude = selectedDestination?.latitude?.toDoubleOrNull(),
+                destinationLongitude = selectedDestination?.longitude?.toDoubleOrNull(),
+                showSelectedRoute = showSelectedRoute,
+                selectedRouteMode = selectedRouteMode,
 
-                destinationLatitude =
-                    selectedDestination
-                        ?.latitude
-                        ?.toDoubleOrNull(),
-
-                destinationLongitude =
-                    selectedDestination
-                        ?.longitude
-                        ?.toDoubleOrNull(),
-
-                showSelectedRoute =
-                    showSelectedRoute,
-
-                selectedRouteMode =
-                    selectedRouteMode,
-
-                onBackClick = {
-
-                    navController.popBackStack()
-                },
-
+                onBackClick = { navController.popBackStack() },
                 onStartSearchClick = {},
-
                 onDestinationSearchClick = {
-
                     showSelectedRoute = false
-
-                    destinationSearchMode =
-                        "ROUTE"
-
-                    navController.navigate(
-                        "destination_search"
-                    )
+                    destinationSearchMode = "ROUTE"
+                    navController.navigate("destination_search")
                 },
-
                 onRouteSearchClick = {
-
                     if (selectedDestination != null) {
-
-                        navController.navigate(
-                            "route_select"
-                        )
+                        navController.navigate("route_select")
                     }
                 },
-
-                onDefaultDestinationSelected = {
-                        placeName,
-                        address,
-                        latitude,
-                        longitude ->
-
-                    selectedDestination =
-                        KakaoPlace(
-
-                            id =
-                                "default_destination",
-
-                            placeName =
-                                placeName,
-
-                            addressName =
-                                address,
-
-                            roadAddressName =
-                                address,
-
-                            longitude =
-                                longitude.toString(),
-
-                            latitude =
-                                latitude.toString()
-                        )
-
+                onDefaultDestinationSelected = { placeName, address, latitude, longitude ->
+                    selectedDestination = KakaoPlace(
+                        id = "default_destination",
+                        placeName = placeName,
+                        addressName = address,
+                        roadAddressName = address,
+                        longitude = longitude.toString(),
+                        latitude = latitude.toString()
+                    )
                     showSelectedRoute = false
-
-                    navController.navigate(
-                        "route_select"
-                    ) {
-
+                    navController.navigate("route_select") {
                         launchSingleTop = true
                     }
                 },
-
-                onMapDestinationSelected = {
-                        latitude,
-                        longitude ->
-
-                    selectedDestination =
-                        KakaoPlace(
-
-                            id =
-                                "manual_location",
-
-                            placeName =
-                                "선택한 위치",
-
-                            addressName =
-                                "",
-
-                            roadAddressName =
-                                "",
-
-                            longitude =
-                                longitude.toString(),
-
-                            latitude =
-                                latitude.toString()
-                        )
-
+                onMapDestinationSelected = { latitude, longitude ->
+                    selectedDestination = KakaoPlace(
+                        id = "manual_location",
+                        placeName = "선택한 위치",
+                        addressName = "",
+                        roadAddressName = "",
+                        longitude = longitude.toString(),
+                        latitude = latitude.toString()
+                    )
                     showSelectedRoute = false
                 },
-
                 onTabSelected = { tab ->
-
                     when (tab) {
-
                         "홈" -> {
-
                             navController.navigate("home") {
-
-                                popUpTo("home") {
-                                    inclusive = false
-                                }
-
+                                popUpTo("home") { inclusive = false }
                                 launchSingleTop = true
                             }
                         }
-
                         "더보기" -> {
-
-                            navController.navigate("more") {
-                                launchSingleTop = true
-                            }
+                            navController.navigate("more") { launchSingleTop = true }
                         }
                     }
                 },
-
-                onEmergencyClick = {
-
-                    showEmergencyDialog = true
-                }
+                onEmergencyClick = { showEmergencyDialog = true }
             )
         }
 
@@ -638,6 +614,15 @@ fun AppNavigation() {
         // ========================================
 
         composable("friend") {
+            val friendViewModel: com.example.clouddx_team4_project.ui.screens.FriendViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
+            val navigateData = friendViewModel.navigateToMapData
+            LaunchedEffect(navigateData) {
+                navigateData?.let { (name, lat, lng) ->
+                    navController.navigate("friend_map/$name/$lat/$lng")
+                    friendViewModel.clearNavigation()
+                }
+            }
 
             FriendScreen(
 
@@ -656,7 +641,19 @@ fun AppNavigation() {
 
                 onDeleteFriend = {},
 
-                onLocationClick = {},
+                onLocationClick = { friendName ->
+                    val targetFriend = friendViewModel.friends.find { it.memberName == friendName }
+                    targetFriend?.let {
+                        // AppNavigation 상단에 정의된 '내 로그인 ID'를 안전하게 가져옵니다.
+                        val myId = currentMemberId ?: return@let
+
+                        friendViewModel.fetchFriendLocation(
+                            requesterId = myId,           // 1. 내 회원 ID (토큰 기반)
+                            friendMemberId = it.mmbrId,   // 2. 누른 친구의 회원 ID
+                            friendName = it.memberName    // 3. 지도에 띄울 친구 이름 (파라미터 누락 해결)
+                        )
+                    }
+                },
 
                 onTabSelected = { tab ->
 
@@ -692,6 +689,31 @@ fun AppNavigation() {
 
                     showEmergencyDialog = true
                 }
+            )
+        }
+
+        // ========================================
+        // 안심친구 위치 지도 화면 (이 블록을 새로 추가해 주세요)
+        // ========================================
+
+        composable(
+            route = "friend_map/{name}/{lat}/{lng}",
+            arguments = listOf(
+                androidx.navigation.navArgument("name") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("lat") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("lng") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val name = backStackEntry.arguments?.getString("name") ?: ""
+            val lat = backStackEntry.arguments?.getString("lat")?.toDouble() ?: 0.0
+            val lng = backStackEntry.arguments?.getString("lng")?.toDouble() ?: 0.0
+
+            com.example.clouddx_team4_project.ui.screens.FriendLocationMapScreen(
+                friendName = name,
+                friendLat = lat,
+                friendLng = lng,
+                friendId = null,
+                onBackClick = { navController.popBackStack() }
             )
         }
 

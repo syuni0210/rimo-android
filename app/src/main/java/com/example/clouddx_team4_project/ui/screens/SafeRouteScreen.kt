@@ -36,6 +36,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import com.example.clouddx_team4_project.network.SharingFriendResponse
 
 
 // ========================================
@@ -62,7 +63,10 @@ private val TextGray =
 @Composable
 fun SafeRouteScreen(
 
+
     memberId: Long = 3L,
+    friendId: Long? = null,
+    friendName: String? = null,
 
     // ========================================
     // 목적지 정보
@@ -123,6 +127,7 @@ fun SafeRouteScreen(
         { _, _ -> }
 
 ) {
+    android.util.Log.d("SAFE_ROUTE_TEST", "SafeRouteScreen 함수 진입 성공!! memberId: $memberId")
 
     val context =
         LocalContext.current
@@ -161,6 +166,38 @@ fun SafeRouteScreen(
         mutableStateOf(
             "위치 확인 중..."
         )
+    }
+    // ========================================
+    // 위치 공유 중인 모든 친구 목록 및 3초 주기 폴링
+    // ========================================
+    var sharingFriends by remember {
+        mutableStateOf(emptyList<SharingFriendResponse>())
+    }
+
+    LaunchedEffect(memberId) {
+        while (true) {
+            try {
+                val response = RetrofitClient.trackingApi.getSharingFriendsLocations(
+                    requesterId = memberId
+                )
+
+                android.util.Log.d("FRIEND_DEBUG", "응답 코드: ${response.code()}")
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    android.util.Log.d("FRIEND_DEBUG", "받아온 친구 리스트 바디: $body")
+
+                    if (body != null) {
+                        sharingFriends = body
+                    }
+                } else {
+                    android.util.Log.e("FRIEND_DEBUG", "에러 Body: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("FRIEND_DEBUG", "통신 중 예외 발생", e)
+            }
+            kotlinx.coroutines.delay(3000)
+        }
     }
 
 
@@ -596,7 +633,7 @@ fun SafeRouteScreen(
             )
 
 
-            // ========================================
+// ========================================
             // 카카오맵
             // ========================================
 
@@ -621,6 +658,9 @@ fun SafeRouteScreen(
 
                     destinationLongitude =
                         destinationLongitude,
+
+                    // ⭐️ 위치 공유 중인 모든 친구 리스트 전달
+                    sharingFriends = sharingFriends,
 
                     showRoute =
                         showSelectedRoute,
