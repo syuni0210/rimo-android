@@ -445,17 +445,6 @@ fun AppNavigation() {
                         launchSingleTop = true
                     }
                 },
-                onMapDestinationSelected = { latitude, longitude ->
-                    selectedDestination = KakaoPlace(
-                        id = "manual_location",
-                        placeName = "선택한 위치",
-                        addressName = "",
-                        roadAddressName = "",
-                        longitude = longitude.toString(),
-                        latitude = latitude.toString()
-                    )
-                    showSelectedRoute = false
-                },
                 onTabSelected = { tab ->
                     when (tab) {
                         "홈" -> {

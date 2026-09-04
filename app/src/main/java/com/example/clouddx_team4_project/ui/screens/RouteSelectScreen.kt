@@ -38,9 +38,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 
 private val RouteBlue =
@@ -67,6 +69,113 @@ private data class RouteInfo(
     val distanceMeter: Int,
     val timeSecond: Int
 )
+
+
+// ========================================
+// AI 안전경로 메모리 캐시 + 중복 요청 합치기
+//
+// 같은 출발지/목적지 조합의 결과가 이미 있으면 즉시 재사용합니다.
+// 동일한 AI 요청이 이미 진행 중이면 새 요청을 만들지 않고
+// 기존 요청의 결과를 함께 기다립니다.
+//
+// 좌표는 소수점 4자리(약 10m 수준)로 묶어서
+// GPS의 아주 작은 흔들림 때문에 캐시가 무효화되는 것을 줄입니다.
+// ========================================
+
+private object AiSafeRouteRequestCache {
+
+    private val resultCache =
+        ConcurrentHashMap<String, AiSafeRouteResponse>()
+
+    private val inFlight =
+        ConcurrentHashMap<String, CompletableDeferred<AiSafeRouteResponse>>()
+
+
+    fun createKey(
+        startLatitude: Double,
+        startLongitude: Double,
+        destinationLatitude: Double,
+        destinationLongitude: Double
+    ): String {
+
+        return String.format(
+            Locale.US,
+            "%.4f,%.4f->%.4f,%.4f",
+            startLatitude,
+            startLongitude,
+            destinationLatitude,
+            destinationLongitude
+        )
+    }
+
+
+    fun getCached(
+        key: String
+    ): AiSafeRouteResponse? {
+
+        return resultCache[key]
+    }
+
+
+    suspend fun getOrLoad(
+        key: String,
+        loader: suspend () -> AiSafeRouteResponse
+    ): AiSafeRouteResponse {
+
+        resultCache[key]?.let {
+            return it
+        }
+
+
+        val myRequest =
+            CompletableDeferred<AiSafeRouteResponse>()
+
+        val existingRequest =
+            inFlight.putIfAbsent(
+                key,
+                myRequest
+            )
+
+
+        // 이미 동일한 요청이 진행 중이면
+        // 새 API 요청을 만들지 않고 기존 요청 결과를 기다립니다.
+        if (existingRequest != null) {
+
+            return existingRequest.await()
+        }
+
+
+        try {
+
+            val result =
+                loader()
+
+            resultCache[key] =
+                result
+
+            myRequest.complete(
+                result
+            )
+
+            return result
+
+        } catch (error: Throwable) {
+
+            myRequest.completeExceptionally(
+                error
+            )
+
+            throw error
+
+        } finally {
+
+            inFlight.remove(
+                key,
+                myRequest
+            )
+        }
+    }
+}
 
 
 // ========================================
@@ -336,13 +445,42 @@ fun RouteSelectScreen(
             endLng
         )
 
+
+        val aiRequestKey =
+            AiSafeRouteRequestCache.createKey(
+                startLatitude =
+                    startLat,
+
+                startLongitude =
+                    startLng,
+
+                destinationLatitude =
+                    endLat,
+
+                destinationLongitude =
+                    endLng
+            )
+
+
+        val cachedAiResponse =
+            AiSafeRouteRequestCache.getCached(
+                aiRequestKey
+            )
+
+
         fastRouteInfo = null
         broadRouteInfo = null
-        aiSafeRouteInfo = null
+
+        // 같은 출발지/목적지의 AI 결과가 이미 있으면
+        // AI 카드는 즉시 활성화합니다.
+        aiSafeRouteInfo =
+            cachedAiResponse
 
         isFastLoading = true
         isBroadLoading = true
-        isAiLoading = true
+
+        isAiLoading =
+            cachedAiResponse == null
 
         routeError = null
 
@@ -695,6 +833,17 @@ fun RouteSelectScreen(
                 broadJob.join()
 
 
+                // 이미 동일한 출발지/목적지의 AI 응답이 캐시에 있으면
+                // 백엔드 AI API를 다시 호출하지 않습니다.
+                if (cachedAiResponse != null) {
+
+                    isAiLoading =
+                        false
+
+                    return@launch
+                }
+
+
                 // ========================================
                 // Android가 실제로 계산해서 캐시에 저장한
                 // SHORTEST / BROAD_FIRST 경로를 가져옵니다.
@@ -811,31 +960,38 @@ fun RouteSelectScreen(
 
 
                     val aiResponse =
-                        RetrofitClient
-                            .aiSafeRouteApi
-                            .getAiSafeRoute(
+                        AiSafeRouteRequestCache
+                            .getOrLoad(
+                                key =
+                                    aiRequestKey
+                            ) {
 
-                                AiSafeRouteRequest(
+                                RetrofitClient
+                                    .aiSafeRouteApi
+                                    .getAiSafeRoute(
 
-                                    startLatitude =
-                                        startLat,
+                                        AiSafeRouteRequest(
 
-                                    startLongitude =
-                                        startLng,
+                                            startLatitude =
+                                                startLat,
 
-                                    destinationLatitude =
-                                        endLat,
+                                            startLongitude =
+                                                startLng,
 
-                                    destinationLongitude =
-                                        endLng,
+                                            destinationLatitude =
+                                                endLat,
 
-                                    shortestCandidate =
-                                        shortestCandidateRequest,
+                                            destinationLongitude =
+                                                endLng,
 
-                                    broadCandidate =
-                                        broadCandidateRequest
-                                )
-                            )
+                                            shortestCandidate =
+                                                shortestCandidateRequest,
+
+                                            broadCandidate =
+                                                broadCandidateRequest
+                                        )
+                                    )
+                            }
 
 
                     // ========================================
