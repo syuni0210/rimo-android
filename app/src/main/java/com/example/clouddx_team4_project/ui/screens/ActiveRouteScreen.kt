@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,8 +29,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.clouddx_team4_project.data.KakaoDirectionsClient
 import com.example.clouddx_team4_project.network.AiSafeRouteRequest
+import com.example.clouddx_team4_project.network.AiRoutePoint
+import com.example.clouddx_team4_project.network.RouteFacilitiesRequest
 import com.example.clouddx_team4_project.network.RetrofitClient
 import com.example.clouddx_team4_project.network.JourneySaveRequest
+import com.example.clouddx_team4_project.network.FacilityMapDto
 import com.google.android.gms.location.*
 import com.kakao.vectormap.LatLng
 import java.text.SimpleDateFormat
@@ -80,6 +84,15 @@ private val QuackOrange =
 private const val ARRIVAL_DISTANCE_METER =
     50.0
 
+// ========================================
+// 실시간 주변 안전시설 갱신 조건
+// ========================================
+
+private const val FACILITY_REFRESH_DISTANCE_METER =
+    5.0
+
+private const val FACILITY_REFRESH_INTERVAL_MILLIS =
+    5_000L
 
 // ========================================
 // 귀가 진행 중 화면
@@ -146,6 +159,72 @@ fun ActiveRouteScreen(
             )
         }
 
+    // ========================================
+    // 귀가 진행 중 현재 위치 주변 안전시설
+    //
+    // RouteSelectScreen에서 사용한 "경로 주변 시설"과 분리합니다.
+    // ActiveRouteScreen에서는 현재 GPS 위치 기준
+    // 반경 50m 시설만 표시합니다.
+    //
+    // 따라서 화면 진입 시 경로 전체 시설 캐시는
+    // 지도에 사용하지 않고 빈 목록에서 시작합니다.
+    // ========================================
+
+    var routeFacilities by remember(
+        routeMode,
+        destinationLatitude,
+        destinationLongitude
+    ) {
+        mutableStateOf(
+            emptyList<FacilityMapDto>()
+        )
+    }
+
+
+    // ========================================
+    // 실시간 시설 갱신 기준 위치
+    //
+    // 마지막으로 시설 조회에 성공했던 위치입니다.
+    // 여기서 5m 이상 이동했는지 판정합니다.
+    // ========================================
+
+    var lastFacilityLoadedLatitude by remember(
+        routeMode,
+        destinationLatitude,
+        destinationLongitude
+    ) {
+        mutableStateOf<Double?>(
+            null
+        )
+    }
+
+    var lastFacilityLoadedLongitude by remember(
+        routeMode,
+        destinationLatitude,
+        destinationLongitude
+    ) {
+        mutableStateOf<Double?>(
+            null
+        )
+    }
+
+
+    // ========================================
+    // 마지막 시설 API 호출 시각
+    //
+    // API 성공/실패와 관계없이
+    // 최소 5초 간격을 유지하기 위해 사용합니다.
+    // ========================================
+
+    var lastFacilityQueryTimeMillis by remember(
+        routeMode,
+        destinationLatitude,
+        destinationLongitude
+    ) {
+        mutableStateOf(
+            0L
+        )
+    }
 
     // ========================================
     // 안전 확인 팝업 상태
@@ -194,6 +273,16 @@ fun ActiveRouteScreen(
         mutableStateOf<Double?>(null)
     }
 
+    // ========================================
+// 현재 위치로 지도 다시 이동 요청
+//
+// 값이 증가할 때마다 KakaoMapView가
+// 현재 GPS 위치로 카메라를 이동합니다.
+// ========================================
+
+    var recenterRequestKey by remember {
+        mutableIntStateOf(0)
+    }
 
     // ========================================
     // 경로 계산에 사용할 최초 출발 위치
@@ -306,6 +395,180 @@ fun ActiveRouteScreen(
         )
     }
 
+    // ========================================
+    // 귀가 진행 중 현재 위치 주변 50m 시설 갱신
+    //
+    // GPS 자체의 설정은 변경하지 않습니다.
+    //
+    // 최초 GPS 위치가 확보되면 즉시 한 번 조회하고,
+    // 이후에는
+    //
+    // 1. 마지막 성공 조회 위치에서 5m 이상 이동
+    // 2. 마지막 API 호출 후 5초 이상 경과
+    //
+    // 두 조건을 모두 만족할 때만 다시 조회합니다.
+    //
+    // API 요청은 이 루프 안에서 순차적으로 실행되므로
+    // 같은 시설 조회 요청이 동시에 여러 개 겹치지 않습니다.
+    // ========================================
+
+    LaunchedEffect(
+        routeMode,
+        destinationLatitude,
+        destinationLongitude
+    ) {
+
+        while (true) {
+
+            val latitude =
+                currentLatitude
+
+            val longitude =
+                currentLongitude
+
+
+            if (
+                latitude != null &&
+                longitude != null
+            ) {
+
+                val now =
+                    System.currentTimeMillis()
+
+
+                // ========================================
+                // 첫 조회 여부
+                //
+                // 아직 성공한 시설 조회 위치가 없다면
+                // 5m 이동 조건 없이 바로 조회합니다.
+                // ========================================
+
+                val isFirstQuery =
+                    lastFacilityLoadedLatitude == null ||
+                            lastFacilityLoadedLongitude == null
+
+
+                // ========================================
+                // 마지막 성공 조회 위치에서 이동한 거리
+                // ========================================
+
+                val movedEnough =
+
+                    if (
+                        isFirstQuery
+                    ) {
+
+                        true
+
+                    } else {
+
+                        calculateDistanceMeter(
+                            lastFacilityLoadedLatitude!!,
+                            lastFacilityLoadedLongitude!!,
+                            latitude,
+                            longitude
+                        ) >=
+                                FACILITY_REFRESH_DISTANCE_METER
+                    }
+
+
+                // ========================================
+                // 마지막 API 호출 후 5초 경과 여부
+                // ========================================
+
+                val timeEnough =
+                    lastFacilityQueryTimeMillis == 0L ||
+                            now - lastFacilityQueryTimeMillis >=
+                            FACILITY_REFRESH_INTERVAL_MILLIS
+
+
+                if (
+                    movedEnough &&
+                    timeEnough
+                ) {
+
+                    // 요청 시작 시각을 먼저 저장하여
+                    // 실패하더라도 5초 이내 연속 재호출을 막습니다.
+                    lastFacilityQueryTimeMillis =
+                        now
+
+
+                    try {
+
+                        Log.d(
+                            "ACTIVE_ROUTE",
+                            "현재 위치 주변 시설 조회 시작: lat=$latitude, lng=$longitude"
+                        )
+
+
+                        val facilities =
+                            RetrofitClient
+                                .aiSafeRouteApi
+                                .getFacilitiesNearLocation(
+                                    latitude =
+                                        latitude,
+
+                                    longitude =
+                                        longitude
+                                )
+
+
+                        // ========================================
+                        // 기존 목록을 새 목록으로 완전히 교체
+                        //
+                        // 따라서 현재 위치에서 50m 밖으로 벗어난
+                        // 시설은 지도에서 사라지고,
+                        // 새로 50m 안으로 들어온 시설은 나타납니다.
+                        // ========================================
+
+                        routeFacilities =
+                            facilities
+
+
+                        // 조회가 성공한 위치를
+                        // 다음 5m 이동 판정의 기준으로 저장합니다.
+                        lastFacilityLoadedLatitude =
+                            latitude
+
+                        lastFacilityLoadedLongitude =
+                            longitude
+
+
+                        Log.d(
+                            "ACTIVE_ROUTE",
+                            "현재 위치 주변 시설 조회 완료: facilityCount=${facilities.size}"
+                        )
+
+
+                    } catch (
+                        error: Exception
+                    ) {
+
+                        // 일시적인 네트워크 실패 시 기존 시설을 지우지 않습니다.
+                        // 다음 조건 충족 시 다시 조회합니다.
+                        Log.e(
+                            "ACTIVE_ROUTE",
+                            "현재 위치 주변 시설 조회 실패",
+                            error
+                        )
+                    }
+                }
+            }
+
+
+            // ========================================
+            // 시설 갱신 조건 확인 주기
+            //
+            // GPS 요청 주기를 바꾸는 것이 아닙니다.
+            // 이미 저장된 최신 GPS 좌표를 1초마다 확인할 뿐이며,
+            // 실제 Backend 호출은 5m + 5초 조건을 만족할 때만 합니다.
+            // ========================================
+
+            delay(
+                1_000L
+            )
+        }
+    }
 
     // ========================================
     // AI가 최종 선택한 실제 Kakao 후보
@@ -1882,6 +2145,24 @@ fun ActiveRouteScreen(
                     modifier =
                         Modifier.fillMaxSize(),
 
+                    // 안내 시작 당시 고정된 출발 위치
+                    startLatitude =
+                        routeStartLatitude,
+
+                    startLongitude =
+                        routeStartLongitude,
+
+                    // ========================================
+                    // 귀가 경로에서는 특정 시설 하나가 아니라
+                    // 경로 주변 50m 이내의 모든 안전시설을 표시합니다.
+                    //
+                    // KakaoMapView는 selectedFacility가 null이면
+                    // 시설 마커 표시를 중단하기 때문에,
+                    // 경로 시설 표시용 값을 전달합니다.
+                    // ========================================
+                    selectedFacility =
+                        "ROUTE_FACILITIES",
+
                     destinationName =
                         destinationName,
 
@@ -1904,18 +2185,31 @@ fun ActiveRouteScreen(
                         currentLatitude,
 
                     currentLongitude =
-                        currentLongitude
+                        currentLongitude,
+
+                    recenterRequestKey =
+                        recenterRequestKey,
+
+                    // ========================================
+                    // 현재 선택한 경로에서 50m 이내에 있는
+                    // 안전시설만 지도 마커 데이터로 전달합니다.
+                    // ========================================
+                    facilities =
+                        routeFacilities
                 )
 
 
                 // ========================================
-                // 오른쪽 버튼
-                // ========================================
+// 오른쪽 버튼
+// ========================================
 
                 Column(
                     modifier = Modifier
                         .align(
                             Alignment.CenterEnd
+                        )
+                        .offset(
+                            y = 16.dp
                         )
                         .padding(
                             end = 18.dp
@@ -1925,6 +2219,9 @@ fun ActiveRouteScreen(
                         Alignment.CenterHorizontally
                 ) {
 
+                    // ========================================
+                    // 긴급구조
+                    // ========================================
 
                     FloatingActionButton(
 
@@ -1964,7 +2261,6 @@ fun ActiveRouteScreen(
                                     )
                             )
 
-
                             Text(
                                 text =
                                     "긴급구조",
@@ -1990,6 +2286,10 @@ fun ActiveRouteScreen(
                     )
 
 
+                    // ========================================
+                    // 꽥꽥이
+                    // ========================================
+
                     FloatingActionButton(
 
                         onClick =
@@ -1997,7 +2297,7 @@ fun ActiveRouteScreen(
 
                         modifier =
                             Modifier.size(
-                                56.dp
+                                60.dp
                             ),
 
                         shape =
@@ -2024,10 +2324,9 @@ fun ActiveRouteScreen(
 
                                 modifier =
                                     Modifier.size(
-                                        25.dp
+                                        27.dp
                                     )
                             )
-
 
                             Text(
                                 text =
@@ -2040,6 +2339,54 @@ fun ActiveRouteScreen(
                                     ActiveTextBlack
                             )
                         }
+                    }
+
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                12.dp
+                            )
+                    )
+
+
+                    // ========================================
+                    // 현재 위치로 돌아가기
+                    // ========================================
+
+                    FloatingActionButton(
+
+                        onClick = {
+                            recenterRequestKey++
+                        },
+
+                        modifier =
+                            Modifier.size(
+                                48.dp
+                            ),
+
+                        shape =
+                            CircleShape,
+
+                        containerColor =
+                            Color.White
+                    ) {
+
+                        Icon(
+                            imageVector =
+                                Icons.Filled.MyLocation,
+
+                            contentDescription =
+                                "현재 위치로 이동",
+
+                            tint =
+                                ActiveBlue,
+
+                            modifier =
+                                Modifier.size(
+                                    24.dp
+                                )
+                        )
                     }
                 }
             }
