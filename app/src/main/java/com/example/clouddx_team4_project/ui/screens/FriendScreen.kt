@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -237,19 +236,10 @@ fun FriendScreen(
                 )
 
 
-                Icon(
-                    imageVector =
-                        Icons.Filled.Notifications,
-
-                    contentDescription =
-                        "알림",
-
-                    tint =
-                        Color(0xFF555555),
-
+                Spacer(
                     modifier =
                         Modifier.size(
-                            23.dp
+                            22.dp
                         )
                 )
             }

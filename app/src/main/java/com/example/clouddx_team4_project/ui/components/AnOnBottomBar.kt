@@ -19,6 +19,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.border
+import com.example.clouddx_team4_project.R
 
 private val AnOnBlue = Color(0xFF6A92FE)
 private val EmergencyRed = Color(0xFFE23F3F)
@@ -78,7 +81,7 @@ fun AnOnBottomBar(
                     }
                 }
 
-                // 가운데 긴급구조 버튼 공간
+                // 가운데 긴급신고 버튼 공간
                 Spacer(modifier = Modifier.width(80.dp))
 
                 // 더보기
@@ -98,7 +101,7 @@ fun AnOnBottomBar(
         }
 
         // =========================
-        // 가운데 긴급구조 버튼
+        // 가운데 긴급신고 버튼
         // =========================
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -109,51 +112,65 @@ fun AnOnBottomBar(
 
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(82.dp)
+                modifier = Modifier.size(100.dp)
             ) {
 
                 // 바깥쪽 은은한 빨간 링
                 Box(
                     modifier = Modifier
-                        .size(82.dp)
+                        .size(100.dp)
                         .background(
                             EmergencyRed.copy(alpha = 0.12f),
                             CircleShape
                         )
                 )
 
-                // 실제 긴급구조 버튼
+                // 실제 긴급신고 버튼
                 Box(
                     modifier = Modifier
-                        .size(66.dp)
+                        .size(84.dp)
                         .shadow(
                             elevation = 6.dp,
                             shape = CircleShape
                         )
                         .background(
-                            EmergencyRed,
+                            Color.White,
                             CircleShape
+                        )
+                        .border(
+                            width = 1.5.dp,
+                            color = EmergencyRed,
+                            shape = CircleShape
                         )
                         .clickable {
                             onEmergencyClick()
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Warning,
-                        contentDescription = "긴급구조",
-                        tint = Color.White,
-                        modifier = Modifier.size(35.dp)
-                    )
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+
+                        Icon(
+                            painter = painterResource(
+                                R.drawable.ic_emergency_siren
+                            ),
+                            contentDescription = "긴급신고",
+                            tint = EmergencyRed,
+                            modifier = Modifier.size(32.dp)
+                        )
+
+                        Text(
+                            text = "긴급신고",
+                            fontSize = 13.sp,
+                            color = EmergencyRed,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
-
-            Text(
-                text = "긴급구조",
-                fontSize = 13.sp,
-                color = EmergencyRed,
-                fontWeight = FontWeight.Bold
-            )
         }
     }
 }
