@@ -59,6 +59,18 @@ fun AppNavigation() {
         mutableStateOf(tokenManager.getMemberId())
     }
 
+    // ========================================
+    // 목적지 검색 거리 계산용 현재 GPS 위치
+    // ========================================
+
+    var currentLatitude by remember {
+        mutableStateOf<Double?>(null)
+    }
+
+    var currentLongitude by remember {
+        mutableStateOf<Double?>(null)
+    }
+
     SideEffect {
         RetrofitClient.tokenManager = tokenManager
     }
@@ -115,6 +127,11 @@ fun AppNavigation() {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
 
                 if (location != null) {
+
+                    // 목적지 검색에서 거리(m/km)를 계산할 수 있도록
+                    // 현재 GPS 위치 저장
+                    currentLatitude = location.latitude
+                    currentLongitude = location.longitude
 
                     coroutineScope.launch {
 
@@ -470,6 +487,9 @@ fun AppNavigation() {
         composable("destination_search") {
 
             DestinationSearchScreen(
+
+                currentLatitude = currentLatitude,
+                currentLongitude = currentLongitude,
 
                 onBackClick = {
 
