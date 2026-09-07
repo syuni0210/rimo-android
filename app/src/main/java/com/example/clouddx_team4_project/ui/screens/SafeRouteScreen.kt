@@ -37,6 +37,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import com.example.clouddx_team4_project.network.SharingFriendResponse
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 
 
 // ========================================
@@ -125,6 +130,41 @@ fun SafeRouteScreen(
 
     val coroutineScope =
         rememberCoroutineScope()
+    // ========================================
+    // 기기 방향(나침반) 센서 설정 추가
+    // ========================================
+    var currentBearing by remember { mutableStateOf<Float?>(null) }
+    val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
+
+    DisposableEffect(sensorManager) {
+        val rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+
+        val sensorEventListener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
+                    val rotationMatrix = FloatArray(9)
+                    SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+                    val orientationAngles = FloatArray(3)
+                    SensorManager.getOrientation(rotationMatrix, orientationAngles)
+
+                    // 라디안 값을 각도(Degree)로 변환하여 0~360도 방위각 추출
+                    var azimuth = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
+                    if (azimuth < 0) azimuth += 360f
+
+                    currentBearing = azimuth
+                }
+            }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+
+        rotationSensor?.let {
+            sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI)
+        }
+
+        onDispose {
+            sensorManager.unregisterListener(sensorEventListener)
+        }
+    }
 
 
     // ========================================
@@ -656,6 +696,7 @@ fun SafeRouteScreen(
 
                     recenterRequestKey =
                         recenterRequestKey,
+                    currentBearing = currentBearing
 
                 )
 

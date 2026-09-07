@@ -1126,123 +1126,82 @@ fun KakaoMapView(
     // ========================================
 
     LaunchedEffect(
-
         kakaoMap,
-
         realCurrentLatitude,
-
         realCurrentLongitude
-
     ) {
+        val map = kakaoMap ?: return@LaunchedEffect
+        val latitude = realCurrentLatitude ?: return@LaunchedEffect
+        val longitude = realCurrentLongitude ?: return@LaunchedEffect
+        val targetPosition = LatLng.from(latitude, longitude)
+        val labelManager = map.labelManager ?: return@LaunchedEffect
 
+        val currentLocationLayer = labelManager.getLayer("current_location_layer")
+            ?: labelManager.addLayer(
+                LabelLayerOptions.from("current_location_layer")
+                    .setCompetitionType(CompetitionType.None)
+                    .setZOrder(12000)
+            ) ?: return@LaunchedEffect
 
-        val map =
-            kakaoMap
-                ?: return@LaunchedEffect
+        val existingMarker = currentLocationLayer.getLabel("current_location")
 
-
-        val latitude =
-            realCurrentLatitude
-                ?: return@LaunchedEffect
-
-
-        val longitude =
-            realCurrentLongitude
-                ?: return@LaunchedEffect
-
-
-        val currentPosition =
-            LatLng.from(
-                latitude,
-                longitude
-            )
-
-
-        val labelManager =
-            map.labelManager
-                ?: return@LaunchedEffect
-
-
-// ========================================
-// 현재 위치 전용 LabelLayer
-//
-// 출발/도착/시설 마커와 겹치더라도
-// 현재 위치가 사라지지 않도록 별도 Layer 사용
-// ========================================
-
-        val currentLocationLayer =
-            labelManager.getLayer(
-                "current_location_layer"
-            )
-                ?: labelManager.addLayer(
-                    LabelLayerOptions
-                        .from(
-                            "current_location_layer"
-                        )
-                        .setCompetitionType(
-                            CompetitionType.None
-                        )
-                        .setZOrder(
-                            12000
-                        )
-                )
-                ?: return@LaunchedEffect
-
-        // ========================================
-        // 기존 현재 위치 마커 제거
-        // ========================================
-
-        currentLocationLayer
-            .getLabel(
-                "current_location"
-            )
-            ?.remove()
-
-
-        // ========================================
-        // 새 현재 위치 마커 생성
-        // ========================================
-
-        val currentOptions =
-            LabelOptions
-                .from(
-                    "current_location",
-                    currentPosition
-                )
+        if (existingMarker == null) {
+            // 최초 1회 생성
+            val currentOptions = LabelOptions
+                .from("current_location", targetPosition)
                 .setStyles(
-                    LabelStyle
-                        .from(
-                            currentLocationBitmap
-                        )
+                    LabelStyle.from(currentLocationBitmap)
                         .setApplyDpScale(false)
-                        .setAnchorPoint(
-                            0.5f,
-                            0.5f
-                        )
+                        .setAnchorPoint(0.5f, 0.5f)
                 )
+            currentLocationLayer.addLabel(currentOptions)
+        } else {
+            // 마커의 현재 위치를 시작점으로 잡음
+            val startPosition = existingMarker.position
 
-        val currentLocationLabel =
-            currentLocationLayer.addLabel(
-                currentOptions
-            )
+            // 1초(1000ms) 동안 60프레임(약 16ms 주기)으로 잘게 쪼개서 부드럽게 이동
+            val durationMs = 1000L
+            val frameMs = 16L
+            val steps = (durationMs / frameMs).toInt()
 
-        currentBearing?.let { bearing ->
+            for (i in 1..steps) {
+                val fraction = i.toFloat() / steps
 
-            val bearingRadians =
-                Math.toRadians(
-                    bearing.toDouble()
-                ).toFloat()
+                // 현재 위치와 다음 위치 사이의 미세한 중간 좌표 계산 (선형 보간)
+                val animLat = startPosition.latitude + (targetPosition.latitude - startPosition.latitude) * fraction
+                val animLng = startPosition.longitude + (targetPosition.longitude - startPosition.longitude) * fraction
 
-            currentLocationLabel.rotateTo(
-                bearingRadians
-            )
+                existingMarker.moveTo(LatLng.from(animLat, animLng))
+
+                // 16ms 대기 (초당 약 60번 화면 갱신)
+                kotlinx.coroutines.delay(frameMs)
+            }
+
+            // 루프가 끝난 뒤 최종 목적지 좌표로 정확히 한 번 더 맞춤
+            existingMarker.moveTo(targetPosition)
         }
-
-
         Log.d(
             "KAKAO_MAP",
             "현재 위치 마커 이동: $latitude, $longitude"
         )
+    }
+    // ========================================
+    // 2. 현재 위치 마커 "회전(나침반)" 전용 (센서 갱신 시 수시로 실행)
+    // ========================================
+    LaunchedEffect(
+        kakaoMap,
+        currentBearing
+    ) {
+        val map = kakaoMap ?: return@LaunchedEffect
+        val labelManager = map.labelManager ?: return@LaunchedEffect
+        val currentLocationLayer = labelManager.getLayer("current_location_layer") ?: return@LaunchedEffect
+        val existingMarker = currentLocationLayer.getLabel("current_location") ?: return@LaunchedEffect
+
+        currentBearing?.let { bearing ->
+            val bearingRadians = Math.toRadians(bearing.toDouble()).toFloat()
+            // 위치는 놔두고 방향만 휙휙 부드럽게 회전
+            existingMarker.rotateTo(bearingRadians)
+        }
     }
 
     // ========================================
