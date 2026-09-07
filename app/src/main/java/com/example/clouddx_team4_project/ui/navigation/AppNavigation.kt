@@ -105,7 +105,7 @@ fun AppNavigation() {
 
         while (true) {
 
-            delay(3000L)
+            delay(1000L)
 
             val finePermission = ContextCompat.checkSelfPermission(
                 context,
