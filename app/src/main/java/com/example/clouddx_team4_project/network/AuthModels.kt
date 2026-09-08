@@ -32,3 +32,6 @@ data class CheckIdResponse(
 data class SignupResponse(
     val message: String
 )
+data class LogoutRequest(
+    val userId: String
+)

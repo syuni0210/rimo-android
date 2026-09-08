@@ -16,19 +16,11 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import java.util.concurrent.TimeUnit
 
-// ========================================
-// 토큰 재발급용 DTO 및 API
-// ========================================
-data class TokenRefreshResponse(
-    val accessToken: String,
-    val refreshToken: String
-)
-
 interface RefreshApi {
-    @POST("api/v1/auth/refresh")
+    @POST("api/auth/refresh")
     fun refreshToken(
         @Header("Authorization") refreshToken: String
-    ): Call<TokenRefreshResponse>
+    ): Call<LoginResponse>
 }
 
 object RetrofitClient {
@@ -42,14 +34,20 @@ object RetrofitClient {
     // ========================================
     private val authInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
+        val path = originalRequest.url().encodedPath()
+
+        // 로그인, 회원가입 등은 토큰 부착 없이 그대로 통과
+        if (path.contains("/auth/login") || path.contains("/auth/signup") || path.contains("/auth/check-id")) {
+            return@Interceptor chain.proceed(originalRequest)
+        }
+
+        // ⭐️ 수정됨: TokenManager의 getToken() 메서드 사용
         val token = tokenManager?.getToken()
+
         if (!token.isNullOrEmpty()) {
             val newRequest = originalRequest
                 .newBuilder()
-                .header(
-                    "Authorization",
-                    "Bearer $token"
-                )
+                .header("Authorization", "Bearer $token")
                 .build()
             chain.proceed(newRequest)
         } else {
@@ -73,12 +71,14 @@ object RetrofitClient {
 
         override fun authenticate(route: Route?, response: Response): Request? {
             if (getResponseCount(response) > 1) {
+                // ⭐️ 수정됨: clearToken() 사용
                 tokenManager?.clearToken()
                 return null
             }
 
             val refreshToken = tokenManager?.getRefreshToken()
             if (refreshToken.isNullOrEmpty()) {
+                // ⭐️ 수정됨: clearToken() 사용
                 tokenManager?.clearToken()
                 return null
             }
@@ -94,6 +94,7 @@ object RetrofitClient {
 
                 if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
                     val newTokens = refreshResponse.body()!!
+
                     tokenManager?.saveTokens(newTokens.accessToken, newTokens.refreshToken)
                     Log.d("AUTH", "토큰 자동 재발급 성공")
 
@@ -102,6 +103,7 @@ object RetrofitClient {
                         .build()
                 } else {
                     Log.e("AUTH", "Refresh Token 만료. 강제 로그아웃 처리")
+                    // ⭐️ 수정됨: clearToken() 사용
                     tokenManager?.clearToken()
                 }
             } catch (e: Exception) {
@@ -111,9 +113,6 @@ object RetrofitClient {
         }
     }
 
-    // ========================================
-    // OkHttpClient (타임아웃 + 인터셉터 + Authenticator 모두 장착)
-    // ========================================
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
         .authenticator(tokenAuthenticator)
@@ -123,9 +122,6 @@ object RetrofitClient {
         .callTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    // ========================================
-    // 공용 Retrofit
-    // ========================================
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
@@ -134,9 +130,6 @@ object RetrofitClient {
             .build()
     }
 
-    // ========================================
-    // API 객체들 (팀원 추가 API + 토큰 관련 API 통합)
-    // ========================================
     val authApi: AuthApi by lazy { retrofit.create(AuthApi::class.java) }
     val trackingApi: TrackingApi by lazy { retrofit.create(TrackingApi::class.java) }
     val reportApi: ReportApi by lazy { retrofit.create(ReportApi::class.java) }
