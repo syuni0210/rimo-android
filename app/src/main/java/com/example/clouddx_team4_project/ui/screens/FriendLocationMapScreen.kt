@@ -1,10 +1,10 @@
 package com.example.clouddx_team4_project.ui.screens
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Typeface
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,31 +27,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.DrawableCompat
 import com.example.clouddx_team4_project.BuildConfig
-import com.example.clouddx_team4_project.R
 import com.example.clouddx_team4_project.data.KakaoReverseGeocodeClient
 import com.example.clouddx_team4_project.network.RetrofitClient
-import com.kakao.vectormap.KakaoMap
-import com.kakao.vectormap.KakaoMapReadyCallback
-import com.kakao.vectormap.LatLng
-import com.kakao.vectormap.MapLifeCycleCallback
-import com.kakao.vectormap.MapView
-import com.kakao.vectormap.camera.CameraUpdateFactory
-import com.kakao.vectormap.label.LabelOptions
-import com.kakao.vectormap.label.LabelStyle
-import android.graphics.Path
-import kotlinx.coroutines.launch
-import android.Manifest
-import android.content.pm.PackageManager
-import com.google.android.gms.location.LocationServices
+import com.example.clouddx_team4_project.network.SharingFriendResponse
+import kotlinx.coroutines.delay
 
-
-// ========================================
-// 색상
-// ========================================
 private val AnOnBlue = Color(0xFF6A92FE)
 private val ScreenBackground = Color(0xFFF7F8FC)
 private val TextBlack = Color(0xFF222222)
@@ -66,99 +47,96 @@ fun FriendLocationMapScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    var myLatitude by remember { mutableStateOf<Double?>(null) }
-    var myLongitude by remember { mutableStateOf<Double?>(null) }
-    var friendAddressDisplay by remember { mutableStateOf("친구 위치 확인 중...") }
-    var kakaoMapInstance by remember { mutableStateOf<KakaoMap?>(null) }
+    val memberId = remember { RetrofitClient.tokenManager?.getMemberId() ?: 3L }
 
-    // 현재 위치 복귀 트리거
+    var friendAddressDisplay by remember { mutableStateOf("친구 위치 확인 중...") }
     var recenterRequestKey by remember { mutableIntStateOf(0) }
 
-    var currentLat by remember { mutableStateOf(friendLat) }
-    var currentLng by remember { mutableStateOf(friendLng) }
-
     // ========================================
-    // 본인 GPS 위치 조회 (화면 진입 시 1회)
+    // 안심경로와 동일한 기기 방향(나침반) 센서 설정
     // ========================================
-    LaunchedEffect(Unit) {
+    var currentBearing by remember { mutableStateOf<Float?>(null) }
+    val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
 
-        val finePermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
+    DisposableEffect(sensorManager) {
+        val rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
-        if (finePermission == PackageManager.PERMISSION_GRANTED) {
+        val sensorEventListener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
+                    val rotationMatrix = FloatArray(9)
+                    SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+                    val orientationAngles = FloatArray(3)
+                    SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
-            val fusedLocationClient =
-                LocationServices.getFusedLocationProviderClient(context)
+                    var azimuth = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
+                    if (azimuth < 0) azimuth += 360f
 
-            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-
-                if (location != null) {
-                    myLatitude = location.latitude
-                    myLongitude = location.longitude
+                    currentBearing = azimuth
                 }
             }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+
+        rotationSensor?.let {
+            sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI)
+        }
+
+        onDispose {
+            sensorManager.unregisterListener(sensorEventListener)
         }
     }
 
     // ========================================
-    // 3초 주기 실시간 위치 폴링 (서버에서 최신 위치 갱신)
+    // ⭐️ 안심경로와 100% 동일한 getSharingFriendsLocations 폴링 로직
     // ========================================
-    LaunchedEffect(key1 = friendId) {
-        val targetFriendId = friendId ?: return@LaunchedEffect
+    var sharingFriends by remember {
+        mutableStateOf(
+            listOf(
+                SharingFriendResponse(
+                    friendId = friendId ?: 0L,
+                    friendName = friendName,
+                    lat = friendLat,
+                    lng = friendLng
+                )
+            )
+        )
+    }
 
+    LaunchedEffect(memberId) {
         while (true) {
-            kotlinx.coroutines.delay(3000)
             try {
-                val myId = RetrofitClient.tokenManager?.getMemberId() ?: continue
-
-                val response = RetrofitClient.trackingApi.getFriendLocation(
-                    friendId = targetFriendId,
-                    requesterId = myId
+                val response = RetrofitClient.trackingApi.getSharingFriendsLocations(
+                    requesterId = memberId
                 )
 
-                if (response.isSuccessful && response.body() != null) {
-                    val result = response.body()!!
-                    if (result.success) {
-                        currentLat = result.lat
-                        currentLng = result.lng
-
-                        val newPosition = LatLng.from(currentLat, currentLng)
-                        val layer = kakaoMapInstance?.labelManager?.layer
-                        val existingMarker = layer?.getLabel("friend_marker_id")
-
-                        if (existingMarker == null) {
-                            // PNG + 텍스트를 합성한 비트맵 마커 적용
-                            val markerBitmap = createCustomFriendMarkerBitmap(context, friendName)
-                            layer?.addLabel(
-                                LabelOptions.from("friend_marker_id", newPosition)
-                                    .setStyles(
-                                        LabelStyle.from(markerBitmap)
-                                            .setAnchorPoint(0.5f, 1.0f) // 마커의 맨 아래쪽이 정확한 좌표를 가리키도록 닻(Anchor) 설정
-                                    )
-                            )
-
-                        } else {
-                            existingMarker.moveTo(newPosition)
-                        }
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) {
+                        sharingFriends = body
                     }
                 }
             } catch (e: Exception) {
-                Log.e("FRIEND_MAP", "실시간 위치 갱신 실패", e)
+                Log.e("FRIEND_MAP", "친구 위치 폴링 중 예외 발생", e)
             }
+            delay(1000)
         }
     }
+
+    // 현재 대상 친구의 좌표 추출
+    val currentFriend = sharingFriends.find { it.friendId == friendId }
+    val activeLat = currentFriend?.lat ?: friendLat
+    val activeLng = currentFriend?.lng ?: friendLng
 
     // ============================================================
     // 친구 좌표 → 주소 변환
     // ============================================================
-    LaunchedEffect(currentLat, currentLng) {
+    LaunchedEffect(activeLat, activeLng) {
         try {
             val response = KakaoReverseGeocodeClient.api.getAddressFromCoordinate(
                 authorization = "KakaoAK ${BuildConfig.KAKAO_REST_API_KEY}",
-                longitude = currentLng,
-                latitude = currentLat
+                longitude = activeLng,
+                latitude = activeLat
             )
 
             val document = response.documents.firstOrNull()
@@ -174,27 +152,13 @@ fun FriendLocationMapScreen(
         }
     }
 
-    // ============================================================
-    // 친구 위치로 카메라 재이동 트리거
-    // ============================================================
-    LaunchedEffect(recenterRequestKey) {
-        if (recenterRequestKey > 0) {
-            val newPosition = LatLng.from(currentLat, currentLng)
-            kakaoMapInstance?.moveCamera(
-                CameraUpdateFactory.newCenterPosition(newPosition, 16)
-            )
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(ScreenBackground)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // ========================================
             // 상단 헤더
-            // ========================================
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -221,9 +185,7 @@ fun FriendLocationMapScreen(
                 )
             }
 
-            // ========================================
             // 친구 주소 카드
-            // ========================================
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -266,68 +228,22 @@ fun FriendLocationMapScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // ========================================
-            // 지도 영역
+            // ⭐️ 안심경로와 100% 동일한 KakaoMapView 렌더링 호출
             // ========================================
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                AndroidView(
-                    factory = { ctx ->
-                        MapView(ctx).apply {
-                            start(
-                                object : MapLifeCycleCallback() {
-                                    override fun onMapDestroy() {}
-                                    override fun onMapError(error: Exception?) {
-                                        Log.e("KAKAO_MAP", "맵 로드 에러: ${error?.message}")
-                                    }
-                                },
-                                object : KakaoMapReadyCallback() {
-                                    override fun onMapReady(kakaoMap: KakaoMap) {
-                                        kakaoMapInstance = kakaoMap
-                                        val initialPosition = LatLng.from(currentLat, currentLng)
-
-                                        kakaoMap.moveCamera(
-                                            CameraUpdateFactory.newCenterPosition(initialPosition, 16)
-                                        )
-
-                                        // PNG + 텍스트를 합성한 비트맵 마커 적용
-                                        val layer = kakaoMap.labelManager?.layer
-                                        val markerBitmap = createCustomFriendMarkerBitmap(ctx, friendName)
-                                        layer?.addLabel(
-                                            LabelOptions.from("friend_marker_id", initialPosition)
-                                                .setStyles(
-                                                    LabelStyle.from(markerBitmap)
-                                                        .setAnchorPoint(0.5f, 1.0f)
-                                                )
-                                        )// ========================================
-                                        // 본인 위치 마커 추가
-                                        // ========================================
-                                        if (myLatitude != null && myLongitude != null) {
-
-                                            val myPosition = LatLng.from(myLatitude!!, myLongitude!!)
-
-                                            val myMarkerBitmap = drawableToBitmapForMyLocation(
-                                                ctx,
-                                                R.drawable.marker_current_location
-                                            )
-
-                                            layer?.addLabel(
-                                                LabelOptions.from("my_location_marker_id", myPosition)
-                                                    .setStyles(
-                                                        LabelStyle.from(myMarkerBitmap)
-                                                            .setAnchorPoint(0.5f, 0.5f)
-                                                    )
-                                            )
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
+                KakaoMapView(
+                    modifier = Modifier.fillMaxSize(),
+                    destinationName = "",
+                    destinationLatitude = null,
+                    destinationLongitude = null,
+                    sharingFriends = sharingFriends, // 안심경로가 쓰던 리스트 그대로 주입
+                    showRoute = false,
+                    routeMode = "BROAD_FIRST",
+                    recenterRequestKey = recenterRequestKey,
+                    currentBearing = currentBearing
                 )
 
-                // ========================================
-                // 친구 위치로 다시 이동 버튼 (우측 하단)
-                // ========================================
+                // 현재 위치로 이동 버튼
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -343,7 +259,7 @@ fun FriendLocationMapScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.MyLocation,
-                        contentDescription = "친구 위치로 이동",
+                        contentDescription = "내 위치로 이동",
                         tint = AnOnBlue,
                         modifier = Modifier.size(24.dp)
                     )
@@ -351,100 +267,4 @@ fun FriendLocationMapScreen(
             }
         }
     }
-}
-
-
-// ============================================================
-// 노란색 위치 핀 마커
-// ============================================================
-private fun createCustomFriendMarkerBitmap(context: Context, friendName: String): Bitmap {
-
-    val density = context.resources.displayMetrics.density
-
-    val pinWidth = (22 * density).toInt()
-    val pinHeight = (27 * density).toInt()
-
-    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.BLACK
-        textSize = 12f * density
-        typeface = Typeface.DEFAULT_BOLD
-        textAlign = Paint.Align.CENTER
-    }
-
-    val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE
-        textSize = 12f * density
-        typeface = Typeface.DEFAULT_BOLD
-        textAlign = Paint.Align.CENTER
-        style = Paint.Style.STROKE
-        strokeWidth = 3f * density
-    }
-
-    val textMargin = (4 * density).toInt()
-    val textHeight = (textPaint.descent() - textPaint.ascent()).toInt()
-    val totalWidth = Math.max(pinWidth, textPaint.measureText(friendName).toInt() + (12 * density).toInt())
-    val totalHeight = textHeight + textMargin + pinHeight
-
-    val bitmap = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    // 이름 텍스트 (핀 위쪽)
-    val textX = totalWidth / 2f
-    val textY = -textPaint.ascent()
-    canvas.drawText(friendName, textX, textY, strokePaint)
-    canvas.drawText(friendName, textX, textY, textPaint)
-
-    // 핀 그리기 (물방울 모양)
-    val pinLeft = (totalWidth - pinWidth) / 2f
-    val pinTop = (textHeight + textMargin).toFloat()
-    val pinCenterX = pinLeft + pinWidth / 2f
-    val pinCircleRadius = pinWidth / 2f
-    val pinCircleCenterY = pinTop + pinCircleRadius
-
-    val pinPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.parseColor("#FFD900")
-        style = Paint.Style.FILL
-    }
-
-// 1. 삼각형(아래 뾰족한 부분)을 먼저 그림
-    val tipY = pinTop + pinHeight
-    val triangleTopWidth = pinCircleRadius * 0.9f
-
-    val trianglePath = android.graphics.Path()
-    trianglePath.moveTo(pinCenterX - triangleTopWidth, pinCircleCenterY + pinCircleRadius * 0.5f)
-    trianglePath.lineTo(pinCenterX, tipY)
-    trianglePath.lineTo(pinCenterX + triangleTopWidth, pinCircleCenterY + pinCircleRadius * 0.5f)
-    trianglePath.close()
-
-    canvas.drawPath(trianglePath, pinPaint)
-
-// 2. 원(위쪽 둥근 부분)을 그 위에 덮어서 그림
-    canvas.drawCircle(pinCenterX, pinCircleCenterY, pinCircleRadius, pinPaint)
-
-// 3. 중앙 흰색 원
-    val whiteCirclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE
-    }
-    canvas.drawCircle(pinCenterX, pinCircleCenterY, pinCircleRadius * 0.42f, whiteCirclePaint)
-    return bitmap
-}
-
-private fun drawableToBitmapForMyLocation(
-    context: android.content.Context,
-    drawableRes: Int
-): Bitmap {
-
-    val drawable = ContextCompat.getDrawable(context, drawableRes)?.mutate()
-        ?: return Bitmap.createBitmap(44, 44, Bitmap.Config.ARGB_8888)
-
-    val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 44
-    val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 44
-
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    drawable.setBounds(0, 0, canvas.width, canvas.height)
-    drawable.draw(canvas)
-
-    return bitmap
 }
