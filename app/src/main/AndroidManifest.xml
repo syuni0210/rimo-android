@@ -8,6 +8,18 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 위치 권한 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- ⭐️ 안드로이드 10(API 29) 이상 백그라운드 위치 권한 -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ⭐️ 앱을 닫아도 위치 전송을 유지하기 위한 포그라운드 서비스 권한 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
     <!-- 긴급 알림 및 상태 확인 시 진동 기능 사용 -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
@@ -38,6 +50,11 @@
             </intent-filter>
 
         </activity>
+        <service
+            android:name=".service.RimoSafeBackgroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
     </application>
 

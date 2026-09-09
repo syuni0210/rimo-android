@@ -227,7 +227,7 @@ fun SafeRouteScreen(
             } catch (e: Exception) {
                 android.util.Log.e("FRIEND_DEBUG", "통신 중 예외 발생", e)
             }
-            kotlinx.coroutines.delay(3000)
+            kotlinx.coroutines.delay(1000)
         }
     }
 
