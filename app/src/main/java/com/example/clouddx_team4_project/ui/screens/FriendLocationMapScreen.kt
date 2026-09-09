@@ -44,6 +44,10 @@ import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
 import android.graphics.Path
 import kotlinx.coroutines.launch
+import android.Manifest
+import android.content.pm.PackageManager
+import com.google.android.gms.location.LocationServices
+
 
 // ========================================
 // 색상
@@ -62,6 +66,8 @@ fun FriendLocationMapScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
+    var myLatitude by remember { mutableStateOf<Double?>(null) }
+    var myLongitude by remember { mutableStateOf<Double?>(null) }
     var friendAddressDisplay by remember { mutableStateOf("친구 위치 확인 중...") }
     var kakaoMapInstance by remember { mutableStateOf<KakaoMap?>(null) }
 
@@ -70,6 +76,31 @@ fun FriendLocationMapScreen(
 
     var currentLat by remember { mutableStateOf(friendLat) }
     var currentLng by remember { mutableStateOf(friendLng) }
+
+    // ========================================
+    // 본인 GPS 위치 조회 (화면 진입 시 1회)
+    // ========================================
+    LaunchedEffect(Unit) {
+
+        val finePermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+
+        if (finePermission == PackageManager.PERMISSION_GRANTED) {
+
+            val fusedLocationClient =
+                LocationServices.getFusedLocationProviderClient(context)
+
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+
+                if (location != null) {
+                    myLatitude = location.latitude
+                    myLongitude = location.longitude
+                }
+            }
+        }
+    }
 
     // ========================================
     // 3초 주기 실시간 위치 폴링 (서버에서 최신 위치 갱신)
@@ -107,6 +138,7 @@ fun FriendLocationMapScreen(
                                             .setAnchorPoint(0.5f, 1.0f) // 마커의 맨 아래쪽이 정확한 좌표를 가리키도록 닻(Anchor) 설정
                                     )
                             )
+
                         } else {
                             existingMarker.moveTo(newPosition)
                         }
@@ -265,7 +297,26 @@ fun FriendLocationMapScreen(
                                                     LabelStyle.from(markerBitmap)
                                                         .setAnchorPoint(0.5f, 1.0f)
                                                 )
-                                        )
+                                        )// ========================================
+                                        // 본인 위치 마커 추가
+                                        // ========================================
+                                        if (myLatitude != null && myLongitude != null) {
+
+                                            val myPosition = LatLng.from(myLatitude!!, myLongitude!!)
+
+                                            val myMarkerBitmap = drawableToBitmapForMyLocation(
+                                                ctx,
+                                                R.drawable.marker_current_location
+                                            )
+
+                                            layer?.addLabel(
+                                                LabelOptions.from("my_location_marker_id", myPosition)
+                                                    .setStyles(
+                                                        LabelStyle.from(myMarkerBitmap)
+                                                            .setAnchorPoint(0.5f, 0.5f)
+                                                    )
+                                            )
+                                        }
                                     }
                                 }
                             )
@@ -375,5 +426,25 @@ private fun createCustomFriendMarkerBitmap(context: Context, friendName: String)
         color = android.graphics.Color.WHITE
     }
     canvas.drawCircle(pinCenterX, pinCircleCenterY, pinCircleRadius * 0.42f, whiteCirclePaint)
+    return bitmap
+}
+
+private fun drawableToBitmapForMyLocation(
+    context: android.content.Context,
+    drawableRes: Int
+): Bitmap {
+
+    val drawable = ContextCompat.getDrawable(context, drawableRes)?.mutate()
+        ?: return Bitmap.createBitmap(44, 44, Bitmap.Config.ARGB_8888)
+
+    val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 44
+    val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 44
+
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+
+    drawable.setBounds(0, 0, canvas.width, canvas.height)
+    drawable.draw(canvas)
+
     return bitmap
 }
