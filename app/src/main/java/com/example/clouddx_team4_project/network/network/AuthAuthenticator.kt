@@ -34,7 +34,7 @@ class AuthAuthenticator(private val tokenManager: TokenManager) : Authenticator 
     private fun fetchNewToken(refreshToken: String): String? {
         val client = OkHttpClient()
         val request = Request.Builder()
-            .url("http://127.0.0.1:8080/api/auth/refresh")
+            .url("https://api.rimo-app.com/api/auth/refresh")
             // 3. OkHttp 3.x 버전에 맞춘 빈 바디 전송 코드
             .post(RequestBody.create(null, ByteArray(0)))
             .addHeader("Authorization", "Bearer $refreshToken")
