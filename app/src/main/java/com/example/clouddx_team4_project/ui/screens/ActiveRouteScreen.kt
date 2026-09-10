@@ -2312,7 +2312,7 @@ fun ActiveRouteScreen(
 
                         modifier =
                             Modifier.size(
-                                64.dp
+                                45.dp
                             ),
 
                         shape =
@@ -2340,7 +2340,7 @@ fun ActiveRouteScreen(
 
                                 modifier =
                                     Modifier.size(
-                                        26.dp
+                                        20.dp
                                     )
                             )
 
@@ -2380,7 +2380,7 @@ fun ActiveRouteScreen(
 
                         modifier =
                             Modifier.size(
-                                60.dp
+                                45.dp
                             ),
 
                         shape =
@@ -2407,7 +2407,7 @@ fun ActiveRouteScreen(
 
                                 modifier =
                                     Modifier.size(
-                                        27.dp
+                                        21.dp
                                     )
                             )
 
@@ -2445,7 +2445,7 @@ fun ActiveRouteScreen(
 
                         modifier =
                             Modifier.size(
-                                48.dp
+                                45.dp
                             ),
 
                         shape =

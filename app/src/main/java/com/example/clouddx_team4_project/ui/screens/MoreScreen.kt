@@ -39,6 +39,8 @@ import com.example.clouddx_team4_project.ui.theme.rememberResponsiveDimens
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.ui.platform.LocalContext
 import com.example.clouddx_team4_project.data.TokenManager
+import com.example.clouddx_team4_project.network.LogoutRequest
+import kotlinx.coroutines.launch
 
 // ========================================
 // 색상
@@ -93,6 +95,7 @@ fun MoreScreen(
         rememberResponsiveDimens()
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
+    val coroutineScope = rememberCoroutineScope()
 
 
     // ========================================
@@ -550,7 +553,7 @@ fun MoreScreen(
 
 
             // ========================================
-            // 4. 안내 메뉴
+            // 4. 안내 메뉴(로그아웃 로직 추가)
             // ========================================
 
             MenuGroupCard(
@@ -567,8 +570,30 @@ fun MoreScreen(
                             dimens.screenHorizontalPadding
                     ),
 
-                onMenuClick =
-                    onMenuClick
+                onMenuClick = { title ->
+                    if (title == "로그아웃") {
+                        // ⭐️ 로그아웃 버튼이 눌렸을 때의 3단계 처리
+                        coroutineScope.launch {
+                            try {
+                                // 1. 백엔드 Redis 토큰 삭제 요청 (loginId 상태 변수 활용)
+                                RetrofitClient.authApi.logout(LogoutRequest(loginId))
+                            } catch (e: Exception) {
+                                // 통신 실패 시에도 로컬 토큰은 지워야 하므로 로그만 남김
+                                android.util.Log.e("Logout", "백엔드 로그아웃 요청 실패", e)
+                            } finally {
+                                // 2. 기기 내부의 TokenManager에서 토큰 완전 삭제
+                                tokenManager.clearToken() // (TokenManager에 해당 메서드가 없다면 만들어야 함)
+
+                                // 3. 화면 이동 (AppNavigation에서 "로그아웃"을 받아 LoginScreen으로 보내도록 설정 필요)
+                                onMenuClick("로그아웃")
+                            }
+                        }
+                    } else {
+                        // 로그아웃이 아닌 다른 메뉴(공지사항, 문의하기 등) 클릭 시 기존 로직 실행
+                        onMenuClick(title)
+                    }
+                }
+
             )
 
 

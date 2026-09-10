@@ -93,6 +93,8 @@ class MainActivity : ComponentActivity() {
 
         requestLocationPermission()
 
+        startRimoBackgroundService()
+
 
         // ========================================
         // Compose 실행
@@ -101,6 +103,15 @@ class MainActivity : ComponentActivity() {
         setContent {
 
             AppNavigation()
+        }
+    }
+
+    private fun startRimoBackgroundService() {
+        val serviceIntent = android.content.Intent(this, com.example.clouddx_team4_project.service.RimoSafeBackgroundService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
         }
     }
 
