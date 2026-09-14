@@ -126,8 +126,8 @@ fun QuackScreen(
 
 
     // ========================================
-    // 사이렌 시작
-    // ========================================
+// 사이렌 시작
+// ========================================
 
     fun startSiren() {
 
@@ -135,16 +135,10 @@ fun QuackScreen(
             return
         }
 
+        val audioManager =
+            context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
         try {
-
-            // ========================================
-            // 기기 알람 볼륨을 최대로 강제 설정
-            // (원래 볼륨은 저장해두고, 종료 시 복원)
-            // ========================================
-
-            val audioManager =
-                context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
             originalAlarmVolume =
                 audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
 
@@ -157,6 +151,11 @@ fun QuackScreen(
                 0
             )
 
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        try {
             mediaPlayer =
                 MediaPlayer.create(
                     context,
@@ -169,17 +168,14 @@ fun QuackScreen(
                 )
 
             mediaPlayer?.apply {
-
                 isLooping = true
-
                 setVolume(1.0f, 1.0f)
-
                 start()
             }
 
         } catch (e: Exception) {
-
             e.printStackTrace()
+            mediaPlayer = null
         }
     }
 

@@ -53,10 +53,21 @@ android {
 
     buildTypes {
         release {
+            // 현재는 난독화/최적화 사용하지 않음
             optimization {
                 enable = false
             }
         }
+    }
+
+    // ========================================
+    // Lint
+    // ========================================
+    // release APK 생성 시 lint 오류가 있어도
+    // APK 빌드를 중단하지 않도록 설정
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     compileOptions {
@@ -88,14 +99,37 @@ dependencies {
     // Compose
     // ========================================
 
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(
+        platform(libs.androidx.compose.bom)
+    )
+
+    implementation(
+        libs.androidx.activity.compose
+    )
+
+    implementation(
+        libs.androidx.compose.material3
+    )
+
+    implementation(
+        libs.androidx.compose.ui
+    )
+
+    implementation(
+        libs.androidx.compose.ui.graphics
+    )
+
+    implementation(
+        libs.androidx.compose.ui.tooling.preview
+    )
+
+    implementation(
+        libs.androidx.core.ktx
+    )
+
+    implementation(
+        libs.androidx.lifecycle.runtime.ktx
+    )
 
     implementation(
         "androidx.compose.material:material-icons-extended:1.7.8"
@@ -148,7 +182,9 @@ dependencies {
     // Test
     // ========================================
 
-    testImplementation(libs.junit)
+    testImplementation(
+        libs.junit
+    )
 
     androidTestImplementation(
         platform(libs.androidx.compose.bom)

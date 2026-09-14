@@ -19,3 +19,4 @@ app/build/
 # Misc
 captures/
 .DS_Store
+app/release/

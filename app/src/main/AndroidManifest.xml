@@ -23,6 +23,9 @@
     <!-- 긴급 알림 및 상태 확인 시 진동 기능 사용 -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- 사이렌 알람 볼륨 제어 -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
     <!-- networkSecurityConfig 추가함 - localhost HTTP 통신 허용을 위한 네트워크 보안 설정 -->
     <application
         android:networkSecurityConfig="@xml/network_security_config"
