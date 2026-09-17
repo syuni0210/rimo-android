@@ -314,14 +314,64 @@ fun ActiveRouteScreen(
     }
 
     // ========================================
-    // 현재 이동 방향
-    //
-    // Android Location.bearing 기준
-    // 북쪽 0°, 동쪽 90°, 남쪽 180°, 서쪽 270°
+    // 현재 이동 방향 (나침반 센서 엔진 추가!)
     // ========================================
 
     var currentBearing by remember {
         mutableStateOf<Float?>(null)
+    }
+
+    val sensorManager = remember { context.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager }
+
+    DisposableEffect(sensorManager) {
+        val rotationSensor = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_ROTATION_VECTOR)
+
+        var lastAzimuth = -1f
+        val ALPHA = 0.15f
+
+        val sensorEventListener = object : android.hardware.SensorEventListener {
+            override fun onSensorChanged(event: android.hardware.SensorEvent) {
+                if (event.sensor.type == android.hardware.Sensor.TYPE_ROTATION_VECTOR) {
+                    val rotationMatrix = FloatArray(9)
+                    android.hardware.SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+                    val orientationAngles = FloatArray(3)
+                    android.hardware.SensorManager.getOrientation(rotationMatrix, orientationAngles)
+
+                    var rawAzimuth = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
+                    if (rawAzimuth < 0) rawAzimuth += 360f
+
+                    if (lastAzimuth == -1f) {
+                        lastAzimuth = rawAzimuth
+                        currentBearing = rawAzimuth
+                    } else {
+                        var delta = rawAzimuth - lastAzimuth
+                        if (delta > 180f) delta -= 360f
+                        if (delta < -180f) delta += 360f
+
+                        lastAzimuth += ALPHA * delta
+                        if (lastAzimuth < 0) lastAzimuth += 360f
+                        if (lastAzimuth >= 360) lastAzimuth -= 360f
+
+                        val current = currentBearing ?: lastAzimuth
+                        var diff = Math.abs(current - lastAzimuth)
+                        if (diff > 180f) diff = Math.abs(diff - 360f)
+
+                        if (diff > 1.5f) {
+                            currentBearing = lastAzimuth
+                        }
+                    }
+                }
+            }
+            override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
+        }
+
+        rotationSensor?.let {
+            sensorManager.registerListener(sensorEventListener, it, android.hardware.SensorManager.SENSOR_DELAY_GAME)
+        }
+
+        onDispose {
+            sensorManager.unregisterListener(sensorEventListener)
+        }
     }
 
     // ========================================
@@ -370,6 +420,7 @@ fun ActiveRouteScreen(
                     e.printStackTrace()
                 }
             }
+            delay(3000L)
         }
     }
 
