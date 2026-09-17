@@ -58,6 +58,179 @@ private val BorderGray =
 private val LightBlue =
     Color(0xFFF0F4FF)
 
+// ========================================
+// 약관 상세 종류
+// ========================================
+
+private enum class AgreementType {
+    SERVICE,
+    PRIVACY,
+    LOCATION,
+    MARKETING,
+    EMERGENCY
+}
+
+private data class AgreementDetail(
+    val title: String,
+    val content: String
+)
+
+private fun getAgreementDetail(
+    type: AgreementType
+): AgreementDetail {
+
+    return when (type) {
+
+        AgreementType.SERVICE -> AgreementDetail(
+            title = "서비스 이용약관",
+            content = """
+제1조 (목적)
+
+본 약관은 RIMO가 제공하는 안심귀가, 안전경로 안내, 위치 공유 및 안전 관련 서비스의 이용 조건과 이용자와 서비스 간의 권리 및 의무를 규정하는 것을 목적으로 합니다.
+
+제2조 (서비스 이용)
+
+이용자는 회원가입 후 서비스를 이용할 수 있으며, 정확한 정보를 제공해야 합니다. 이용자는 타인의 계정을 무단으로 사용하거나 서비스 운영을 방해해서는 안 됩니다.
+
+제3조 (서비스 내용)
+
+RIMO는 다음과 같은 서비스를 제공합니다.
+
+• 안전 귀가 경로 안내
+• 현재 위치 및 이동 경로 확인
+• 보호자 또는 친구와 위치 공유
+• 주변 CCTV, 비상벨, 경찰시설 등 안전시설 정보 제공
+• 긴급상황 지원 기능
+
+제4조 (서비스 변경 및 중단)
+
+네트워크 장애, 외부 API 장애, 서버 점검, 천재지변 등의 사유로 서비스의 일부 또는 전부가 일시적으로 제한될 수 있습니다.
+
+제5조 (이용자의 책임)
+
+RIMO가 제공하는 경로 및 안전정보는 이용자의 안전을 지원하기 위한 보조 정보입니다. 실제 현장 상황과 차이가 있을 수 있으므로 이용자는 주변 환경을 함께 확인해야 합니다.
+
+제6조 (약관 변경)
+
+서비스 운영상 필요한 경우 관련 법령을 준수하여 약관을 변경할 수 있으며, 중요한 변경사항은 서비스 내 공지를 통해 안내합니다.
+            """.trimIndent()
+        )
+
+        AgreementType.PRIVACY -> AgreementDetail(
+            title = "개인정보 수집 및 이용 동의",
+            content = """
+RIMO는 회원가입 및 서비스 제공을 위해 필요한 범위에서 개인정보를 수집하고 이용합니다.
+
+1. 수집 항목
+
+• 이름
+• 아이디
+• 이메일 주소
+• 로그인 및 인증 정보
+• 서비스 이용 기록
+
+2. 이용 목적
+
+• 회원 식별 및 계정 관리
+• 로그인 및 본인 확인
+• 서비스 제공
+• 이용자 문의 대응
+• 서비스 안정성 및 품질 개선
+
+3. 보유 및 이용 기간
+
+회원 탈퇴 시 개인정보는 원칙적으로 삭제합니다. 다만 관계 법령에 따라 보관이 필요한 정보는 해당 법령에서 정한 기간 동안 보관할 수 있습니다.
+
+4. 동의 거부
+
+필수 개인정보 수집 및 이용에 동의하지 않을 경우 회원가입 및 서비스 이용이 제한될 수 있습니다.
+            """.trimIndent()
+        )
+
+        AgreementType.LOCATION -> AgreementDetail(
+            title = "위치정보 수집 및 이용 동의",
+            content = """
+RIMO는 안심귀가 및 위치 기반 안전 서비스를 제공하기 위해 이용자의 위치정보를 이용합니다.
+
+1. 이용하는 위치정보
+
+• 현재 위치
+• 이동 중 갱신되는 위치
+• 출발지 및 목적지
+• 이동 경로 관련 정보
+
+2. 이용 목적
+
+• 안전 귀가 경로 제공
+• 현재 위치 기반 주변 안전시설 검색
+• 이용자가 요청한 위치 공유
+• 긴급상황 관련 기능 제공
+
+3. 위치정보 공유
+
+위치정보는 이용자가 위치 공유 기능을 사용하는 경우 지정된 보호자 또는 친구에게 제공될 수 있습니다.
+
+4. 보유 기간
+
+실시간 위치정보는 서비스 제공에 필요한 기간 동안 이용하며, 이용 목적이 달성된 정보는 관련 정책에 따라 삭제합니다.
+
+5. 동의 거부
+
+위치정보 이용에 동의하지 않을 수 있으나, 동의하지 않을 경우 경로 안내 및 실시간 위치 공유 등 위치 기반 서비스 이용이 제한될 수 있습니다.
+            """.trimIndent()
+        )
+
+        AgreementType.MARKETING -> AgreementDetail(
+            title = "마케팅 정보 수신 동의",
+            content = """
+RIMO는 이용자가 동의한 경우 서비스 관련 소식 및 마케팅 정보를 제공할 수 있습니다.
+
+1. 제공 정보
+
+• 새로운 기능 안내
+• 이벤트 및 프로모션 안내
+• 서비스 이용 혜택
+• 기타 RIMO 관련 소식
+
+2. 제공 방법
+
+앱 알림 또는 이용자가 동의한 방법을 통해 정보를 제공할 수 있습니다.
+
+3. 동의 철회
+
+마케팅 정보 수신은 선택사항이며, 동의하지 않아도 기본 서비스 이용에는 제한이 없습니다.
+
+이용자는 언제든지 마케팅 정보 수신 동의를 철회할 수 있습니다.
+            """.trimIndent()
+        )
+
+        AgreementType.EMERGENCY -> AgreementDetail(
+            title = "긴급상황 관련 정보 수신 동의",
+            content = """
+RIMO는 이용자가 동의한 경우 안전 및 긴급상황과 관련된 정보를 제공할 수 있습니다.
+
+1. 제공될 수 있는 정보
+
+• 안심귀가 상태 관련 알림
+• 안전 확인 및 체크인 관련 알림
+• 위치 공유 상태 관련 알림
+• 긴급상황 또는 SOS 관련 알림
+
+2. 이용 목적
+
+이용자와 보호자가 긴급상황을 신속하게 확인하고 필요한 대응을 할 수 있도록 지원하기 위함입니다.
+
+3. 유의사항
+
+RIMO의 긴급상황 기능은 경찰, 소방 등 공식 긴급구조기관의 서비스를 대신하지 않습니다. 실제 긴급상황에서는 112 또는 119 등 관계 기관에 직접 신고해야 합니다.
+
+4. 동의 철회
+
+본 동의는 선택사항이며 이용자는 언제든지 동의를 철회할 수 있습니다.
+            """.trimIndent()
+        )
+    }
+}
 
 // ========================================
 // 회원가입 화면
@@ -838,6 +1011,10 @@ private fun TermsStep(
     onNextClick: () -> Unit
 ) {
 
+    var selectedAgreement by remember {
+        mutableStateOf<AgreementType?>(null)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -944,96 +1121,76 @@ private fun TermsStep(
 
 
         AgreementRow(
-            title =
-                "[필수] 서비스 이용약관",
+            title = "[필수] 서비스 이용약관",
 
-            checked =
-                serviceAgree,
+            checked = serviceAgree,
 
-            showDetail =
-                true,
+            onDetailClick = {
+                selectedAgreement = AgreementType.SERVICE
+            },
 
             onCheckedChange = {
-
-                onServiceAgreeChange(
-                    it
-                )
+                onServiceAgreeChange(it)
             }
         )
 
 
         AgreementRow(
-            title =
-                "[필수] 개인정보 수집 및 이용 동의",
+            title = "[필수] 개인정보 수집 및 이용 동의",
 
-            checked =
-                privacyAgree,
+            checked = privacyAgree,
 
-            showDetail =
-                true,
+            onDetailClick = {
+                selectedAgreement = AgreementType.PRIVACY
+            },
 
             onCheckedChange = {
-
-                onPrivacyAgreeChange(
-                    it
-                )
+                onPrivacyAgreeChange(it)
             }
         )
 
 
         AgreementRow(
-            title =
-                "[필수] 위치정보 수집 및 이용 동의",
+            title = "[필수] 위치정보 수집 및 이용 동의",
 
-            checked =
-                locationAgree,
+            checked = locationAgree,
 
-            showDetail =
-                true,
+            onDetailClick = {
+                selectedAgreement = AgreementType.LOCATION
+            },
 
             onCheckedChange = {
-
-                onLocationAgreeChange(
-                    it
-                )
+                onLocationAgreeChange(it)
             }
         )
 
 
         AgreementRow(
-            title =
-                "[선택] 마케팅 정보 수신 동의",
+            title = "[선택] 마케팅 정보 수신 동의",
 
-            checked =
-                marketingAgree,
+            checked = marketingAgree,
 
-            showDetail =
-                true,
+            onDetailClick = {
+                selectedAgreement = AgreementType.MARKETING
+            },
 
             onCheckedChange = {
-
-                onMarketingAgreeChange(
-                    it
-                )
+                onMarketingAgreeChange(it)
             }
         )
 
 
         AgreementRow(
-            title =
-                "[선택] 긴급상황 관련 정보 수신 동의",
+            title = "[선택] 긴급상황 관련 정보 수신 동의",
 
-            checked =
-                emergencyAgree,
+            checked = emergencyAgree,
 
-            showDetail =
-                true,
+            onDetailClick = {
+                selectedAgreement = AgreementType.EMERGENCY
+            },
 
             onCheckedChange = {
-
-                onEmergencyAgreeChange(
-                    it
-                )
+                onEmergencyAgreeChange(it)
             }
         )
 
@@ -1059,6 +1216,24 @@ private fun TermsStep(
                 onNextClick
         )
     }
+    // ========================================
+    // 약관 상세 Dialog
+    // ========================================
+
+    selectedAgreement?.let { type ->
+
+        val detail =
+            getAgreementDetail(type)
+
+        AgreementDetailDialog(
+            title = detail.title,
+            content = detail.content,
+
+            onDismiss = {
+                selectedAgreement = null
+            }
+        )
+    }
 }
 
 
@@ -1071,7 +1246,7 @@ private fun AgreementRow(
     title: String,
     checked: Boolean,
     bold: Boolean = false,
-    showDetail: Boolean = false,
+    onDetailClick: (() -> Unit)? = null,
     onCheckedChange: (Boolean) -> Unit
 ) {
 
@@ -1090,7 +1265,6 @@ private fun AgreementRow(
             checked = checked,
 
             onClick = {
-
                 onCheckedChange(
                     !checked
                 )
@@ -1136,48 +1310,147 @@ private fun AgreementRow(
 
 
         if (
-            showDetail
+            onDetailClick != null
         ) {
 
-            Text(
-                text =
-                    "보기",
+            Row(
+                modifier = Modifier
+                    .clickable {
+                        onDetailClick()
+                    }
+                    .padding(
+                        start = 10.dp,
+                        top = 12.dp,
+                        bottom = 12.dp
+                    ),
 
-                fontSize =
-                    12.sp,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
 
-                color =
-                    TextGray
-            )
+                Text(
+                    text =
+                        "보기",
+
+                    fontSize =
+                        12.sp,
+
+                    color =
+                        TextGray
+                )
 
 
-            Spacer(
-                modifier =
-                    Modifier.width(
-                        3.dp
-                    )
-            )
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            3.dp
+                        )
+                )
 
 
-            Icon(
-                imageVector =
-                    Icons.Filled.ChevronRight,
+                Icon(
+                    imageVector =
+                        Icons.Filled.ChevronRight,
 
-                contentDescription =
-                    null,
+                    contentDescription =
+                        "약관 상세 보기",
 
-                tint =
-                    TextGray,
+                    tint =
+                        TextGray,
 
-                modifier =
-                    Modifier.size(
-                        16.dp
-                    )
-            )
+                    modifier =
+                        Modifier.size(
+                            16.dp
+                        )
+                )
+            }
         }
     }
 }
 
+// ========================================
+// 약관 상세 Dialog
+// ========================================
+
+@Composable
+private fun AgreementDetailDialog(
+    title: String,
+    content: String,
+    onDismiss: () -> Unit
+) {
+
+    AlertDialog(
+        onDismissRequest = {
+            onDismiss()
+        },
+
+        title = {
+
+            Text(
+                text = title,
+
+                fontSize = 19.sp,
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                color =
+                    TextBlack
+            )
+        },
+
+        text = {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(
+                        max = 420.dp
+                    )
+                    .verticalScroll(
+                        rememberScrollState()
+                    )
+            ) {
+
+                Text(
+                    text = content,
+
+                    fontSize = 14.sp,
+
+                    lineHeight = 22.sp,
+
+                    color =
+                        Color(
+                            0xFF555555
+                        )
+                )
+            }
+        },
+
+        confirmButton = {
+
+            TextButton(
+                onClick = {
+                    onDismiss()
+                }
+            ) {
+
+                Text(
+                    text = "확인",
+
+                    color =
+                        AnOnBlue,
+
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            }
+        },
+
+        containerColor =
+            Color.White
+    )
+}
 
 // ========================================
 // 커스텀 체크
